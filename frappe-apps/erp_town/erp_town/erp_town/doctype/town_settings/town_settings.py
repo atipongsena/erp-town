@@ -16,7 +16,7 @@ DEFAULTS = {
 	"approval_states": ["รออนุมัติ"],
 }
 
-_CACHE_KEY = "erp_town_settings"
+_CACHE_KEY = "__town_settings__"
 
 
 class TownSettings(Document):
@@ -50,14 +50,35 @@ def parse_approval_states(value: str | None) -> list[str]:
 
 
 def get_town_settings() -> frappe._dict:
-	"""Town Settings with defaults applied; cached for the current request on `frappe.local`."""
-	cached = getattr(frappe.local, _CACHE_KEY, None)
-	if cached is not None:
-		return cached
+	"""Town Settings with defaults applied, as a fresh copy the caller may mutate.
 
+	Cached in `frappe.db.value_cache["Town Settings"]`, so the cache is transaction-scoped: Frappe clears
+	it on commit, rollback and savepoint rollback, and pops the doctype on single save and
+	`frappe.db.set_single_value` (via `frappe.clear_document_cache`). Call `clear_town_settings_cache()`
+	after writing `tabSingles` with raw SQL.
+	"""
+	cache = frappe.db.value_cache["Town Settings"]
+	if _CACHE_KEY not in cache:
+		cache[_CACHE_KEY] = _load_town_settings()
+	return _copy(cache[_CACHE_KEY])
+
+
+def clear_town_settings_cache() -> None:
+	frappe.db.value_cache.get("Town Settings", {}).pop(_CACHE_KEY, None)
+
+
+def _copy(settings: frappe._dict) -> frappe._dict:
+	return frappe._dict(
+		settings,
+		approval_states=list(settings.approval_states),
+		naming_rules=[dict(r) for r in settings.naming_rules],
+	)
+
+
+def _load_town_settings() -> frappe._dict:
 	raw = frappe.db.get_singles_dict("Town Settings")
 	hour = raw.get("overdue_job_hour")
-	settings = frappe._dict(
+	return frappe._dict(
 		redis_town_url=raw.get("redis_town_url") or frappe.conf.get("town_redis_url"),
 		stream_name=raw.get("stream_name") or DEFAULTS["stream_name"],
 		stream_retention_days=cint(raw.get("stream_retention_days")) or DEFAULTS["stream_retention_days"],
@@ -77,10 +98,3 @@ def get_town_settings() -> frappe._dict:
 			)
 		],
 	)
-	setattr(frappe.local, _CACHE_KEY, settings)
-	return settings
-
-
-def clear_town_settings_cache() -> None:
-	if hasattr(frappe.local, _CACHE_KEY):
-		delattr(frappe.local, _CACHE_KEY)
