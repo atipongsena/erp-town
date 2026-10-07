@@ -13,9 +13,14 @@ doc_events = {
 	"Sales Order": {
 		"on_submit": "erp_town.events.doc_hooks.on_doc_event",
 		"on_cancel": "erp_town.events.doc_hooks.on_doc_event",
+		"on_change": "erp_town.events.workflow.on_change",  # workflow.approval.*
 	},
 	"Delivery Note": {
-		"on_submit": "erp_town.events.doc_hooks.on_doc_event",
+		# order matters: erp.stock.below_reorder is caused by the DN's submitted event
+		"on_submit": [
+			"erp_town.events.doc_hooks.on_doc_event",
+			"erp_town.events.stock.on_dn_submit",
+		],
 		"on_cancel": "erp_town.events.doc_hooks.on_doc_event",
 	},
 	"Sales Invoice": {
@@ -28,8 +33,12 @@ doc_events = {
 	},
 }
 
-# outbox -> redis-town stream (spec §4.3): the sweeper retries what the after-commit publish job missed
+# outbox -> redis-town stream (spec §4.3): the sweeper retries what the after-commit publish job missed;
+# the overdue job runs hourly but only acts in Town Settings `overdue_job_hour`
 scheduler_events = {
-	"cron": {"* * * * *": ["erp_town.events.publisher.sweep"]},
+	"cron": {
+		"* * * * *": ["erp_town.events.publisher.sweep"],
+		"0 * * * *": ["erp_town.events.jobs.emit_overdue_hourly"],
+	},
 	"daily": ["erp_town.events.publisher.purge"],
 }

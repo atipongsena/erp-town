@@ -9,10 +9,10 @@ swallows town-layer errors; it only re-raises when the database already lost the
 which must reach the caller (see `erp_town.events.emit`).
 """
 
-from erp_town.events.emit import EVENT_INVALID, emit_raw, log_failure
+from erp_town.events.emit import emit_raw, log_failure
 from erp_town.events.lineage import find_lineage
 from erp_town.events.mappers import CANCELLED, REGISTRY, SUBMITTED
-from erp_town.events.system import emit_system_error
+from erp_town.events.system import report_build_failure
 
 ACTIONS = {"on_submit": SUBMITTED, "on_cancel": CANCELLED}
 
@@ -57,13 +57,8 @@ def _data(doc, mapper, action: str, against: list[str], event_type: str) -> tupl
 
 
 def _report_failure(doc, event_type: str, error: Exception) -> None:
-	log_failure(f"ERP Town: building {event_type} failed on {doc.doctype} {doc.name}")
-	emit_system_error(
-		EVENT_INVALID,
-		f"could not build {event_type} for {doc.doctype} {doc.name}: {_describe(error)}",
-		subject_doctype=doc.doctype,
-		subject_name=doc.name,
-		company=doc.get("company"),
+	report_build_failure(
+		event_type, error, subject_doctype=doc.doctype, subject_name=doc.name, company=doc.get("company")
 	)
 
 

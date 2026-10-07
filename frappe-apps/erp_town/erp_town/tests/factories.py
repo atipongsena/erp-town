@@ -213,16 +213,20 @@ def make_si_from_dn(dn, *, submit: bool = True):
 	return si
 
 
-def make_si(customer: str, items: list, *, submit: bool = True):
-	"""A standalone Sales Invoice (no Sales Order / Delivery Note upstream, no stock update)."""
-	today = nowdate()
+def make_si(customer: str, items: list, *, submit: bool = True, posting_date: str | None = None):
+	"""A standalone Sales Invoice (no Sales Order / Delivery Note upstream, no stock update).
+
+	Due on its posting date (`posting_date`, default today).
+	"""
+	posting_date = str(getdate(posting_date or nowdate()))
 	si = frappe.get_doc(
 		{
 			"doctype": "Sales Invoice",
 			"company": TEST_COMPANY,
 			"customer": customer,
-			"posting_date": today,
-			"due_date": today,
+			"set_posting_time": 1,
+			"posting_date": posting_date,
+			"due_date": posting_date,
 			"currency": CURRENCY,
 			"selling_price_list": PRICE_LIST,
 			"items": _item_rows(items),

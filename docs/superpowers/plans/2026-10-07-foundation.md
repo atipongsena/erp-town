@@ -392,11 +392,11 @@ def test_purge_deletes_only_old_published(self): ...
   - `emit_overdue_hourly()` — runs `emit_overdue()` only when the current hour equals `overdue_job_hour`.
   - `emit_overdue(today: date | None = None) -> int` — spec §4.3; dedupe = no `erp.sales_invoice.overdue` outbox row for that SI with `creation` date == today; actor system (`frappe.flags.town_system_actor = True` during the run); `days_overdue = (today - due_date).days`.
 
-- [ ] **Step 1: Write failing tests**: SO with workflow fixture (created in `setUpClass`: states `Draft`(0) → `รออนุมัติ`(0) → `อนุมัติแล้ว`(1) / `ปฏิเสธ`(0), approver role `Sales Manager`) → requested then decided `approved`, and a second SO → `rejected`; DN that crosses reorder level emits exactly one below_reorder with `fill_ratio` and correct causation, a DN that stays above emits none, a DN already below emits none; overdue: SI due yesterday unpaid → 1 event, second call same day → 0, paid SI → 0, `days_overdue` correct.
-- [ ] **Step 2: Run** `pnpm erp:test -- --module erp_town.tests.test_derived_events` → FAIL
-- [ ] **Step 3: Implement**
-- [ ] **Step 4: Run** → PASS
-- [ ] **Step 5: Commit** (`feat(events): approval, reorder and overdue events`, `Task: 9`)
+- [x] **Step 1: Write failing tests**: SO with workflow fixture (created in `setUpClass`: states `Draft`(0) → `รออนุมัติ`(0) → `อนุมัติแล้ว`(1) / `ปฏิเสธ`(0), approver role `Sales Manager`) → requested then decided `approved`, and a second SO → `rejected`; DN that crosses reorder level emits exactly one below_reorder with `fill_ratio` and correct causation, a DN that stays above emits none, a DN already below emits none; overdue: SI due yesterday unpaid → 1 event, second call same day → 0, paid SI → 0, `days_overdue` correct.
+- [x] **Step 2: Run** `pnpm erp:test -- --module erp_town.tests.test_derived_events` → FAIL
+- [x] **Step 3: Implement**
+- [x] **Step 4: Run** → PASS
+- [x] **Step 5: Commit** (`feat(events): approval, reorder and overdue events`, `Task: 9`)
 
 ---
 
