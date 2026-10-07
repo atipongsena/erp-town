@@ -83,7 +83,7 @@ tests/integration/*.test.ts, tests/e2e/print-formats.spec.ts
 - Produces: root scripts `lint`, `format`, `test` (= `pnpm -r test && pnpm erp:test`), `test:integration`, `test:e2e`, `schema:gen`, `erp:up`, `erp:down`, `erp:logs`, `erp:shell`, `erp:bench`, `erp:test`, `erp:seed`, `erp:scenario` (the `erp:*` ones call `node scripts/erp.mjs <cmd> [...args]`).
 - `scripts/erp.mjs` commands: `up` (`docker compose -f infra/docker/compose.yaml --profile dev up -d` then wait for `http://localhost:8080/api/method/ping`), `down`, `logs [service]`, `shell`, `bench <args...>` (runs `bench <args>` in `/home/frappe/frappe-bench` of service `bench`), `test [--module m]` (`bench --site test.localhost run-tests --app erp_town [--module m]`), `seed` (`bench --site town.localhost execute erp_town.setup.seed.run`), `scenario [--days N] [--bulk N]` (`bench --site town.localhost execute erp_town.setup.scenario.run --kwargs '{"days":N,"bulk":N}'`). Exit code = child exit code.
 
-- [ ] **Step 1: Write `AGENTS.md`** containing: project one-liner + links to both specs and this plan; the commands above; rules (Global Constraints of this plan, TDD, no secrets in git, Desk/test site names); the git progress convention:
+- [x] **Step 1: Write `AGENTS.md`** containing: project one-liner + links to both specs and this plan; the commands above; rules (Global Constraints of this plan, TDD, no secrets in git, Desk/test site names); the git progress convention:
 
 ```
 <type>(<scope>): <summary>
@@ -99,7 +99,7 @@ Status: done
 
 and the resume command `git log --grep="Plan: foundation" ...`. `CLAUDE.md` is one line `@AGENTS.md`.
 
-- [ ] **Step 2: Write `.codex/config.toml`** mirroring `.mcp.json`:
+- [x] **Step 2: Write `.codex/config.toml`** mirroring `.mcp.json`:
 
 ```toml
 [mcp_servers.blender]
@@ -108,13 +108,13 @@ args = ["/c", "uvx", "mcp-for-blender"]
 env = { DISABLE_TELEMETRY = "true", PYTHONIOENCODING = "utf-8" }
 ```
 
-- [ ] **Step 3: Convert root to pnpm workspace** (`packages: ["packages/*"]`), devDependencies `@biomejs/biome`, `typescript`, `vitest`, `@playwright/test`, `@types/node`; `"type": "module"`; `"engines": {"node": ">=24"}`. Delete `package-lock.json` and `tests/example.spec.ts`.
-- [ ] **Step 4: Verify**
+- [x] **Step 3: Convert root to pnpm workspace** (`packages: ["packages/*"]`), devDependencies `@biomejs/biome`, `typescript`, `vitest`, `@playwright/test`, `@types/node`; `"type": "module"`; `"engines": {"node": ">=24"}`. Delete `package-lock.json` and `tests/example.spec.ts`.
+- [x] **Step 4: Verify**
 
 Run: `pnpm install && pnpm lint && node scripts/erp.mjs --help`
 Expected: install succeeds, Biome reports no errors, help lists all commands.
 
-- [ ] **Step 5: Commit** (`chore: set up pnpm monorepo and shared agent tooling`, trailers `Task: 1`)
+- [x] **Step 5: Commit** (`chore: set up pnpm monorepo and shared agent tooling`, trailers `Task: 1`)
 
 ---
 
