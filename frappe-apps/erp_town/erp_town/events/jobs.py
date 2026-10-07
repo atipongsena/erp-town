@@ -41,7 +41,7 @@ def emit_overdue(today: date | None = None) -> int:
 	try:
 		count = 0
 		for invoice in _overdue_invoices(today):
-			if not _emitted_on(invoice.name, today) and _emit(invoice, today):
+			if _emit(invoice, today):
 				count += 1
 		return count
 	finally:
@@ -69,7 +69,10 @@ def _emitted_on(invoice: str, day: date) -> bool:
 
 
 def _emit(invoice, today: date) -> bool:
+	"""Emit for one invoice unless it already has today's event; False when skipped or not stored."""
 	try:
+		if _emitted_on(invoice.name, today):
+			return False
 		own = latest_event("Sales Invoice", invoice.name)
 		data = {
 			"due_date": iso_date(invoice.due_date),

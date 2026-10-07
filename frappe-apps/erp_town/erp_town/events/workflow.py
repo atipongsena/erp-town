@@ -5,8 +5,9 @@
 
 - entering a state listed in Town Settings `approval_states` → `workflow.approval.requested`
   (`approver_role` = allowed role of the first transition, in table order, out of that state);
-- leaving such a state → `workflow.approval.decided` (`approved` when the new state's `doc_status` is 1,
-  else `rejected`).
+- leaving such a state → `workflow.approval.decided`: `approved` when the new state's `doc_status` is 1 or
+  the new state is itself an approval state (multi-level approval: `decided` for the old level, then
+  `requested` for the new one), else `rejected`.
 
 Correlation / causation come from the document's own latest event at emit time (an approval that submits
 the document runs `on_change` after `on_submit`, so `decided` is caused by the `submitted` event).
@@ -73,7 +74,8 @@ def _events_for(doc) -> list[tuple[str, dict]]:
 	approval_states = set(get_town_settings().approval_states)
 	events = []
 	if old in approval_states:
-		events.append((DECIDED, {"from_state": old, "to_state": new, "decision": _decision(workflow, new)}))
+		decision = _decision(workflow, new, approval_states)
+		events.append((DECIDED, {"from_state": old, "to_state": new, "decision": decision}))
 	if new in approval_states:
 		events.append(
 			(REQUESTED, {"from_state": old, "to_state": new, "approver_role": _approver_role(workflow, new)})
@@ -81,7 +83,9 @@ def _events_for(doc) -> list[tuple[str, dict]]:
 	return events
 
 
-def _decision(workflow, state: str) -> str:
+def _decision(workflow, state: str, approval_states: set[str]) -> str:
+	if state in approval_states:
+		return APPROVED
 	row = next((s for s in workflow.states if s.state == state), None)
 	return APPROVED if row is not None and cint(row.doc_status) == 1 else REJECTED
 

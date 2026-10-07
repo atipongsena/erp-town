@@ -9,7 +9,7 @@ from frappe.tests import IntegrationTestCase, UnitTestCase
 from frappe.utils import add_days, get_datetime, getdate, nowdate
 
 from erp_town.erp_town.doctype.town_settings.town_settings import get_town_settings
-from erp_town.events import jobs, stock
+from erp_town.events import jobs, stock, workflow
 from erp_town.events.schema import validate_event
 from erp_town.tests.factories import (
 	TEST_COMPANY,
@@ -27,6 +27,7 @@ WORKFLOW = "ERP Town Test SO Approval"
 WORKFLOW_STATE_FIELD = "workflow_state"
 CUSTOM_FIELD = f"Sales Order-{WORKFLOW_STATE_FIELD}"
 DRAFT, PENDING, APPROVED, REJECTED = "Draft", "รออนุมัติ", "อนุมัติแล้ว", "ปฏิเสธ"
+SECOND_LEVEL = "รออนุมัติขั้นสอง"  # an approval state only while a test adds it to approval_states
 
 
 def _events_for(doctype: str, name: str) -> list[dict]:
@@ -151,6 +152,46 @@ class TestApprovalEvents(_OutboxTestCase):
 		self.assertEqual(decided["causation_id"], requested["id"])
 		self.assertEqual(decided["correlation_id"], so.name)
 		validate_event(decided)
+
+	def test_multi_level_approval_decides_then_requests(self):
+		real_settings = workflow.get_town_settings
+
+		def two_levels():
+			settings = real_settings()
+			settings.approval_states = [*settings.approval_states, SECOND_LEVEL]
+			return settings
+
+		so = make_so(self.customer, [self.item], submit=False)
+		with patch("erp_town.events.workflow.get_town_settings", side_effect=two_levels):
+			apply_workflow(so.as_dict(), "Review")
+			apply_workflow(frappe.get_doc("Sales Order", so.name).as_dict(), "Escalate")
+			events = _events_for("Sales Order", so.name)
+			self.assertEqual(
+				[e["type"] for e in events],
+				["workflow.approval.requested", "workflow.approval.decided", "workflow.approval.requested"],
+			)
+			first, decided, second = events
+			self.assertEqual(first["data"]["approver_role"], "Sales Manager")
+			self.assertEqual(
+				decided["data"], {"from_state": PENDING, "to_state": SECOND_LEVEL, "decision": "approved"}
+			)
+			self.assertEqual(
+				second["data"],
+				{"from_state": PENDING, "to_state": SECOND_LEVEL, "approver_role": "Accounts Manager"},
+			)
+			self.assertEqual(decided["causation_id"], first["id"])
+			self.assertEqual(second["causation_id"], decided["id"])
+
+			apply_workflow(frappe.get_doc("Sales Order", so.name).as_dict(), "Approve")
+		events = _events_for("Sales Order", so.name)
+		self.assertEqual(
+			[e["type"] for e in events[3:]], ["erp.sales_order.submitted", "workflow.approval.decided"]
+		)
+		self.assertEqual(
+			events[4]["data"], {"from_state": SECOND_LEVEL, "to_state": APPROVED, "decision": "approved"}
+		)
+		for e in events:
+			validate_event(e)
 
 	def test_repeated_on_change_for_one_save_emits_once(self):
 		# db_set() during post-save methods re-runs on_change with the same doc_before_save
@@ -298,6 +339,29 @@ class TestOverdueEvents(_OutboxTestCase):
 		validate_event(event)
 		self.assertEqual(_events_for("Sales Invoice", yesterday.name)[-1]["data"]["days_overdue"], 1)
 
+	def test_failing_invoice_does_not_stop_the_job(self):
+		broken = make_si(self.customer, [self.item], posting_date=add_days(self.today, -2))
+		fine = make_si(self.customer, [self.item], posting_date=add_days(self.today, -1))
+		real_emitted_on = jobs._emitted_on
+
+		def emitted_on(invoice, day):
+			if invoice == broken.name:
+				raise RuntimeError("dedupe bug")
+			return real_emitted_on(invoice, day)
+
+		with patch("erp_town.events.jobs._emitted_on", side_effect=emitted_on):
+			count = jobs.emit_overdue()
+		self.assertGreaterEqual(count, 1)
+		self.assertEqual(
+			len(_of_type(_events_for("Sales Invoice", fine.name), "erp.sales_invoice.overdue")), 1
+		)
+		broken_events = _events_for("Sales Invoice", broken.name)
+		self.assertEqual(_of_type(broken_events, "erp.sales_invoice.overdue"), [])
+		errors = _of_type(broken_events, "system.error")
+		self.assertEqual(len(errors), 1)
+		self.assertEqual(errors[0]["data"]["code"], "EVENT_INVALID")
+		self.assertIn("dedupe bug", errors[0]["data"]["message"])
+
 	def test_next_day_emits_again(self):
 		si = make_si(self.customer, [self.item], posting_date=add_days(self.today, -1))
 		jobs.emit_overdue()
@@ -347,12 +411,12 @@ class TestOverdueEvents(_OutboxTestCase):
 
 
 def _create_test_workflow() -> None:
-	for state in (DRAFT, PENDING, APPROVED, REJECTED):
+	for state in (DRAFT, PENDING, APPROVED, REJECTED, SECOND_LEVEL):
 		if not frappe.db.exists("Workflow State", state):
 			frappe.get_doc({"doctype": "Workflow State", "workflow_state_name": state}).insert(
 				ignore_permissions=True
 			)
-	for action in ("Review", "Approve", "Reject"):
+	for action in ("Review", "Approve", "Reject", "Escalate"):
 		if not frappe.db.exists("Workflow Action Master", action):
 			frappe.get_doc({"doctype": "Workflow Action Master", "workflow_action_name": action}).insert(
 				ignore_permissions=True
@@ -372,11 +436,31 @@ def _create_test_workflow() -> None:
 				{"state": PENDING, "doc_status": "0", "allow_edit": "Sales Manager"},
 				{"state": APPROVED, "doc_status": "1", "allow_edit": "Sales Manager"},
 				{"state": REJECTED, "doc_status": "0", "allow_edit": "Sales Manager"},
+				{"state": SECOND_LEVEL, "doc_status": "0", "allow_edit": "Accounts Manager"},
 			],
 			"transitions": [
 				{"state": DRAFT, "action": "Review", "next_state": PENDING, "allowed": "Sales User"},
 				{"state": PENDING, "action": "Approve", "next_state": APPROVED, "allowed": "Sales Manager"},
 				{"state": PENDING, "action": "Reject", "next_state": REJECTED, "allowed": "Sales Manager"},
+				{
+					"state": PENDING,
+					"action": "Escalate",
+					"next_state": SECOND_LEVEL,
+					"allowed": "Sales Manager",
+				},
+				# out of the second level the first transition in table order names the approver
+				{
+					"state": SECOND_LEVEL,
+					"action": "Approve",
+					"next_state": APPROVED,
+					"allowed": "Accounts Manager",
+				},
+				{
+					"state": SECOND_LEVEL,
+					"action": "Reject",
+					"next_state": REJECTED,
+					"allowed": "Sales Manager",
+				},
 			],
 		}
 	).insert(ignore_permissions=True)
