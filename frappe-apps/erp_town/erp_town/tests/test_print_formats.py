@@ -37,7 +37,7 @@ FORMATS = {
 }
 COMPANY_TAX_ID = "0105555123450"  # checksum-valid
 CUSTOMER_TAX_ID = "0994000165889"  # checksum-valid
-VAT_ACCOUNT = "VAT - ETT"  # leaf of ERPNext's standard chart on the test company
+OTHER_CHARGE_ACCOUNT = "Freight and Forwarding Charges - ETT"  # ERPNext standard chart, test company
 THAI = re.compile("[ก-๛]")  # Thai block: strings already written in Thai need no entry
 MESSAGE = re.compile(r'(?<![\w.])_\(\s*"([^"]*)"')  # _("literal") in the app's Python
 FONT_URLS = ("/assets/erp_town/fonts/Sarabun-Regular.ttf", "/assets/erp_town/fonts/Sarabun-Bold.ttf")
@@ -59,20 +59,76 @@ class TestThaiPrintFormats(IntegrationTestCase):
 		self.customer = make_customer()
 		frappe.db.set_value("Customer", self.customer, "tax_id", CUSTOMER_TAX_ID)
 		self.item = make_item()
+		self.vat_account = self._output_vat_account()
 
 	def tearDown(self):
 		frappe.db.rollback()
 		frappe.clear_document_cache("Company", TEST_COMPANY)
 
-	def _si_with_vat(self):
-		si = make_si(self.customer, [{"item_code": self.item, "qty": 2, "rate": 1250.5}], submit=False)
-		si.append(
-			"taxes",
-			{"charge_type": "On Net Total", "account_head": VAT_ACCOUNT, "rate": 7, "description": "VAT 7%"},
+	def _output_vat_account(self) -> str:
+		"""The Thai output-VAT leaf `ภาษีขาย` (a Thai company's chart has it; added here inside the test)."""
+		parent = frappe.db.get_value(
+			"Account", {"company": TEST_COMPANY, "account_name": "Duties and Taxes", "is_group": 1}
 		)
-		si.save()
-		si.submit()
-		return si
+		return (
+			frappe.get_doc(
+				{
+					"doctype": "Account",
+					"account_name": "ภาษีขาย",
+					"parent_account": parent,
+					"company": TEST_COMPANY,
+					"account_type": "Tax",
+					"is_group": 0,
+				}
+			)
+			.insert(ignore_permissions=True)
+			.name
+		)
+
+	def _vat_row(self) -> dict:
+		return {
+			"charge_type": "On Net Total",
+			"account_head": self.vat_account,
+			"rate": 7,
+			"description": "VAT 7%",
+		}
+
+	def _with_taxes(self, doc, taxes: list[dict], submit: bool = True):
+		for row in taxes:
+			doc.append("taxes", row)
+		doc.save()
+		if submit:
+			doc.submit()
+		return doc
+
+	def _si_with_vat(self, rate: float = 1250, qty: float = 2, extra_taxes: list[dict] | None = None):
+		"""Default 2 x 1,250.00 + VAT 7% = 2,675.00: grand total and rounded total agree."""
+		si = make_si(self.customer, [{"item_code": self.item, "qty": qty, "rate": rate}], submit=False)
+		return self._with_taxes(si, [*(extra_taxes or []), self._vat_row()])
+
+	def _address(self, link_doctype: str, link_name: str, line1: str, branch_code: str) -> str:
+		if not frappe.db.exists("Address Template", {"country": "Thailand"}):
+			# ERPNext renders every saved address; a blank test site (no setup wizard) has no template
+			frappe.get_doc({"doctype": "Address Template", "country": "Thailand", "is_default": 1}).insert(
+				ignore_permissions=True
+			)
+		return (
+			frappe.get_doc(
+				{
+					"doctype": "Address",
+					"address_title": line1,
+					"address_type": "Billing",
+					"address_line1": line1,
+					"city": "กรุงเทพมหานคร",
+					"country": "Thailand",
+					"th_branch_code": branch_code,
+					"is_your_company_address": int(link_doctype == "Company"),
+					"links": [{"link_doctype": link_doctype, "link_name": link_name}],
+				}
+			)
+			.insert(ignore_permissions=True)
+			.name
+		)
 
 	def test_formats_are_standard_jinja_in_thai_localization(self):
 		for name, doctype in FORMATS.items():
@@ -123,13 +179,75 @@ class TestThaiPrintFormats(IntegrationTestCase):
 			si.name,
 			be_date(si.posting_date),
 			self.item,
-			"2,501.00",  # line amount 2 x 1,250.50
-			"175.07",  # VAT on its own line
+			"1,250.00",  # unit price
+			"2,500.00",  # line amount 2 x 1,250.00
+			"175.00",  # VAT on its own line
 			"ภาษีมูลค่าเพิ่ม 7%",
-			"2,676.07",  # grand total
+			"2,675.00",  # grand total
 			bahttext(si.grand_total),
 		]:
 			self.assertIn(needle, html)
+		self.assertEqual(si.rounded_total, si.grand_total)
+		self.assertNotIn("ปัดเศษ", html)
+
+	def test_tax_invoice_rounding_prints_adjustment_and_payable_in_words(self):
+		si = self._si_with_vat(rate=1250.5)  # 2,501.00 + 175.07 = 2,676.07, ERPNext rounds to 2,676.00
+		self.assertEqual((si.grand_total, si.rounded_total, si.rounding_adjustment), (2676.07, 2676, -0.07))
+		html = _print("Sales Invoice", si.name, TAX_INVOICE)
+		for needle in [
+			"2,676.07",
+			"ปัดเศษ",
+			"-0.07",
+			"จำนวนเงินที่ต้องชำระ",
+			"2,676.00",
+			bahttext(si.rounded_total),
+		]:
+			self.assertIn(needle, html)
+		self.assertNotIn(bahttext(si.grand_total), html)
+
+	def test_sales_order_rounding_prints_adjustment_and_payable_in_words(self):
+		so = make_so(self.customer, [{"item_code": self.item, "qty": 2, "rate": 1250.5}], submit=False)
+		so = self._with_taxes(so, [self._vat_row()])
+		self.assertEqual((so.grand_total, so.rounded_total), (2676.07, 2676))
+		html = _print("Sales Order", so.name, "ใบยืนยันคำสั่งซื้อ")
+		for needle in ["ภาษีมูลค่าเพิ่ม 7%", "175.07", "ปัดเศษ", "-0.07", "2,676.00", bahttext(so.rounded_total)]:
+			self.assertIn(needle, html)
+		self.assertNotIn(bahttext(so.grand_total), html)
+
+	def test_vat_line_only_counts_output_vat_rows(self):
+		freight = {
+			"charge_type": "Actual",
+			"account_head": OTHER_CHARGE_ACCOUNT,
+			"tax_amount": 100,
+			"description": "ค่าขนส่ง",
+		}
+		si = self._si_with_vat(extra_taxes=[freight])  # 2,500 + freight 100 + VAT 7% of 2,500
+		self.assertEqual((si.total_taxes_and_charges, si.grand_total), (275, 2775))
+		html = _print("Sales Invoice", si.name, TAX_INVOICE)
+		self.assertRegex(html, r"ภาษีมูลค่าเพิ่ม 7%</td><td[^>]*>175\.00<")
+		self.assertRegex(html, r"ค่าขนส่ง</td><td[^>]*>100\.00<")
+		self.assertNotIn("275.00", html)
+
+	def test_vat_inclusive_template_prints_net_amounts(self):
+		from erpnext.controllers.accounts_controller import get_taxes_and_charges
+
+		from erp_town.thai.setup import _ensure_sales_tax_templates
+
+		_ensure_sales_tax_templates(TEST_COMPANY, self.vat_account)
+		template = frappe.db.get_value(
+			"Sales Taxes and Charges Template", {"company": TEST_COMPANY, "title": "ภาษีขาย 7% (ราคารวม VAT)"}
+		)
+		si = make_si(self.customer, [{"item_code": self.item, "qty": 1, "rate": 1070}], submit=False)
+		si.taxes_and_charges = template
+		si = self._with_taxes(si, get_taxes_and_charges("Sales Taxes and Charges Template", template))
+		self.assertEqual((si.net_total, si.total_taxes_and_charges, si.grand_total), (1000, 70, 1070))
+		html = _print("Sales Invoice", si.name, TAX_INVOICE)
+		# item row and subtotal at the net price; net + VAT = grand total
+		self.assertEqual(html.count("1,000.00"), 3)  # unit price, line amount, มูลค่าสินค้า/บริการ
+		self.assertEqual(html.count("1,070.00"), 1)  # only the grand total
+		self.assertRegex(html, r"ภาษีมูลค่าเพิ่ม 7%</td><td[^>]*>70\.00<")
+		self.assertNotIn("รวมเงิน</td>", html)
+		self.assertIn(bahttext(1070), html)
 
 	def test_branch_label(self):
 		frappe.db.set_value("Company", TEST_COMPANY, "th_branch_code", "00002")
@@ -144,6 +262,24 @@ class TestThaiPrintFormats(IntegrationTestCase):
 		html = _print("Sales Invoice", si.name, TAX_INVOICE)
 		self.assertIn("สำนักงานใหญ่", html)
 		self.assertNotIn("สาขาที่ 00001", html)
+
+	def test_branch_with_linked_addresses(self):
+		# buyer: branch customer whose (default-coded) head-office address is linked -> the customer's code;
+		# seller: head-office company whose linked address is a branch -> the address's code
+		frappe.db.set_value("Customer", self.customer, "th_branch_code", "00001")
+		customer_address = self._address("Customer", self.customer, "99 ถนนพระราม 9", "00000")
+		company_address = self._address("Company", TEST_COMPANY, "1 ถนนสีลม", "00002")
+		si = make_si(self.customer, [{"item_code": self.item, "qty": 2, "rate": 1250}], submit=False)
+		si.customer_address = customer_address
+		si.company_address = company_address
+		si = self._with_taxes(si, [self._vat_row()])
+		self.assertEqual((si.customer_address, si.company_address), (customer_address, company_address))
+		# render from the linked Address records, not the display text stored on the invoice
+		frappe.db.set_value("Sales Invoice", si.name, {"address_display": "", "company_address_display": ""})
+		html = _print("Sales Invoice", si.name, TAX_INVOICE)
+		for needle in ["สาขาที่ 00001", "สาขาที่ 00002", "99 ถนนพระราม 9", "1 ถนนสีลม", "กรุงเทพมหานคร"]:
+			self.assertIn(needle, html)
+		self.assertNotIn("สำนักงานใหญ่", html)
 
 	def test_receipt_references_invoice(self):
 		si = self._si_with_vat()

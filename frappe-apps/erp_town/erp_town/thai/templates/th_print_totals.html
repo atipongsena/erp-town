@@ -1,0 +1,29 @@
+{#- Totals block + amount in words shared by the tax invoice and the sales order.
+    Expects `doc` and `t` (= th_totals(doc)). Exclusive VAT: total, discount, net, charges, VAT, grand.
+    VAT-inclusive prices: item rows already show net amounts, so the block starts at the net total. -#}
+<div class="th-summary">
+	<div class="th-words th-box">
+		<span class="th-label">จำนวนเงินรวมทั้งสิ้น (ตัวอักษร)</span><br>
+		({{ t.payable | bahttext }})
+	</div>
+	<table class="th-totals">
+		{%- if not t.inclusive %}
+		<tr><td>รวมเงิน</td><td class="th-num">{{ doc.total | th_money }}</td></tr>
+		{%- if doc.discount_amount %}
+		<tr><td>ส่วนลด</td><td class="th-num">{{ doc.discount_amount | th_money }}</td></tr>
+		{%- endif %}
+		{%- endif %}
+		<tr><td>มูลค่าสินค้า/บริการ</td><td class="th-num">{{ doc.net_total | th_money }}</td></tr>
+		{%- for charge in t.charges %}
+		<tr><td>{{ charge.description }}</td><td class="th-num">{{ charge.amount | th_money }}</td></tr>
+		{%- endfor %}
+		<tr><td>{{ t.vat_label }}</td><td class="th-num">{{ t.vat_amount | th_money }}</td></tr>
+		{%- if t.rounding_adjustment is none %}
+		<tr class="th-grand"><td>จำนวนเงินรวมทั้งสิ้น</td><td class="th-num">{{ t.grand_total | th_money }}</td></tr>
+		{%- else %}
+		<tr class="th-label"><td>จำนวนเงินรวมทั้งสิ้น</td><td class="th-num">{{ t.grand_total | th_money }}</td></tr>
+		<tr><td>ปัดเศษ</td><td class="th-num">{{ t.rounding_adjustment | th_money }}</td></tr>
+		<tr class="th-grand"><td>จำนวนเงินที่ต้องชำระ</td><td class="th-num">{{ t.payable | th_money }}</td></tr>
+		{%- endif %}
+	</table>
+</div>

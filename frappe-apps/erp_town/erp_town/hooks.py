@@ -20,7 +20,7 @@ jinja = {
 	# Thai print formats (spec §5.3)
 	"methods": [
 		"erp_town.thai.printing.th_parties",
-		"erp_town.thai.printing.th_vat",
+		"erp_town.thai.printing.th_totals",
 		"erp_town.thai.printing.th_reference_date",
 	],
 }

@@ -3,12 +3,15 @@
 
 """Helpers for the Thai print formats (spec §5.3), registered in hooks.py ``jinja``.
 
-Filters: ``th_branch_label``, ``th_money``, ``th_qty``. Methods: ``th_parties``, ``th_vat``, ``th_reference_date``.
+Filters: ``th_branch_label``, ``th_money``, ``th_qty``. Methods: ``th_parties``, ``th_totals``,
+``th_reference_date``.
 """
 
 import frappe
 from frappe.contacts.doctype.address.address import get_default_address, render_address
-from frappe.utils import flt
+from frappe.utils import cint, flt
+
+from erp_town.thai.setup import VAT_OUTPUT_ACCOUNT, company_account
 
 HEAD_OFFICE_BRANCH = "00000"
 HEAD_OFFICE_LABEL = "สำนักงานใหญ่"
@@ -37,8 +40,9 @@ def th_parties(doc) -> dict:
 	"""Seller (company) and buyer (customer) blocks: name, address (HTML), tax ID and branch label.
 
 	The buyer's tax ID is the document's own (`tax_id`, fetched when the document was made), else the
-	customer's. Branch: the branch code of the address the document links (`company_address` /
-	`customer_address`) when that address has one, else the company's / customer's `th_branch_code`.
+	customer's. Branch: the company's / customer's `th_branch_code`, overridden by the code of the address
+	the document links (`company_address` / `customer_address`) only when that code is a branch (not
+	`00000`): new addresses default to `00000` and ERPNext links the party's address automatically.
 	"""
 	company = (
 		frappe.db.get_value(
@@ -76,10 +80,41 @@ def th_parties(doc) -> dict:
 	return frappe._dict(seller=seller, buyer=buyer)
 
 
-def th_vat(doc) -> frappe._dict:
-	"""The VAT line: `label` (`ภาษีมูลค่าเพิ่ม 7%`) and `amount` (the document's total taxes)."""
-	rate = next((flt(row.rate) for row in doc.get("taxes") or [] if flt(row.rate)), 0)
-	return frappe._dict(label=f"{VAT_LABEL} {rate:g}%", amount=flt(doc.get("total_taxes_and_charges")))
+def th_totals(doc) -> frappe._dict:
+	"""Totals block of a selling document.
+
+	- VAT: only tax rows on the company's output-VAT account (`ภาษีขาย`); `vat_label` carries their rate
+	  (`ภาษีมูลค่าเพิ่ม 7%`), `vat_amount` their sum. Other charge rows are listed separately (`charges`).
+	- `inclusive`: the VAT rows are included in the print rate (template `ภาษีขาย 7% (ราคารวม VAT)`), so
+	  item rows show `net_rate` / `net_amount` and the block starts at the net total.
+	- `rounding_adjustment` (else None) when ERPNext rounded the grand total; `payable` is what the customer
+	  owes (`rounded_total`, else `grand_total`) and is the amount written in words.
+	"""
+	vat_account = company_account(doc.company, VAT_OUTPUT_ACCOUNT)
+	taxes = doc.get("taxes") or []
+	vat_rows = [row for row in taxes if vat_account and row.account_head == vat_account]
+	charges = [
+		frappe._dict(description=row.description or row.account_head, amount=_row_amount(row))
+		for row in taxes
+		if row not in vat_rows and _row_amount(row)
+	]
+	rate = next((flt(row.rate) for row in vat_rows if flt(row.rate)), 0)
+	grand_total = flt(doc.get("grand_total"), 2)
+	rounded_total = flt(doc.get("rounded_total"), 2)
+	rounded = bool(rounded_total) and rounded_total != grand_total
+	return frappe._dict(
+		vat_label=f"{VAT_LABEL} {rate:g}%",
+		vat_amount=sum(_row_amount(row) for row in vat_rows),
+		charges=charges,
+		inclusive=any(cint(row.included_in_print_rate) for row in vat_rows),
+		grand_total=grand_total,
+		rounding_adjustment=flt(doc.get("rounding_adjustment"), 2) if rounded else None,
+		payable=rounded_total or grand_total,
+	)
+
+
+def _row_amount(row) -> float:
+	return flt(row.tax_amount_after_discount_amount)
 
 
 def th_reference_date(row):
@@ -92,8 +127,12 @@ def th_reference_date(row):
 
 
 def _branch_code(address: str | None, party_code: str | None) -> str | None:
-	address_code = frappe.db.get_value("Address", address, "th_branch_code") if address else None
-	return address_code or party_code
+	address_code = (
+		(frappe.db.get_value("Address", address, "th_branch_code") or "").strip() if address else ""
+	)
+	if address_code and address_code != HEAD_OFFICE_BRANCH:
+		return address_code
+	return party_code
 
 
 def _address_html(address: str | None) -> str:
