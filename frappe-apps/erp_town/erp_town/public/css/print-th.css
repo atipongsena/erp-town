@@ -1,0 +1,154 @@
+/* Thai print formats (spec §5.3): Sarabun (SIL OFL 1.1, see ../fonts/OFL.txt) embedded in the app.
+ * Inlined into each Thai print format; font URLs are site-relative so the print view and the Chrome
+ * PDF generator (which expands relative URLs) both load the app's own font files. */
+
+@font-face {
+	font-family: "Sarabun";
+	src: url("/assets/erp_town/fonts/Sarabun-Regular.ttf") format("truetype");
+	font-weight: 400;
+	font-style: normal;
+	font-display: block;
+}
+
+@font-face {
+	font-family: "Sarabun";
+	src: url("/assets/erp_town/fonts/Sarabun-Bold.ttf") format("truetype");
+	font-weight: 700;
+	font-style: normal;
+	font-display: block;
+}
+
+.th-doc,
+.th-doc * {
+	font-family: "Sarabun", sans-serif;
+}
+
+.th-doc {
+	color: #000;
+	font-size: 14px;
+	/* room for Thai above/below vowels and tone marks */
+	line-height: 1.6;
+}
+
+.th-doc .th-head {
+	display: flex;
+	justify-content: space-between;
+	gap: 16px;
+	border-bottom: 1px solid #000;
+	padding-bottom: 8px;
+	margin-bottom: 12px;
+}
+
+.th-doc .th-company {
+	font-size: 18px;
+	font-weight: 700;
+}
+
+.th-doc .th-title {
+	text-align: right;
+}
+
+.th-doc .th-title h1 {
+	font-size: 22px;
+	font-weight: 700;
+	margin: 0;
+}
+
+.th-doc .th-title .th-title-en {
+	font-size: 12px;
+	letter-spacing: 0.08em;
+}
+
+.th-doc .th-parties {
+	display: flex;
+	gap: 16px;
+	margin-bottom: 12px;
+}
+
+.th-doc .th-box {
+	border: 1px solid #000;
+	border-radius: 4px;
+	padding: 6px 10px;
+}
+
+.th-doc .th-buyer {
+	flex: 3;
+}
+
+.th-doc .th-meta {
+	flex: 2;
+}
+
+.th-doc .th-label {
+	font-weight: 700;
+}
+
+.th-doc table.th-table {
+	width: 100%;
+	border-collapse: collapse;
+	margin: 0 0 12px;
+}
+
+.th-doc .th-table th,
+.th-doc .th-table td {
+	border: 1px solid #000;
+	padding: 4px 6px;
+	vertical-align: top;
+}
+
+.th-doc .th-table th {
+	font-weight: 700;
+	text-align: center;
+	background: #f2f2f2;
+}
+
+.th-doc .th-num {
+	text-align: right;
+	white-space: nowrap;
+}
+
+.th-doc .th-center {
+	text-align: center;
+}
+
+.th-doc .th-summary {
+	display: flex;
+	gap: 16px;
+	align-items: flex-start;
+}
+
+.th-doc .th-words {
+	flex: 3;
+}
+
+.th-doc .th-totals {
+	flex: 2;
+	border-collapse: collapse;
+}
+
+.th-doc .th-totals td {
+	padding: 2px 6px;
+}
+
+.th-doc .th-totals .th-grand td {
+	font-weight: 700;
+	border-top: 1px solid #000;
+	border-bottom: 3px double #000;
+}
+
+.th-doc .th-signatures {
+	display: flex;
+	justify-content: space-between;
+	gap: 32px;
+	margin-top: 48px;
+}
+
+.th-doc .th-signature {
+	flex: 1;
+	text-align: center;
+}
+
+.th-doc .th-signature .th-line {
+	border-top: 1px dotted #000;
+	margin-bottom: 4px;
+}

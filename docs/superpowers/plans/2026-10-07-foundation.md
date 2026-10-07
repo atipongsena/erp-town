@@ -437,7 +437,7 @@ Chart `th_tfrs_npaes.json` (ERPNext chart tree format, `is_group` nodes 1 สิ
 - Produces print format names (exact): `ใบยืนยันคำสั่งซื้อ` (Sales Order), `ใบส่งของ` (Delivery Note), `ใบกำกับภาษี/ใบแจ้งหนี้` (Sales Invoice, set as default print format), `ใบเสร็จรับเงิน` (Payment Entry). All `standard: "Yes"`, `print_format_type: "Jinja"`, module `Thai Localization`, font via `@font-face` Sarabun from `/assets/erp_town/fonts/`.
 - `town-desk.css` defines only `:root` custom properties (`--town-primary`, `--town-surface`, `--town-radius`, `--town-font-ui`) mapped onto Frappe's variables; neutral values, art bible fills them later.
 
-- [ ] **Step 1: Write failing tests** using `frappe.get_print(doctype, name, print_format=...)` HTML:
+- [x] **Step 1: Write failing tests** using `frappe.get_print(doctype, name, print_format=...)` HTML:
 
 ```python
 def test_tax_invoice_has_section_86_4_elements(self):
@@ -450,10 +450,10 @@ def test_receipt_references_invoice(self): ...  # Payment Entry print contains s
 def test_dn_and_so_render(self): ...  # contain doc name and be_date
 ```
 
-- [ ] **Step 2: Run** `pnpm erp:test -- --module erp_town.tests.test_print_formats` → FAIL
-- [ ] **Step 3: Implement** templates + CSS, `pnpm erp:bench -- build --app erp_town`
-- [ ] **Step 4: Run** → PASS; open `http://localhost:8080/printview?doctype=Sales%20Invoice&name=<seeded SI>&format=ใบกำกับภาษี/ใบแจ้งหนี้` and confirm Thai vowels/tone marks render (manual check, note result in commit body)
-- [ ] **Step 5: Commit** (`feat(thai): Thai print formats with Sarabun and Desk theme tokens`, `Task: 11`)
+- [x] **Step 2: Run** `pnpm erp:test -- --module erp_town.tests.test_print_formats` → FAIL
+- [x] **Step 3: Implement** templates + CSS, `pnpm erp:bench -- build --app erp_town`
+- [x] **Step 4: Run** → PASS; open `http://localhost:8080/printview?doctype=Sales%20Invoice&name=<seeded SI>&format=ใบกำกับภาษี/ใบแจ้งหนี้` and confirm Thai vowels/tone marks render (manual check, note result in commit body) — automated proxy done (printview page rendered for a test SI, Sarabun font URLs 200, Thai text present); visual check of vowels/tone marks deferred to the controller
+- [x] **Step 5: Commit** (`feat(thai): Thai print formats with Sarabun and Desk theme tokens`, `Task: 11`)
 
 ---
 

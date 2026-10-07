@@ -1,0 +1,22 @@
+{#- Shared head of the Thai print formats: inlined CSS (Sarabun @font-face), seller block and title.
+    Expects `doc`, `title_th`, `title_en` and `p` (= th_parties(doc), set by the including template:
+    assignments inside an include do not reach the includer). -#}
+<style>
+{% include "erp_town/public/css/print-th.css" %}
+</style>
+<div class="th-head">
+	<div class="th-seller">
+		<div class="th-company">{{ p.seller.name }}</div>
+		{%- if p.seller.address %}
+		<div class="th-address">{{ p.seller.address }}</div>
+		{%- endif %}
+		<div>
+			<span class="th-label">เลขประจำตัวผู้เสียภาษีอากร</span> {{ p.seller.tax_id }}
+			&nbsp; {{ p.seller.branch }}
+		</div>
+	</div>
+	<div class="th-title">
+		<h1>{{ title_th }}</h1>
+		<div class="th-title-en">{{ title_en }}</div>
+	</div>
+</div>

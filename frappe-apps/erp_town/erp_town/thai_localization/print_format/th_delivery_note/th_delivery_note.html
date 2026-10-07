@@ -1,0 +1,57 @@
+{#- ใบส่งของ (Delivery Note): quantities only, with the sales orders it delivers against. -#}
+{%- set title_th = "ใบส่งของ" %}
+{%- set title_en = "DELIVERY NOTE" %}
+{%- set buyer_label = "ผู้รับสินค้า" %}
+{%- set p = th_parties(doc) %}
+{%- set orders = doc.items | map(attribute="against_sales_order") | select | unique | list %}
+<div class="th-doc">
+	{% include "erp_town/thai/templates/th_print_head.html" %}
+	<div class="th-parties">
+		{% include "erp_town/thai/templates/th_print_buyer.html" %}
+		<div class="th-box th-meta">
+			<div><span class="th-label">เลขที่</span> {{ doc.name }}</div>
+			<div><span class="th-label">วันที่</span> {{ doc.posting_date | be_date }}</div>
+			{%- if orders %}
+			<div><span class="th-label">อ้างอิงคำสั่งซื้อ</span> {{ orders | join(", ") }}</div>
+			{%- endif %}
+			{%- if doc.po_no %}
+			<div><span class="th-label">อ้างอิงใบสั่งซื้อ</span> {{ doc.po_no }}</div>
+			{%- endif %}
+		</div>
+	</div>
+	<table class="th-table">
+		<thead>
+			<tr>
+				<th>ลำดับ</th>
+				<th>รหัสสินค้า</th>
+				<th>รายการ</th>
+				<th>จำนวน</th>
+				<th>หน่วย</th>
+			</tr>
+		</thead>
+		<tbody>
+			{%- for row in doc.items %}
+			<tr>
+				<td class="th-center">{{ row.idx }}</td>
+				<td>{{ row.item_code }}</td>
+				<td>{{ row.item_name }}</td>
+				<td class="th-num">{{ row.qty | th_qty }}</td>
+				<td class="th-center">{{ row.uom }}</td>
+			</tr>
+			{%- endfor %}
+		</tbody>
+	</table>
+	<div class="th-box">
+		<span class="th-label">รวมจำนวน</span> {{ doc.total_qty | th_qty }}
+	</div>
+	<div class="th-signatures">
+		<div class="th-signature">
+			<div class="th-line"></div>
+			ผู้ส่งของ / วันที่
+		</div>
+		<div class="th-signature">
+			<div class="th-line"></div>
+			ผู้รับของ / วันที่
+		</div>
+	</div>
+</div>

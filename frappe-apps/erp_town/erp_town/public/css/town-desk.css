@@ -1,0 +1,20 @@
+/* ERP Town Desk theme tokens (spec §4.5), loaded on every Desk page via hooks.py `app_include_css`.
+ *
+ * Only `:root` custom properties. The `--town-*` tokens are the single place the art bible (sub-project A)
+ * changes; they are mapped onto Frappe's own variables below. Values here are neutral: they reproduce
+ * Frappe v16's defaults (and follow its light/dark surfaces), so this file changes nothing visually yet. */
+
+:root {
+	--town-primary: var(--gray-900);
+	--town-surface: var(--surface-base);
+	--town-radius: 8px;
+	--town-font-ui: "InterVariable", "Inter", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "Roboto",
+		"Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
+
+	--primary-color: var(--town-primary);
+	--bg-color: var(--town-surface);
+	--fg-color: var(--town-surface);
+	--card-bg: var(--town-surface);
+	--radius: var(--town-radius);
+	--font-stack: var(--town-font-ui);
+}

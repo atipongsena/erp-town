@@ -6,10 +6,31 @@ app_license = "GPL-3.0-only"
 
 required_apps = ["erpnext", "hrms"]
 
-jinja = {"filters": ["erp_town.thai.jinja.be_date", "erp_town.thai.jinja.bahttext"]}
+# Desk theme tokens (spec §4.5)
+app_include_css = "/assets/erp_town/css/town-desk.css"
+
+jinja = {
+	"filters": [
+		"erp_town.thai.jinja.be_date",
+		"erp_town.thai.jinja.bahttext",
+		"erp_town.thai.printing.th_branch_label",
+		"erp_town.thai.printing.th_money",
+		"erp_town.thai.printing.th_qty",
+	],
+	# Thai print formats (spec §5.3)
+	"methods": [
+		"erp_town.thai.printing.th_parties",
+		"erp_town.thai.printing.th_vat",
+		"erp_town.thai.printing.th_reference_date",
+	],
+}
 
 after_install = "erp_town.setup.install.after_install"
-after_migrate = ["erp_town.thai.setup.ensure_custom_fields", "erp_town.thai.setup.ensure_naming"]
+after_migrate = [
+	"erp_town.thai.setup.ensure_custom_fields",
+	"erp_town.thai.setup.ensure_naming",
+	"erp_town.thai.setup.ensure_default_print_formats",
+]
 
 # Buddhist-Era document numbers `<prefix><BE yy><mm>-<####>` (spec §5.2), e.g. series `IV.BEYY.BEMM.-.####`
 naming_series_variables = {"BEYY": "erp_town.thai.naming.be_yy", "BEMM": "erp_town.thai.naming.be_mm"}

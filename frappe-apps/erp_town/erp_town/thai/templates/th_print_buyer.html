@@ -1,0 +1,11 @@
+{#- Buyer block shared by the Thai print formats; expects `p` from th_print_head.html and `buyer_label`. -#}
+<div class="th-box th-buyer">
+	<div><span class="th-label">{{ buyer_label }}</span> {{ p.buyer.name }}</div>
+	{%- if p.buyer.address %}
+	<div class="th-address">{{ p.buyer.address }}</div>
+	{%- endif %}
+	<div>
+		<span class="th-label">เลขประจำตัวผู้เสียภาษีอากร</span> {{ p.buyer.tax_id or "-" }}
+		&nbsp; {{ p.buyer.branch }}
+	</div>
+</div>

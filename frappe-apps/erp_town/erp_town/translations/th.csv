@@ -1,0 +1,34 @@
+Account {0} not found for company {1},ไม่พบบัญชี {0} ของบริษัท {1}
+Agent Key,รหัสเอเจนต์
+Approval States,สถานะที่รออนุมัติ
+Attempts,จำนวนครั้งที่พยายามส่ง
+Correlation ID,รหัสสายเหตุการณ์
+Document Naming,การตั้งเลขที่เอกสาร
+e.g. agent.sales_assistant,เช่น agent.sales_assistant
+Event ID,รหัสเหตุการณ์
+Invalid document number prefix for {0}: {1},คำนำหน้าเลขที่เอกสารของ {0} ไม่ถูกต้อง: {1}
+Last Error,ข้อผิดพลาดล่าสุด
+Last Seq,ลำดับล่าสุด
+Leave empty to use town_redis_url from site config,เว้นว่างเพื่อใช้ town_redis_url จาก site config
+Max Publish Attempts,จำนวนครั้งสูงสุดที่พยายามส่ง
+Naming Rules,กฎการตั้งเลขที่เอกสาร
+Next Attempt At,พยายามส่งครั้งถัดไปเมื่อ
+Outbox Retention (Days),ระยะเก็บข้อมูลในกล่องขาออก (วัน)
+Overdue Job Hour,ชั่วโมงที่ตรวจใบแจ้งหนี้เกินกำหนด
+Payload,ข้อมูลเหตุการณ์
+Published At,ส่งเมื่อ
+Redis Town URL,URL ของ Redis Town
+Seq,ลำดับ
+Stream ID,รหัสในสตรีม
+Stream Name,ชื่อสตรีม
+Stream Retention (Days),ระยะเก็บข้อมูลในสตรีม (วัน)
+Subject DocType,ประเภทเอกสารต้นทาง
+Subject Name,เลขที่เอกสารต้นทาง
+Thai Localization,การปรับใช้สำหรับประเทศไทย
+Town Agent Identity,ตัวตนเอเจนต์ของเมือง
+Town Event Outbox,กล่องขาออกเหตุการณ์ของเมือง
+Town Naming Rule,กฎการตั้งเลขที่เอกสารของเมือง
+Town Settings,ตั้งค่าเมือง
+Town Subject Seq,ลำดับเหตุการณ์ของเอกสาร
+"Workflow states that count as awaiting approval, one per line or comma-separated",สถานะเวิร์กโฟลว์ที่นับว่ารออนุมัติ หนึ่งสถานะต่อบรรทัดหรือคั่นด้วยจุลภาค
+{0} does not use a naming series,{0} ไม่ได้ใช้ชุดเลขที่เอกสาร

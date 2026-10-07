@@ -1,0 +1,75 @@
+{#- ใบกำกับภาษี/ใบแจ้งหนี้ (Sales Invoice). Full tax invoice per Revenue Code §86/4: the words
+    "ใบกำกับภาษี"; seller and buyer name, address, tax ID and branch; number; date; items with quantity
+    and price; VAT on its own line; amount in words. -#}
+{%- set title_th = "ใบกำกับภาษี/ใบแจ้งหนี้" %}
+{%- set title_en = "TAX INVOICE / INVOICE" %}
+{%- set buyer_label = "ผู้ซื้อ" %}
+{%- set p = th_parties(doc) %}
+{%- set vat = th_vat(doc) %}
+<div class="th-doc">
+	{% include "erp_town/thai/templates/th_print_head.html" %}
+	<div class="th-parties">
+		{% include "erp_town/thai/templates/th_print_buyer.html" %}
+		<div class="th-box th-meta">
+			<div><span class="th-label">เลขที่</span> {{ doc.name }}</div>
+			<div><span class="th-label">วันที่</span> {{ doc.posting_date | be_date }}</div>
+			{%- if doc.due_date %}
+			<div><span class="th-label">ครบกำหนดชำระ</span> {{ doc.due_date | be_date }}</div>
+			{%- endif %}
+			{%- if doc.po_no %}
+			<div><span class="th-label">อ้างอิงใบสั่งซื้อ</span> {{ doc.po_no }}</div>
+			{%- endif %}
+		</div>
+	</div>
+	<table class="th-table">
+		<thead>
+			<tr>
+				<th>ลำดับ</th>
+				<th>รหัสสินค้า</th>
+				<th>รายการ</th>
+				<th>จำนวน</th>
+				<th>หน่วย</th>
+				<th>ราคาต่อหน่วย</th>
+				<th>จำนวนเงิน</th>
+			</tr>
+		</thead>
+		<tbody>
+			{%- for row in doc.items %}
+			<tr>
+				<td class="th-center">{{ row.idx }}</td>
+				<td>{{ row.item_code }}</td>
+				<td>{{ row.item_name }}</td>
+				<td class="th-num">{{ row.qty | th_qty }}</td>
+				<td class="th-center">{{ row.uom }}</td>
+				<td class="th-num">{{ row.rate | th_money }}</td>
+				<td class="th-num">{{ row.amount | th_money }}</td>
+			</tr>
+			{%- endfor %}
+		</tbody>
+	</table>
+	<div class="th-summary">
+		<div class="th-words th-box">
+			<span class="th-label">จำนวนเงินรวมทั้งสิ้น (ตัวอักษร)</span><br>
+			({{ doc.grand_total | bahttext }})
+		</div>
+		<table class="th-totals">
+			<tr><td>รวมเงิน</td><td class="th-num">{{ doc.total | th_money }}</td></tr>
+			{%- if doc.discount_amount %}
+			<tr><td>ส่วนลด</td><td class="th-num">{{ doc.discount_amount | th_money }}</td></tr>
+			{%- endif %}
+			<tr><td>มูลค่าสินค้า/บริการ</td><td class="th-num">{{ doc.net_total | th_money }}</td></tr>
+			<tr><td>{{ vat.label }}</td><td class="th-num">{{ vat.amount | th_money }}</td></tr>
+			<tr class="th-grand"><td>จำนวนเงินรวมทั้งสิ้น</td><td class="th-num">{{ doc.grand_total | th_money }}</td></tr>
+		</table>
+	</div>
+	<div class="th-signatures">
+		<div class="th-signature">
+			<div class="th-line"></div>
+			ผู้รับสินค้า / วันที่
+		</div>
+		<div class="th-signature">
+			<div class="th-line"></div>
+			ผู้มีอำนาจลงนาม / วันที่
+		</div>
+	</div>
+</div>

@@ -1,10 +1,10 @@
 # Copyright (c) 2026, ERP Town
 # License: GNU General Public License v3. See LICENSE
 
-"""Thai localization setup (spec §5.1, §5.2).
+"""Thai localization setup (spec §5.1, §5.2, §5.3).
 
-- `ensure_custom_fields` / `ensure_naming` run after every migrate (hooks.py) and on install;
-  `ensure_naming` also runs whenever Town Settings is saved.
+- `ensure_custom_fields` / `ensure_naming` / `ensure_default_print_formats` run after every migrate
+  (hooks.py) and on install; `ensure_naming` also runs whenever Town Settings is saved.
 - `validate_tax_id` is the Company / Customer `validate` hook.
 - `create_thai_company` builds a Thai company: draft TFRS-for-NPAEs chart, default accounts, VAT templates.
 """
@@ -118,6 +118,39 @@ def _naming_property(doctype: str, prop: str) -> str | None:
 		{"doc_type": doctype, "field_name": "naming_series", "property": prop},
 		"value",
 	)
+
+
+# --- print formats -------------------------------------------------------------------------------------
+
+DEFAULT_PRINT_FORMATS = {"Sales Invoice": "ใบกำกับภาษี/ใบแจ้งหนี้"}
+# defaults ERPNext's installer sets (erpnext.setup.install.set_default_print_formats); replaced by ours,
+# while any other default someone chose in Customize Form is kept
+REPLACEABLE_PRINT_FORMATS = {
+	"Sales Invoice": {"Sales Invoice Modern with Images", "Sales Invoice with Item Image", "Standard"},
+}
+
+
+def ensure_default_print_formats() -> None:
+	"""Make the Thai tax invoice the Sales Invoice default print format (DocType Property Setter)."""
+	for doctype, print_format in DEFAULT_PRINT_FORMATS.items():
+		if not frappe.db.exists("Print Format", print_format):
+			continue  # not synced yet (the standard formats are imported before after_migrate runs)
+		current = frappe.get_meta(doctype).default_print_format
+		if current == print_format:
+			continue
+		chosen_by_someone = current and current not in REPLACEABLE_PRINT_FORMATS.get(doctype, set())
+		if chosen_by_someone and frappe.db.exists("Print Format", current):
+			continue
+		make_property_setter(
+			doctype,
+			None,
+			"default_print_format",
+			print_format,
+			"Data",
+			for_doctype=True,
+			validate_fields_for_doctype=False,
+		)
+		frappe.clear_cache(doctype=doctype)
 
 
 # --- company -------------------------------------------------------------------------------------------
