@@ -129,7 +129,7 @@ Expected: install succeeds, Biome reports no errors, help lists all commands.
 
 Schema rules: envelope required fields exactly as spec §3.1; `additionalProperties: false` on envelope; `actor.kind` enum `user|agent|system|dev`; `actor.on_behalf_of` must be `null` unless `kind == "agent"` (use `if/then`); `seq` integer ≥ 1; `visibility.level` enum `public|roles|private`, `roles` non-empty when level is `roles`; per-type `data` schemas from spec §3.3 with `additionalProperties: false`; a shared `money` definition that is only allowed when `visibility.level != "public"` (not used by any slice-1 type, but present and tested); `fill_ratio` number ≥ 0 with 2 decimals (`multipleOf: 0.01`).
 
-- [ ] **Step 1: Write fixtures + failing contract test**
+- [x] **Step 1: Write fixtures + failing contract test**
 
 ```ts
 // test/contract.test.ts
@@ -140,10 +140,10 @@ it('covers every event type with a valid fixture', () => expect(new Set(validTyp
 
 Invalid fixtures at minimum: missing `id`; `actor.kind: "user"` with `on_behalf_of` set; `seq: 0`; `visibility.level: "roles"` with empty roles; unknown `data` field on `erp.sales_order.submitted`; a `grand_total` in a public event; `fill_ratio: 0.333`.
 
-- [ ] **Step 2: Run** `pnpm --filter @erp-town/event-schema test` → FAIL (`validateEvent` not defined)
-- [ ] **Step 3: Implement** `src/index.ts` with ajv `Ajv2020` + `ajv-formats` (`date-time`), schemas loaded via `import ... with { type: 'json' }`; `gen.mjs` uses `json-schema-to-typescript`.
-- [ ] **Step 4: Run** `pnpm schema:gen && pnpm --filter @erp-town/event-schema test` → PASS; `git status` shows generated files under `frappe-apps/erp_town/erp_town/events/schema/`
-- [ ] **Step 5: Commit** (`feat(event-schema): add town event contract with fixtures`, `Task: 2`)
+- [x] **Step 2: Run** `pnpm --filter @erp-town/event-schema test` → FAIL (`validateEvent` not defined)
+- [x] **Step 3: Implement** `src/index.ts` with ajv `Ajv2020` + `ajv-formats` (`date-time`), schemas loaded via `import ... with { type: 'json' }`; `gen.mjs` uses `json-schema-to-typescript`.
+- [x] **Step 4: Run** `pnpm schema:gen && pnpm --filter @erp-town/event-schema test` → PASS; `git status` shows generated files under `frappe-apps/erp_town/erp_town/events/schema/`
+- [x] **Step 5: Commit** (`feat(event-schema): add town event contract with fixtures`, `Task: 2`)
 
 ---
 

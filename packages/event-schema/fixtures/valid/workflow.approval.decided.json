@@ -1,0 +1,30 @@
+{
+  "specversion": "1.0",
+  "id": "01JA0K6Y8Z9P3R4S5T6V7W8XB2",
+  "type": "workflow.approval.decided",
+  "source": "erp/workflow",
+  "time": "2026-10-07T11:00:00+07:00",
+  "schema_version": 1,
+  "company": "ACME-TH",
+  "actor": {
+    "kind": "user",
+    "id": "user.wichai@acme.example",
+    "on_behalf_of": null
+  },
+  "subject": {
+    "doctype": "Sales Order",
+    "name": "SO6910-0044"
+  },
+  "seq": 2,
+  "correlation_id": "SO6910-0044",
+  "causation_id": "01JA0K6Y8Z9P3R4S5T6V7W8XB1",
+  "visibility": {
+    "level": "public",
+    "roles": []
+  },
+  "data": {
+    "from_state": "Pending Approval",
+    "to_state": "Approved",
+    "decision": "approved"
+  }
+}

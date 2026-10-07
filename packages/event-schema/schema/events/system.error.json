@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://erp-town.local/schema/events/system.error.json",
+  "title": "system.error data",
+  "description": "A town-layer error (no stack traces).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["code", "message"],
+  "properties": {
+    "code": {
+      "description": "Error code, e.g. EVENT_INVALID, OUTBOX_PUBLISH_FAILED, ON_BEHALF_OF_REJECTED, ON_BEHALF_OF_INVALID.",
+      "type": "string",
+      "pattern": "^[A-Z][A-Z0-9_]*$"
+    },
+    "message": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Human-readable message without a stack trace."
+    }
+  }
+}

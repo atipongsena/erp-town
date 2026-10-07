@@ -1,0 +1,29 @@
+{
+  "specversion": "1.0",
+  "id": "01JA0K6Y8Z9P3R4S5T6V7W8XA3",
+  "type": "erp.stock.below_reorder",
+  "source": "erp/stock",
+  "time": "2026-10-08T09:00:01+07:00",
+  "schema_version": 1,
+  "company": null,
+  "actor": {
+    "kind": "system",
+    "id": "system.scheduler",
+    "on_behalf_of": null
+  },
+  "subject": {
+    "doctype": "Item",
+    "name": "ITEM-0007"
+  },
+  "seq": 1,
+  "correlation_id": "SO6910-0042",
+  "causation_id": "01JA0K6Y8Z9P3R4S5T6V7W8XA2",
+  "visibility": {
+    "level": "public",
+    "roles": []
+  },
+  "data": {
+    "warehouse": "Stores - ACME",
+    "fill_ratio": 0.75
+  }
+}

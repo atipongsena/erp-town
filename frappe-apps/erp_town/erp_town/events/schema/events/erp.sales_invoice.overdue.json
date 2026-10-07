@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://erp-town.local/schema/events/erp.sales_invoice.overdue.json",
+  "title": "erp.sales_invoice.overdue data",
+  "description": "A submitted Sales Invoice is past its due date with an outstanding balance.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["due_date", "days_overdue"],
+  "properties": {
+    "due_date": {
+      "description": "Payment due date (YYYY-MM-DD).",
+      "type": "string",
+      "format": "date",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+    },
+    "days_overdue": {
+      "type": "integer",
+      "minimum": 1
+    }
+  }
+}

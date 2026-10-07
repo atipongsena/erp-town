@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://erp-town.local/schema/events/erp.payment_entry.submitted.json",
+  "title": "erp.payment_entry.submitted data",
+  "description": "A Payment Entry was submitted.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["party", "mode_of_payment", "against"],
+  "properties": {
+    "party": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Party (customer) code, never a display name."
+    },
+    "mode_of_payment": {
+      "description": "Mode of Payment name; null when the Payment Entry has none.",
+      "type": ["string", "null"],
+      "minLength": 1
+    },
+    "against": {
+      "description": "Sales Invoice names this Payment Entry references.",
+      "type": "array",
+      "minItems": 0,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    }
+  }
+}

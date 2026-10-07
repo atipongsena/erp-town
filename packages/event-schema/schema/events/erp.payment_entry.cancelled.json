@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://erp-town.local/schema/events/erp.payment_entry.cancelled.json",
+  "title": "erp.payment_entry.cancelled data",
+  "description": "A Payment Entry was cancelled.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["status"],
+  "properties": {
+    "status": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Document status after the action (ERPNext status field)."
+    }
+  }
+}

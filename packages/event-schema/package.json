@@ -1,0 +1,23 @@
+{
+  "name": "@erp-town/event-schema",
+  "version": "0.0.0",
+  "private": true,
+  "description": "ERP Town event contract: JSON Schema 2020-12, golden fixtures, generated TS types and validator",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "gen": "node scripts/gen.mjs",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "ajv": "^8.20.0",
+    "ajv-formats": "^3.0.1"
+  },
+  "devDependencies": {
+    "json-schema-to-typescript": "^16.0.0",
+    "vitest": "^5.0.3"
+  }
+}

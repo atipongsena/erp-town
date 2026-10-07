@@ -1,0 +1,29 @@
+{
+  "specversion": "1.0",
+  "id": "01JA0K6Y8Z9P3R4S5T6V7W8XA5",
+  "type": "erp.sales_invoice.overdue",
+  "source": "erp/accounts",
+  "time": "2026-11-10T08:00:00+07:00",
+  "schema_version": 1,
+  "company": "ACME-TH",
+  "actor": {
+    "kind": "system",
+    "id": "system.scheduler",
+    "on_behalf_of": null
+  },
+  "subject": {
+    "doctype": "Sales Invoice",
+    "name": "IV6910-0009"
+  },
+  "seq": 2,
+  "correlation_id": "SO6910-0042",
+  "causation_id": "01JA0K6Y8Z9P3R4S5T6V7W8XA4",
+  "visibility": {
+    "level": "roles",
+    "roles": ["Accounts User", "Accounts Manager"]
+  },
+  "data": {
+    "due_date": "2026-11-07",
+    "days_overdue": 3
+  }
+}

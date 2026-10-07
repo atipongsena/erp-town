@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://erp-town.local/schema/events/erp.delivery_note.cancelled.json",
+  "title": "erp.delivery_note.cancelled data",
+  "description": "A Delivery Note was cancelled.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["status"],
+  "properties": {
+    "status": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Document status after the action (ERPNext status field)."
+    }
+  }
+}

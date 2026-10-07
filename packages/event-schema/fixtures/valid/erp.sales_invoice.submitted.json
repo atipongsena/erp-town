@@ -1,0 +1,31 @@
+{
+  "specversion": "1.0",
+  "id": "01JA0K6Y8Z9P3R4S5T6V7W8XA4",
+  "type": "erp.sales_invoice.submitted",
+  "source": "erp/accounts",
+  "time": "2026-10-08T14:30:00+07:00",
+  "schema_version": 1,
+  "company": "ACME-TH",
+  "actor": {
+    "kind": "user",
+    "id": "user.somchai@acme.example",
+    "on_behalf_of": null
+  },
+  "subject": {
+    "doctype": "Sales Invoice",
+    "name": "IV6910-0009"
+  },
+  "seq": 1,
+  "correlation_id": "SO6910-0042",
+  "causation_id": "01JA0K6Y8Z9P3R4S5T6V7W8XA2",
+  "visibility": {
+    "level": "public",
+    "roles": []
+  },
+  "data": {
+    "status": "Unpaid",
+    "party": "CUST-001",
+    "due_date": "2026-11-07",
+    "against": ["SO6910-0042", "DN6910-0017"]
+  }
+}

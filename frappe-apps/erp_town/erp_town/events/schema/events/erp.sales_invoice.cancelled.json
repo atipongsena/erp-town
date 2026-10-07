@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://erp-town.local/schema/events/erp.sales_invoice.cancelled.json",
+  "title": "erp.sales_invoice.cancelled data",
+  "description": "A Sales Invoice was cancelled.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["status"],
+  "properties": {
+    "status": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Document status after the action (ERPNext status field)."
+    }
+  }
+}
