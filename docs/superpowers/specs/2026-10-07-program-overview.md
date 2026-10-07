@@ -55,6 +55,7 @@ B → C → D → G                  │ (D ต้องผ่าน gate ขอ
 | API/BFF | **Hono บน Node** | runtime เดียวกับ Colyseus; ไม่ใช้ Elysia เพราะผูก Bun |
 | Client | **Vite + React 19 + R3F v9 + drei + koota (ECS) + Zustand (UI) + Web Worker** | WebGL2; ยังไม่ใช้ R3F v10/WebGPU (alpha) |
 | Assets | KayKit + Blender (ผ่าน Blender MCP) → gltf-transform (meshopt + KTX2) | |
+| UI motion | Motion (`motion/react`) สำหรับ HUD/แผง; **Rive** สำหรับไอคอน/ป้าย/ภาพ agent แบบ state machine ที่ artist ออกแบบได้ | เพิ่ม 2026-10-07 |
 | Agents | TS service, adapters: Claude API tool runner, OpenAI Responses, Codex SDK | ทุก adapter เข้าถึง ERP ผ่าน MCP tools + policy proxy ตัวเดียว |
 | Analytics | DuckDB (ใช้กับ Replay/BI) | |
 | Auth | Frappe session → JWT อายุสั้นสำหรับ WS/API | ไม่ใช้ Keycloak ในเฟส 1 |
@@ -62,6 +63,10 @@ B → C → D → G                  │ (D ต้องผ่าน gate ขอ
 | Deploy | Docker Compose (profile `dev` / `test` / `pilot`) | ไม่ใช้ K8s ในเฟส 1 |
 
 **ตัดออกจากเฟส 1:** Next.js, PixiJS 2D fallback, ClickHouse, Keycloak, Kubernetes
+
+**กติกาการเพิ่ม stack (ผู้ใช้กำหนด):** ความสวยงามมาก่อน — ไลบรารีใดที่ทำให้สวยขึ้นจริงนำมาใช้ได้ ถ้าผ่าน art bible (สไตล์เดียวกัน) และไม่ทำให้ต้องดูแลงานศิลป์สองชุด PixiJS พิจารณาใหม่ได้ถ้ามีงาน 2D ที่ทำใน R3F/HTML ไม่สวยเท่า
+
+**Plugins ของโปรเจกต์** (`.claude/settings.json`, marketplace `claude-design-skillstack`): react-three-fiber, blender-web-pipeline, motion-framer, modern-web-design, rive-interactive
 
 **ทางเลือกที่บันทึกไว้:** ถ้า localization ภาษีไทยกลายเป็นคอขวด ให้ประเมิน Odoo Community + OCA `l10n-thailand` (LGPL) — event model ออกแบบให้ไม่ผูกกับ ERP เปลี่ยนแค่ชั้น mapper
 

@@ -1,0 +1,17 @@
+{
+  "enabledPlugins": {
+    "react-three-fiber@claude-design-skillstack": true,
+    "blender-web-pipeline@claude-design-skillstack": true,
+    "motion-framer@claude-design-skillstack": true,
+    "modern-web-design@claude-design-skillstack": true,
+    "rive-interactive@claude-design-skillstack": true
+  },
+  "extraKnownMarketplaces": {
+    "claude-design-skillstack": {
+      "source": {
+        "source": "github",
+        "repo": "freshtechbro/claudedesignskills"
+      }
+    }
+  }
+}
