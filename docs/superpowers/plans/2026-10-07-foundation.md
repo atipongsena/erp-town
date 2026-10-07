@@ -418,11 +418,11 @@ def test_purge_deletes_only_old_published(self): ...
 
 Chart `th_tfrs_npaes.json` (ERPNext chart tree format, `is_group` nodes 1 สินทรัพย์, 2 หนี้สิน, 3 ส่วนของเจ้าของ, 4 รายได้, 5 ค่าใช้จ่าย) must contain at least these leaves with `account_type`: เงินสด (Cash), เงินฝากธนาคาร (Bank), ลูกหนี้การค้า (Receivable), สินค้าคงเหลือ (Stock), ภาษีซื้อ (Tax), เจ้าหนี้การค้า (Payable), ภาษีขาย (Tax), สินค้ารับแล้วยังไม่ได้รับใบแจ้งหนี้ (Stock Received But Not Billed), ทุนจดทะเบียน (Equity), กำไรสะสม (Equity), รายได้จากการขาย (Income Account), ต้นทุนขาย (Cost of Goods Sold), ผลต่างจากการปรับปรุงสต็อก (Stock Adjustment), ปัดเศษ (Round Off), ค่าเสื่อมราคา (Depreciation), ส่วนลดจ่าย (Expense Account). Mark the file header comment/README: "draft — accountant review required".
 
-- [ ] **Step 1: Write failing tests**: `create_thai_company("ทดสอบ จำกัด","TT","<valid id>")` creates all listed accounts and both tax templates; SI with `posting_date = 2026-09-30` created on any day gets name starting `IV6909-` (Review Focus 4), next SI in Oct 2026 starts `IV6910-0001` in a fresh series; Customer with invalid tax id → `frappe.ValidationError` whose message contains `เลขประจำตัวผู้เสียภาษีไม่ถูกต้อง`; empty tax id saves; `th_branch_code` exists on the 3 doctypes with default `00000`; changing a Town Naming Rule prefix to `INV` makes the next SI start with `INV69`.
-- [ ] **Step 2: Run** `pnpm erp:test -- --module erp_town.tests.test_thai_setup` → FAIL
-- [ ] **Step 3: Implement**
-- [ ] **Step 4: Run** → PASS, then run the whole suite `pnpm erp:test` → all PASS (BE numbering changes names used in earlier tests)
-- [ ] **Step 5: Commit** (`feat(thai): company setup, VAT templates, branch codes and BE numbering`, `Task: 10`)
+- [x] **Step 1: Write failing tests**: `create_thai_company("ทดสอบ จำกัด","TT","<valid id>")` creates all listed accounts and both tax templates; SI with `posting_date = 2026-09-30` created on any day gets name starting `IV6909-` (Review Focus 4), next SI in Oct 2026 starts `IV6910-0001` in a fresh series; Customer with invalid tax id → `frappe.ValidationError` whose message contains `เลขประจำตัวผู้เสียภาษีไม่ถูกต้อง`; empty tax id saves; `th_branch_code` exists on the 3 doctypes with default `00000`; changing a Town Naming Rule prefix to `INV` makes the next SI start with `INV69`.
+- [x] **Step 2: Run** `pnpm erp:test -- --module erp_town.tests.test_thai_setup` → FAIL
+- [x] **Step 3: Implement**
+- [x] **Step 4: Run** → PASS, then run the whole suite `pnpm erp:test` → all PASS (BE numbering changes names used in earlier tests)
+- [x] **Step 5: Commit** (`feat(thai): company setup, VAT templates, branch codes and BE numbering`, `Task: 10`)
 
 ---
 

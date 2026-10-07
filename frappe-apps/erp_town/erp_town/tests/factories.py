@@ -14,12 +14,14 @@ import json
 import frappe
 from frappe.utils import add_days, getdate, nowdate
 
+from erp_town.setup.masters import DEFAULT_UOM, ensure_fiscal_years, ensure_tree_roots
+
 TEST_COMPANY = "ERP Town Test Company"
 TEST_ABBR = "ETT"
 CURRENCY = "THB"
 COUNTRY = "Thailand"
 PRICE_LIST = "ERP Town Test Selling"
-UOM = "Nos"
+UOM = DEFAULT_UOM
 ITEM_GROUP = "ERP Town Test Items"
 CUSTOMER_GROUP = "ERP Town Test Customers"
 TERRITORY = "ERP Town Test Territory"
@@ -66,46 +68,22 @@ def ensure_test_company() -> str:
 
 
 def _ensure_roots() -> None:
-	"""Tree roots (as ERPNext's setup wizard names them) plus one leaf each for the test masters."""
+	"""Base masters (shared with `create_thai_company`) plus one leaf each for the test masters."""
+	ensure_tree_roots()
 	for doctype, root, leaf, name_field in (
 		("Item Group", "All Item Groups", ITEM_GROUP, "item_group_name"),
 		("Customer Group", "All Customer Groups", CUSTOMER_GROUP, "customer_group_name"),
 		("Territory", "All Territories", TERRITORY, "territory_name"),
 	):
 		parent_field = f"parent_{frappe.scrub(doctype)}"
-		if not frappe.db.exists(doctype, root):
-			frappe.get_doc({"doctype": doctype, name_field: root, "is_group": 1}).insert(
-				ignore_permissions=True
-			)
 		if not frappe.db.exists(doctype, leaf):
 			frappe.get_doc({"doctype": doctype, name_field: leaf, "is_group": 0, parent_field: root}).insert(
 				ignore_permissions=True
 			)
-	if not frappe.db.exists("UOM", UOM):
-		frappe.get_doc({"doctype": "UOM", "uom_name": UOM, "must_be_whole_number": 1}).insert(
-			ignore_permissions=True
-		)
-	if not frappe.db.exists("Warehouse Type", "Transit"):
-		frappe.get_doc({"doctype": "Warehouse Type", "name": "Transit"}).insert(ignore_permissions=True)
 
 
 def _ensure_fiscal_years() -> None:
-	"""Calendar fiscal years around today, unless some fiscal year already covers that year."""
-	year = getdate(nowdate()).year
-	for y in (year - 1, year, year + 1):
-		start, end = f"{y}-01-01", f"{y}-12-31"
-		covered = frappe.db.exists(
-			"Fiscal Year", {"year_start_date": ["<=", start], "year_end_date": [">=", end]}
-		)
-		if not covered:
-			frappe.get_doc(
-				{
-					"doctype": "Fiscal Year",
-					"year": f"ERP Town Test FY {y}",
-					"year_start_date": start,
-					"year_end_date": end,
-				}
-			).insert(ignore_permissions=True)
+	ensure_fiscal_years(name_format="ERP Town Test FY {year}")
 
 
 def _code(prefix: str) -> str:

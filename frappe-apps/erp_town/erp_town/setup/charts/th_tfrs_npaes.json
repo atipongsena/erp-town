@@ -1,0 +1,120 @@
+{
+ "_comment": "draft — accountant review required. ERP Town starter chart following the TFRS for NPAEs layout; see README.md in this folder.",
+ "country_code": "th",
+ "name": "Thailand - TFRS for NPAEs (ERP Town draft)",
+ "tree": {
+  "สินทรัพย์": {
+   "account_number": "1",
+   "root_type": "Asset",
+   "สินทรัพย์หมุนเวียน": {
+    "account_number": "11",
+    "เงินสด": {
+     "account_number": "1110",
+     "account_type": "Cash"
+    },
+    "เงินฝากธนาคาร": {
+     "account_number": "1120",
+     "account_type": "Bank"
+    },
+    "ลูกหนี้การค้า": {
+     "account_number": "1130",
+     "account_type": "Receivable"
+    },
+    "สินค้าคงเหลือ": {
+     "account_number": "1140",
+     "account_type": "Stock"
+    },
+    "ภาษีซื้อ": {
+     "account_number": "1150",
+     "account_type": "Tax",
+     "tax_rate": 7.0
+    },
+    "บัญชีพักเปิดยอด": {
+     "account_number": "1190",
+     "account_type": "Temporary"
+    }
+   },
+   "สินทรัพย์ไม่หมุนเวียน": {
+    "account_number": "12",
+    "อาคารและอุปกรณ์": {
+     "account_number": "1210",
+     "account_type": "Fixed Asset"
+    },
+    "ค่าเสื่อมราคาสะสม": {
+     "account_number": "1220",
+     "account_type": "Accumulated Depreciation"
+    }
+   }
+  },
+  "หนี้สิน": {
+   "account_number": "2",
+   "root_type": "Liability",
+   "หนี้สินหมุนเวียน": {
+    "account_number": "21",
+    "เจ้าหนี้การค้า": {
+     "account_number": "2110",
+     "account_type": "Payable"
+    },
+    "ภาษีขาย": {
+     "account_number": "2120",
+     "account_type": "Tax",
+     "tax_rate": 7.0
+    },
+    "สินค้ารับแล้วยังไม่ได้รับใบแจ้งหนี้": {
+     "account_number": "2130",
+     "account_type": "Stock Received But Not Billed"
+    }
+   }
+  },
+  "ส่วนของเจ้าของ": {
+   "account_number": "3",
+   "root_type": "Equity",
+   "ทุนจดทะเบียน": {
+    "account_number": "3100",
+    "account_type": "Equity"
+   },
+   "กำไรสะสม": {
+    "account_number": "3200",
+    "account_type": "Equity"
+   }
+  },
+  "รายได้": {
+   "account_number": "4",
+   "root_type": "Income",
+   "รายได้จากการขาย": {
+    "account_number": "4100",
+    "account_type": "Income Account"
+   }
+  },
+  "ค่าใช้จ่าย": {
+   "account_number": "5",
+   "root_type": "Expense",
+   "ต้นทุน": {
+    "account_number": "51",
+    "ต้นทุนขาย": {
+     "account_number": "5110",
+     "account_type": "Cost of Goods Sold"
+    },
+    "ผลต่างจากการปรับปรุงสต็อก": {
+     "account_number": "5120",
+     "account_type": "Stock Adjustment"
+    }
+   },
+   "ค่าใช้จ่ายในการขายและบริหาร": {
+    "account_number": "52",
+    "ส่วนลดจ่าย": {
+     "account_number": "5210",
+     "account_type": "Expense Account"
+    },
+    "ค่าเสื่อมราคา": {
+     "account_number": "5220",
+     "account_type": "Depreciation"
+    },
+    "ปัดเศษ": {
+     "account_number": "5230",
+     "account_type": "Round Off"
+    }
+   }
+  }
+ }
+}

@@ -41,7 +41,10 @@ class TownSettings(Document):
 	# end: auto-generated types
 
 	def on_update(self):
+		from erp_town.thai.setup import ensure_naming
+
 		clear_town_settings_cache()
+		ensure_naming()  # naming rules -> naming_series Property Setters (spec §5.2)
 
 
 def parse_approval_states(value: str | None) -> list[str]:
