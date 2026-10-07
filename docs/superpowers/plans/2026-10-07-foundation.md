@@ -272,7 +272,7 @@ def test_be_date(self):
   - `emit_system_error(code: str, message: str, *, subject_doctype: str, subject_name: str, company: str | None = None) -> str | None` — calls `emit_raw("system.error", source="erp/town", ...)`; must not recurse if the error event itself is invalid (log only).
   - Payload stored with `frappe.as_json(event, ensure_ascii=False)` (or `json.dumps(..., ensure_ascii=False)`).
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
 
 ```python
 def test_emit_raw_writes_pending_valid_row(self):
@@ -293,10 +293,10 @@ def test_contract_fixtures(self): ...  # every file in events/schema/fixtures/va
 
 Use `frappe.local.request` mock (`MockedRequestTestCase` or patch `frappe.get_request_header`) for headers.
 
-- [ ] **Step 2: Run** `pnpm erp:test -- --module erp_town.tests.test_event_core` → FAIL
-- [ ] **Step 3: Implement** modules.
-- [ ] **Step 4: Run** → PASS
-- [ ] **Step 5: Commit** (`feat(events): envelope, actor, seq and outbox emit`, `Task: 6`)
+- [x] **Step 2: Run** `pnpm erp:test -- --module erp_town.tests.test_event_core` → FAIL
+- [x] **Step 3: Implement** modules.
+- [x] **Step 4: Run** → PASS
+- [x] **Step 5: Commit** (`feat(events): envelope, actor, seq and outbox emit`, `Task: 6`)
 
 ---
 
