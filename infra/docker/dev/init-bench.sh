@@ -74,9 +74,16 @@ bench set-config -g redis_socketio redis://redis-queue:6379
 bench set-config -g -p serve_default_site True
 
 # --- 3. erpnext + hrms ---------------------------------------------------------------------
+# A checkout alone is not enough: if step 1 rebuilt the venv (e.g. its python symlink into the
+# image's pyenv went stale), the app must be pip-installed into the new venv again.
 for app in erpnext hrms; do
 	if [ -f "apps/$app/pyproject.toml" ] && in_apps_txt "$app"; then
-		log "3/6 get-app $app: already present"
+		if env/bin/python -c "import $app" 2>/dev/null; then
+			log "3/6 get-app $app: already present"
+		else
+			log "3/6 $app checked out but not importable in env: pip install -e apps/$app"
+			bench pip install --quiet -e "apps/$app"
+		fi
 	else
 		log "3/6 get-app $app ($BRANCH)"
 		rm -rf "apps/$app"

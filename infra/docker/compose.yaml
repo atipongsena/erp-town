@@ -47,7 +47,12 @@ services:
       - redis-town-data:/data
 
   bench:
-    image: frappe/bench:latest
+    # Pinned digest of frappe/bench:latest (pulled 2026-10-07: Python 3.14.8, Node 24.21.0).
+    # The venv in bench-data links to the image's pyenv Python, so bump deliberately:
+    #   docker pull frappe/bench:latest
+    #   docker image inspect frappe/bench:latest --format '{{index .RepoDigests 0}}'
+    # then paste the new digest here and `pnpm erp:up` (init-bench rebuilds a stale venv).
+    image: frappe/bench:latest@sha256:cc5f6f9ab1cce386215228d781fc5096a5378b11fb17e3b65419fa77a7311062
     profiles: ["dev"]
     restart: unless-stopped
     command:
