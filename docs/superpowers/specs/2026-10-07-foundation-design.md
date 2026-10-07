@@ -117,7 +117,7 @@ Causation ของ event ที่ระบบสร้าง: `erp.sales_invoi
 
 ### 4.2 การจับ event
 
-- `hooks.py` → `doc_events` ของ Sales Order, Delivery Note, Sales Invoice, Payment Entry: `on_submit`, `on_cancel`, `on_update_after_submit`
+- `hooks.py` → `doc_events` ของ Sales Order, Delivery Note, Sales Invoice, Payment Entry: `on_submit`, `on_cancel` (`on_update_after_submit` ยังไม่ใช้ใน slice นี้เพราะไม่มี event type รองรับ — เพิ่มพร้อม schema เมื่อ slice ถัดไปต้องการ)
 - workflow: hook `on_change` ตรวจการเปลี่ยน `workflow_state` → `workflow.approval.requested` เมื่อเข้าสถานะรออนุมัติ, `workflow.approval.decided` เมื่อออกจากสถานะนั้น
 - `erp.stock.below_reorder`: ตรวจตอน DN submit — ต่อ item ที่อยู่ใน DN เทียบ `Bin.actual_qty` กับ reorder level ของ Item ใน warehouse นั้น; ออกเฉพาะเมื่อข้ามเส้นลงมา (ก่อนหน้า ≥ เกณฑ์, หลัง < เกณฑ์)
 - mapper หนึ่งไฟล์ต่อ doctype (`erp_town/events/mappers/<doctype>.py`) ลงทะเบียนใน registry; ฟังก์ชันกลาง `emit(doc, action)`:
