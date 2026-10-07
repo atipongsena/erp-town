@@ -4,12 +4,15 @@
 // Exit code = exit code of the docker child process.
 
 import { spawn } from 'node:child_process'
+import { copyFileSync, existsSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parseArgs } from 'node:util'
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const COMPOSE = ['compose', '-f', 'infra/docker/compose.yaml', '--profile', 'dev']
+const ENV_FILE = 'infra/docker/.env'
+const ENV_EXAMPLE = 'infra/docker/.env.example'
 const BENCH_SERVICE = 'bench'
 const BENCH_DIR = '/home/frappe/frappe-bench'
 const DEV_SITE = 'town.localhost'
@@ -65,7 +68,15 @@ function docker(args) {
 }
 
 function compose(...args) {
-  return docker([...COMPOSE, ...args])
+  const envFile = existsSync(path.join(ROOT, ENV_FILE)) ? ['--env-file', ENV_FILE] : []
+  return docker([...COMPOSE, ...envFile, ...args])
+}
+
+/** Create infra/docker/.env from .env.example (dev-only defaults) when it is missing. */
+function ensureEnvFile() {
+  if (existsSync(path.join(ROOT, ENV_FILE))) return
+  copyFileSync(path.join(ROOT, ENV_EXAMPLE), path.join(ROOT, ENV_FILE))
+  console.log(`erp: created ${ENV_FILE} from ${ENV_EXAMPLE} (dev-only defaults; edit to change)`)
 }
 
 /** `docker compose exec` flags: allocate a TTY only when we have one (scripts/CI capture output). */
@@ -112,6 +123,7 @@ function parseNonNegativeInt(name, value) {
 
 const commands = {
   async up(args) {
+    ensureEnvFile()
     const code = await compose('up', '-d', ...args)
     return code === 0 ? waitForPing() : code
   },

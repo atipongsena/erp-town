@@ -1,0 +1,87 @@
+# ERP Town dev stack. Use via `pnpm erp:up` / `node scripts/erp.mjs up` (adds `--profile dev`
+# and `--env-file infra/docker/.env`). Secrets come from infra/docker/.env (see .env.example).
+#
+# Shared infra (mariadb, redis-*) has no profile; `bench` is the dev profile: a single
+# frappe/bench container running `bench start` (web, socketio, workers, scheduler, watch)
+# against a bench that lives in the `bench-data` volume, with only the erp_town app
+# bind-mounted from the repo.
+name: erp-town
+
+services:
+  mariadb:
+    image: mariadb:11.4
+    restart: unless-stopped
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --skip-character-set-client-handshake
+      - --innodb-buffer-pool-size=256M
+    environment:
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?set DB_ROOT_PASSWORD in infra/docker/.env}
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
+    volumes:
+      - mariadb-data:/var/lib/mysql
+
+  redis-cache:
+    image: redis:7-alpine
+    restart: unless-stopped
+
+  redis-queue:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - redis-queue-data:/data
+
+  redis-town:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes", "--appendfsync", "everysec"]
+    ports:
+      - "127.0.0.1:6380:6379"
+    volumes:
+      - redis-town-data:/data
+
+  bench:
+    image: frappe/bench:latest
+    profiles: ["dev"]
+    restart: unless-stopped
+    command:
+      - bash
+      - -c
+      - bash /workspace/infra/docker/dev/init-bench.sh && cd /home/frappe/frappe-bench && bench start
+    environment:
+      DB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?set DB_ROOT_PASSWORD in infra/docker/.env}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?set ADMIN_PASSWORD in infra/docker/.env}
+      REDIS_TOWN_URL: ${REDIS_TOWN_URL:-redis://redis-town:6379/0}
+      # Windows bind mounts do not deliver inotify events: poll for Python/JS reloads.
+      WATCHFILES_FORCE_POLLING: "true"
+      CHOKIDAR_USEPOLLING: "true"
+      # uv cache and bench volume are different filesystems: copy instead of hardlink (no warning).
+      UV_LINK_MODE: copy
+    ports:
+      - "127.0.0.1:8080:8000"
+      - "127.0.0.1:9000:9000"
+    depends_on:
+      mariadb:
+        condition: service_healthy
+      redis-cache:
+        condition: service_started
+      redis-queue:
+        condition: service_started
+      redis-town:
+        condition: service_started
+    volumes:
+      - bench-data:/home/frappe/frappe-bench
+      - ../../frappe-apps/erp_town:/home/frappe/frappe-bench/apps/erp_town
+      - ../..:/workspace:ro
+
+volumes:
+  mariadb-data:
+  redis-queue-data:
+  redis-town-data:
+  bench-data:

@@ -1,0 +1,5 @@
+[pre_model_sync]
+# Patches added in this folder will be executed before creating new columns
+
+[post_model_sync]
+# Patches added in this folder will be executed after creating new columns

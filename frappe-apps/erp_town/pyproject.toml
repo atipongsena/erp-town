@@ -1,0 +1,29 @@
+[project]
+name = "erp_town"
+authors = [{ name = "ERP Town" }]
+description = "ERP Town: ERPNext v16 + HRMS as an office-simulation game (town layer, Thai localization)"
+requires-python = ">=3.14,<3.15"
+readme = "README.md"
+license = "GPL-3.0-only"
+license-files = ["LICENSE"]
+dynamic = ["version"]
+dependencies = [
+	"python-ulid>=3,<4",
+	"jsonschema>=4.23,<5",
+]
+
+[build-system]
+requires = ["flit_core>=3.11,<4"]
+build-backend = "flit_core.buildapi"
+
+[tool.bench.frappe-dependencies]
+frappe = ">=16.0.0-dev,<17.0.0"
+
+[tool.ruff]
+line-length = 110
+target-version = "py314"
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "tab"
+docstring-code-format = true

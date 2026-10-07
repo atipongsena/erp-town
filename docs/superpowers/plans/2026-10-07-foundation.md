@@ -171,7 +171,7 @@ Compose details: `bench` uses `frappe/bench:latest`, command `bash /workspace/in
 
 Spec §6.3's `test` profile is realised as the separate site `test.localhost` on the dev stack (same containers, isolated database); no extra compose profile is needed.
 
-- [ ] **Step 1: Write failing smoke test** `erp_town/tests/test_smoke.py`:
+- [x] **Step 1: Write failing smoke test** `erp_town/tests/test_smoke.py`:
 
 ```python
 from frappe.tests import IntegrationTestCase
@@ -183,15 +183,15 @@ class TestSmoke(IntegrationTestCase):
         self.assertEqual(frappe.conf.town_redis_url, "redis://redis-town:6379/0")
 ```
 
-- [ ] **Step 2: Run** `pnpm erp:up` (first run takes 15–30 min) then `pnpm erp:test -- --module erp_town.tests.test_smoke`
+- [x] **Step 2: Run** `pnpm erp:up` (first run takes 15–30 min) then `pnpm erp:test -- --module erp_town.tests.test_smoke`
 Expected before skeleton exists: install-app fails / module not found.
-- [ ] **Step 3: Implement** compose, init script, app skeleton (`hooks.py` with `app_name`, `app_title = "ERP Town"`, `app_publisher`, `app_license = "GPL-3.0-only"`, `required_apps = ["erpnext", "hrms"]`).
-- [ ] **Step 4: Verify**
+- [x] **Step 3: Implement** compose, init script, app skeleton (`hooks.py` with `app_name`, `app_title = "ERP Town"`, `app_publisher`, `app_license = "GPL-3.0-only"`, `required_apps = ["erpnext", "hrms"]`).
+- [x] **Step 4: Verify**
 
 Run: `pnpm erp:up && curl -s http://localhost:8080/api/method/ping && pnpm erp:test -- --module erp_town.tests.test_smoke && pnpm erp:down && pnpm erp:up`
 Expected: `{"message":"pong"}`; 2 tests pass; second `up` completes in < 2 min (idempotent init).
 
-- [ ] **Step 5: Commit** (`feat(infra): dev compose stack and erp_town app skeleton`, `Task: 3`)
+- [x] **Step 5: Commit** (`feat(infra): dev compose stack and erp_town app skeleton`, `Task: 3`)
 
 ---
 

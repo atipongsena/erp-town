@@ -10,3 +10,9 @@ node_modules/
 # Secrets & local data
 .env
 infra/docker/data/
+infra/docker/.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
