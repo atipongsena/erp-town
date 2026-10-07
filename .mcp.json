@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "blender": {
+      "command": "cmd",
+      "args": ["/c", "uvx", "mcp-for-blender"],
+      "env": {
+        "DISABLE_TELEMETRY": "true",
+        "PYTHONIOENCODING": "utf-8"
+      }
+    }
+  }
+}
