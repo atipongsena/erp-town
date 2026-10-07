@@ -29,7 +29,15 @@ TEST_WAREHOUSE = f"Stores - {TEST_ABBR}"  # created by ERPNext with the company
 
 
 def ensure_test_company() -> str:
-	"""Create (once) everything the factories need; returns the company name. Caller commits."""
+	"""Create (once) everything the factories need; returns the company name. Caller commits.
+
+	Refuses on any site without `allow_tests` (only `test.localhost`): the caller commits, and test data
+	must never reach `town.localhost`.
+	"""
+	if not frappe.conf.get("allow_tests"):
+		raise RuntimeError(
+			f"ensure_test_company() refused on site {frappe.local.site}: allow_tests is not enabled"
+		)
 	_ensure_roots()
 	_ensure_fiscal_years()
 	if not frappe.db.exists("Company", TEST_COMPANY):

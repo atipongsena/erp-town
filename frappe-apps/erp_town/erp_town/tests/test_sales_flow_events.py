@@ -263,6 +263,50 @@ class TestSalesFlowEvents(IntegrationTestCase):
 		self.assertIn("mapper bug", errors[0]["data"]["message"])
 		self.assertEqual(errors[0]["causation_id"], json.loads(rows[0].payload)["id"])
 
+	def test_invalid_upstream_keeps_root_without_causation(self):
+		# spec §3.1: correlation_id is the flow root even when the root's own event is Invalid (never
+		# published); causation must not point at an event consumers never receive
+		from erp_town.events.mappers import REGISTRY
+
+		with patch.object(REGISTRY["Sales Order"], "data", side_effect=RuntimeError("mapper bug")):
+			so = make_so(self.customer, [self.item])
+		self.assertEqual(_outbox_rows(so)[0].status, "Invalid")
+		dn = make_dn_from_so(so)
+		dn_event = _erp_events_for(dn)[0]
+		self.assertEqual(dn_event["correlation_id"], so.name)
+		self.assertIsNone(dn_event["causation_id"])
+		self.assertEqual(dn_event["data"]["against"], [so.name])
+		si_event = _erp_events_for(make_si_from_dn(dn))[0]
+		self.assertEqual(si_event["correlation_id"], so.name)
+		self.assertEqual(si_event["causation_id"], dn_event["id"])
+
+	def test_cancel_after_invalid_submit_keeps_correlation_without_causation(self):
+		from erp_town.events.mappers import REGISTRY
+
+		si = make_si(self.customer, [self.item])
+		with patch.object(REGISTRY["Sales Invoice"], "data", side_effect=RuntimeError("mapper bug")):
+			si.cancel()
+		amended = _amend(si)
+		ev = _erp_events_for(amended)[0]
+		self.assertEqual(ev["correlation_id"], si.name)
+		self.assertIsNone(ev["causation_id"])
+
+	def test_latest_event_reports_invalid_rows(self):
+		from erp_town.events.lineage import latest_event
+		from erp_town.events.mappers import REGISTRY
+
+		with patch.object(REGISTRY["Sales Order"], "data", side_effect=RuntimeError("mapper bug")):
+			so = make_so(self.customer, [self.item])
+		invalid = latest_event("Sales Order", so.name)
+		self.assertEqual(invalid["correlation_id"], so.name)
+		self.assertTrue(invalid["invalid"])
+		self.assertEqual(invalid["event_id"], json.loads(_outbox_rows(so)[0].payload)["id"])
+		self.assertIsNone(latest_event("Sales Order", "NO-SUCH-SO"))
+
+	def test_ensure_test_company_refuses_without_allow_tests(self):
+		with patch.dict(frappe.conf, {"allow_tests": False}), self.assertRaises(RuntimeError):
+			ensure_test_company()
+
 	def test_hook_failure_does_not_block_submit(self):
 		with patch("erp_town.events.doc_hooks.find_lineage", side_effect=RuntimeError("lineage bug")):
 			so = make_so(self.customer, [self.item])

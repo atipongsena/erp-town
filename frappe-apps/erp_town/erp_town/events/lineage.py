@@ -9,14 +9,16 @@
   latest event; causation from the first upstream event, else from the original's latest event.
 - cancelled: chained to the document's own latest event (same correlation, causation = that event).
 
-Only events consumers can see count as "latest": `Invalid` rows (never published) and `system.*` events
-(problem reports that share the document as subject) are skipped.
+`system.*` events (problem reports that share the document as subject) never count as a document's
+latest event. `Invalid` rows do (Ruling H): they still carry the flow root as correlation, so the chain
+keeps its root, but they are never published, so they give no causation (`causation_id = None`).
 """
 
 from typing import NamedTuple
 
 import frappe
 
+from erp_town.events.emit import INVALID
 from erp_town.events.mappers import CANCELLED, SUBMITTED, Mapper
 
 
@@ -27,25 +29,36 @@ class Lineage(NamedTuple):
 
 
 def latest_event(doctype: str, name: str) -> dict | None:
-	"""`{"event_id", "correlation_id"}` of the subject's highest-seq published-or-pending event."""
+	"""The subject's highest-seq non-`system.*` outbox row, whatever its status, or None.
+
+	Returns `{"event_id", "correlation_id", "invalid"}`; `invalid` is True for an `Invalid` row, which is
+	never published: use `causation_of()` rather than `event_id` as a causation.
+	"""
 	if not name:
 		return None
 	rows = frappe.db.sql(
-		"""select event_id, correlation_id from `tabTown Event Outbox`
-		where subject_doctype = %s and subject_name = %s
-			and status != 'Invalid' and event_type not like 'system.%%'
+		"""select event_id, correlation_id, status from `tabTown Event Outbox`
+		where subject_doctype = %s and subject_name = %s and event_type not like 'system.%%'
 		order by seq desc limit 1""",
 		(doctype, name),
 		as_dict=True,
 	)
-	return {"event_id": rows[0].event_id, "correlation_id": rows[0].correlation_id} if rows else None
+	if not rows:
+		return None
+	row = rows[0]
+	return {"event_id": row.event_id, "correlation_id": row.correlation_id, "invalid": row.status == INVALID}
+
+
+def causation_of(event: dict | None) -> str | None:
+	"""`event_id` of a `latest_event()` result usable as causation (None for missing or `Invalid`)."""
+	return event["event_id"] if event and not event["invalid"] else None
 
 
 def find_lineage(doc, mapper: Mapper, action: str = SUBMITTED) -> Lineage:
 	if action == CANCELLED:
 		own = latest_event(doc.doctype, doc.name)
 		if own:
-			return Lineage(own["correlation_id"], own["event_id"], [])
+			return Lineage(own["correlation_id"], causation_of(own), [])
 		return find_lineage(doc, mapper)._replace(against=[])
 
 	upstream = mapper.upstream(doc)
@@ -54,8 +67,7 @@ def find_lineage(doc, mapper: Mapper, action: str = SUBMITTED) -> Lineage:
 	original = latest_event(doc.doctype, doc.get("amended_from")) if doc.get("amended_from") else None
 
 	if original:
-		causation = cause["event_id"] if cause else original["event_id"]
-		return Lineage(original["correlation_id"], causation, against)
+		return Lineage(original["correlation_id"], causation_of(cause or original), against)
 	if cause:
-		return Lineage(cause["correlation_id"], cause["event_id"], against)
+		return Lineage(cause["correlation_id"], causation_of(cause), against)
 	return Lineage(doc.name, None, against)

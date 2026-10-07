@@ -9,9 +9,7 @@ swallows town-layer errors; it only re-raises when the database already lost the
 which must reach the caller (see `erp_town.events.emit`).
 """
 
-import frappe
-
-from erp_town.events.emit import EVENT_INVALID, emit_raw
+from erp_town.events.emit import EVENT_INVALID, emit_raw, log_failure
 from erp_town.events.lineage import find_lineage
 from erp_town.events.mappers import CANCELLED, REGISTRY, SUBMITTED
 from erp_town.events.system import emit_system_error
@@ -51,7 +49,7 @@ def _data(doc, mapper, action: str, against: list[str], event_type: str) -> tupl
 	try:
 		data = mapper.data(doc, action)
 	except Exception as e:  # noqa: BLE001 -- stored as an Invalid event instead
-		_log(f"ERP Town: mapper for {event_type} failed on {doc.doctype} {doc.name}")
+		log_failure(f"ERP Town: mapper for {event_type} failed on {doc.doctype} {doc.name}")
 		return {}, f"mapper failed: {_describe(e)}"
 	if action == SUBMITTED and mapper.lists_against:
 		data["against"] = list(against)
@@ -59,7 +57,7 @@ def _data(doc, mapper, action: str, against: list[str], event_type: str) -> tupl
 
 
 def _report_failure(doc, event_type: str, error: Exception) -> None:
-	_log(f"ERP Town: building {event_type} failed on {doc.doctype} {doc.name}")
+	log_failure(f"ERP Town: building {event_type} failed on {doc.doctype} {doc.name}")
 	emit_system_error(
 		EVENT_INVALID,
 		f"could not build {event_type} for {doc.doctype} {doc.name}: {_describe(error)}",
@@ -71,10 +69,3 @@ def _report_failure(doc, event_type: str, error: Exception) -> None:
 
 def _describe(error: Exception) -> str:
 	return f"{type(error).__name__}: {error}"
-
-
-def _log(title: str) -> None:
-	try:
-		frappe.log_error(title=title[:140])
-	except Exception:  # noqa: BLE001 -- logging must never raise out of the town layer
-		frappe.logger("erp_town").exception(title)

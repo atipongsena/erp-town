@@ -79,7 +79,7 @@ def emit_raw(
 			"visibility": visibility if visibility is not None else default_visibility(),
 		}
 	except Exception:  # noqa: BLE001 -- town-layer failures must never block the caller's document
-		_log_failure(title)
+		log_failure(title)
 		return None
 
 	stored = _store_in_savepoint(fields, title, invalid_reason)
@@ -113,7 +113,7 @@ def _store_in_savepoint(
 		# a swallowed frappe.throw (e.g. link validation) must not reach the user as an error dialog
 		if getattr(frappe.local, "message_log", None):
 			del frappe.local.message_log[messages:]
-		_log_failure(title)
+		log_failure(title)
 		return None
 	frappe.db.release_savepoint(savepoint)
 	return result
@@ -195,7 +195,7 @@ def _enqueue_publish(event_id: str) -> None:
 	try:
 		frappe.enqueue(PUBLISH_METHOD, queue="short", event_ids=[event_id], enqueue_after_commit=True)
 	except Exception:  # noqa: BLE001 -- e.g. redis-queue down: the row stays Pending for the sweeper
-		_log_failure(f"ERP Town: enqueue publish of {event_id} failed")
+		log_failure(f"ERP Town: enqueue publish of {event_id} failed")
 
 
 def _report(code: str, message: str, causation_id: str | None, subject: dict) -> None:
@@ -204,7 +204,8 @@ def _report(code: str, message: str, causation_id: str | None, subject: dict) ->
 	emit_system_error(code, message[:_MAX_ERROR_MESSAGE], causation_id=causation_id, **subject)
 
 
-def _log_failure(title: str) -> None:
+def log_failure(title: str) -> None:
+	"""Error Log entry (with the current traceback) that never raises out of the town layer."""
 	try:
 		frappe.log_error(title=title[:140])
 	except Exception:  # noqa: BLE001 -- logging must never raise out of the town layer
