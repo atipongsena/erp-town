@@ -206,7 +206,7 @@ Expected: `{"message":"pong"}`; 2 tests pass; second `up` completes in < 2 min (
 
 Rules: amounts rounded to 2 decimals with `ROUND_HALF_UP` via `Decimal(str(x))`; negative prefix `ลบ`; tax ID checksum: `s = Σ_{i=0..11} d[i]·(13−i)`, check digit `(11 − s mod 11) mod 10` equals `d[12]`; only 13 ASCII digits are valid (strip nothing). `long` → `7 ตุลาคม 2569`, `short` → `07/10/2569`.
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
 
 ```python
 CASES = [(0,"ศูนย์บาทถ้วน"),(1,"หนึ่งบาทถ้วน"),(10,"สิบบาทถ้วน"),(11,"สิบเอ็ดบาทถ้วน"),
@@ -229,10 +229,10 @@ def test_be_date(self):
 
 (If `0105536112014` is not valid under the formula, replace it with a number the formula validates and its last-digit-changed twin — the assertion structure stays.)
 
-- [ ] **Step 2: Run** `pnpm erp:test -- --module erp_town.tests.test_thai_utils` → FAIL (import error)
-- [ ] **Step 3: Implement** the three modules and Jinja wrappers.
-- [ ] **Step 4: Run** same command → PASS
-- [ ] **Step 5: Commit** (`feat(thai): bahttext, tax id checksum, BE date filters`, `Task: 4`)
+- [x] **Step 2: Run** `pnpm erp:test -- --module erp_town.tests.test_thai_utils` → FAIL (import error)
+- [x] **Step 3: Implement** the three modules and Jinja wrappers.
+- [x] **Step 4: Run** same command → PASS
+- [x] **Step 5: Commit** (`feat(thai): bahttext, tax id checksum, BE date filters`, `Task: 4`)
 
 ---
 
