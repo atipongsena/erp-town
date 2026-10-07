@@ -7,6 +7,7 @@ Document Naming,การตั้งเลขที่เอกสาร
 e.g. agent.sales_assistant,เช่น agent.sales_assistant
 Event ID,รหัสเหตุการณ์
 Invalid document number prefix for {0}: {1},คำนำหน้าเลขที่เอกสารของ {0} ไม่ถูกต้อง: {1}
+Invalid month: {0},เดือนไม่ถูกต้อง: {0}
 Last Error,ข้อผิดพลาดล่าสุด
 Last Seq,ลำดับล่าสุด
 Leave empty to use town_redis_url from site config,เว้นว่างเพื่อใช้ town_redis_url จาก site config

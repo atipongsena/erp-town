@@ -465,11 +465,11 @@ def test_dn_and_so_render(self): ...  # contain doc name and be_date
 **Interfaces:**
 - Produces: report name `รายงานภาษีขาย`; filters `company` (Link, required), `month` (Select 1–12), `year` (Int, Gregorian; label shows BE in `.js`); `execute(filters) -> (columns, data)` with columns (fieldnames exact): `idx`, `posting_date_be`, `invoice_no`, `customer_name`, `customer_tax_id`, `customer_branch`, `net_amount`, `vat_amount`; a final total row `{"invoice_no": "รวม", "net_amount": Σ, "vat_amount": Σ}`. Cancelled SIs in the period appear with `customer_name` suffixed ` (ยกเลิก)` and zero amounts. Source: submitted/cancelled SIs of the company in the month, VAT from tax rows whose account is the company's `ภาษีขาย` account.
 
-- [ ] **Step 1: Write failing tests**: three SIs (one VAT-exclusive 1,000 → net 1,000 / vat 70; one VAT-inclusive 1,070 → net 1,000 / vat 70; one cancelled) → 3 rows + total row with net 2,000.00 and vat 140.00; SI in another month excluded; `posting_date_be` = `be_date(..., "short")`.
-- [ ] **Step 2: Run** `pnpm erp:test -- --module erp_town.tests.test_output_vat_report` → FAIL
-- [ ] **Step 3: Implement**
-- [ ] **Step 4: Run** → PASS
-- [ ] **Step 5: Commit** (`feat(thai): output VAT report`, `Task: 12`)
+- [x] **Step 1: Write failing tests**: three SIs (one VAT-exclusive 1,000 → net 1,000 / vat 70; one VAT-inclusive 1,070 → net 1,000 / vat 70; one cancelled) → 3 rows + total row with net 2,000.00 and vat 140.00; SI in another month excluded; `posting_date_be` = `be_date(..., "short")`.
+- [x] **Step 2: Run** `pnpm erp:test -- --module erp_town.tests.test_output_vat_report` → FAIL
+- [x] **Step 3: Implement**
+- [x] **Step 4: Run** → PASS
+- [x] **Step 5: Commit** (`feat(thai): output VAT report`, `Task: 12`)
 
 ---
 

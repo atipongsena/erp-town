@@ -56,7 +56,7 @@ def th_parties(doc) -> dict:
 		tax_id=company.tax_id or "",
 		address=doc.get("company_address_display")
 		or _address_html(company_address or get_default_address("Company", doc.company)),
-		branch=th_branch_label(_branch_code(company_address, company.th_branch_code)),
+		branch=th_branch_label(branch_code(company_address, company.th_branch_code)),
 	)
 
 	customer_name = doc.get("customer") or (doc.get("party") if doc.get("party_type") == "Customer" else None)
@@ -75,7 +75,7 @@ def th_parties(doc) -> dict:
 		or _address_html(
 			customer_address or (get_default_address("Customer", customer_name) if customer_name else None)
 		),
-		branch=th_branch_label(_branch_code(customer_address, customer.th_branch_code)),
+		branch=th_branch_label(branch_code(customer_address, customer.th_branch_code)),
 	)
 	return frappe._dict(seller=seller, buyer=buyer)
 
@@ -126,7 +126,9 @@ def th_reference_date(row):
 	return frappe.db.get_value(row.reference_doctype, row.reference_name, field)
 
 
-def _branch_code(address: str | None, party_code: str | None) -> str | None:
+def branch_code(address: str | None, party_code: str | None) -> str | None:
+	"""A party's branch code on a document: the linked address's `th_branch_code` when it is a branch (not
+	`00000`), else the party's own `th_branch_code`. Shared by the print formats and the sales VAT report."""
 	address_code = (
 		(frappe.db.get_value("Address", address, "th_branch_code") or "").strip() if address else ""
 	)
