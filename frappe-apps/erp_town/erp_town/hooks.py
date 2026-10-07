@@ -7,3 +7,23 @@ app_license = "GPL-3.0-only"
 required_apps = ["erpnext", "hrms"]
 
 jinja = {"filters": ["erp_town.thai.jinja.be_date", "erp_town.thai.jinja.bahttext"]}
+
+# town events for the sales slice (spec §4.2); on_update_after_submit has no event type in slice 1
+doc_events = {
+	"Sales Order": {
+		"on_submit": "erp_town.events.doc_hooks.on_doc_event",
+		"on_cancel": "erp_town.events.doc_hooks.on_doc_event",
+	},
+	"Delivery Note": {
+		"on_submit": "erp_town.events.doc_hooks.on_doc_event",
+		"on_cancel": "erp_town.events.doc_hooks.on_doc_event",
+	},
+	"Sales Invoice": {
+		"on_submit": "erp_town.events.doc_hooks.on_doc_event",
+		"on_cancel": "erp_town.events.doc_hooks.on_doc_event",
+	},
+	"Payment Entry": {
+		"on_submit": "erp_town.events.doc_hooks.on_doc_event",
+		"on_cancel": "erp_town.events.doc_hooks.on_doc_event",
+	},
+}

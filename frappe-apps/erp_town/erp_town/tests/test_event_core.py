@@ -203,6 +203,28 @@ class TestEventCore(IntegrationTestCase):
 			PUBLISH, queue="short", event_ids=[err["id"]], enqueue_after_commit=True
 		)
 
+	def test_invalid_reason_stores_invalid_row_without_validation(self):
+		# e.g. the mapper raised: the event is recorded as Invalid even though its (empty) data is not checked
+		eid = _emit_item("ITEM-REASON", invalid_reason="mapper failed: RuntimeError('boom')")
+		row = frappe.get_doc("Town Event Outbox", eid)
+		self.assertEqual(row.status, "Invalid")
+		self.assertEqual(row.seq, 1)
+		self.assertEqual(row.last_error, "mapper failed: RuntimeError('boom')")
+		self.assertIsNone(row.next_attempt_at)
+		self.assertEqual(json.loads(row.payload)["id"], eid)
+		errors = _system_errors("ITEM-REASON")
+		self.assertEqual([e["data"]["code"] for e in errors], ["EVENT_INVALID"])
+		self.assertIn("boom", errors[0]["data"]["message"])
+		self.assertEqual(errors[0]["causation_id"], eid)
+		self.enqueue.assert_called_once_with(
+			PUBLISH, queue="short", event_ids=[errors[0]["id"]], enqueue_after_commit=True
+		)
+
+	def test_invalid_reason_is_truncated(self):
+		eid = _emit_item("ITEM-REASON-LONG", data={}, invalid_reason="x" * 5000)
+		self.assertEqual(len(frappe.db.get_value("Town Event Outbox", eid, "last_error")), 1000)
+		self.assertEqual(frappe.db.get_value("Town Event Outbox", eid, "status"), "Invalid")
+
 	def test_non_json_data_is_stored_invalid(self):
 		eid = _emit_item("ITEM-NOJSON", data={"warehouse": object(), "fill_ratio": 0.5})
 		row = frappe.get_doc("Town Event Outbox", eid)

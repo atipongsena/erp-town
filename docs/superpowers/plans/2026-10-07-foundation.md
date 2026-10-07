@@ -317,7 +317,7 @@ Use `frappe.local.request` mock (`MockedRequestTestCase` or patch `frappe.get_re
 
 Data fields per spec §3.3 (`status`, `party` = customer code, `item_count` = number of item rows, `delivery_date`, `warehouse` = first item's warehouse, `due_date`, `mode_of_payment`).
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
 
 ```python
 def test_full_flow_chain(self):
@@ -336,10 +336,10 @@ def test_amended_doc_new_subject_same_correlation(self): ... # Review Focus 2: a
 def test_mapper_exception_does_not_block_submit(self): ...   # patch mapper.data to raise → SO submitted (docstatus 1), outbox Invalid
 ```
 
-- [ ] **Step 2: Run** `pnpm erp:test -- --module erp_town.tests.test_sales_flow_events` → FAIL
-- [ ] **Step 3: Implement** mappers, lineage, hooks (wrap whole hook body in try/except → `emit_system_error`, never re-raise).
-- [ ] **Step 4: Run** → PASS
-- [ ] **Step 5: Commit** (`feat(events): sales flow mappers with causation lineage`, `Task: 7`)
+- [x] **Step 2: Run** `pnpm erp:test -- --module erp_town.tests.test_sales_flow_events` → FAIL
+- [x] **Step 3: Implement** mappers, lineage, hooks (wrap whole hook body in try/except → `emit_system_error`, never re-raise).
+- [x] **Step 4: Run** → PASS
+- [x] **Step 5: Commit** (`feat(events): sales flow mappers with causation lineage`, `Task: 7`)
 
 ---
 

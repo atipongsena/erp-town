@@ -4,8 +4,8 @@
 """`emit_raw`: write one event into `Town Event Outbox` inside the caller's transaction (spec §4.2).
 
 Town-layer failures never propagate to the caller (a document submit/cancel must not be blocked):
-- schema-invalid or non-JSON events are stored as `Invalid` rows and reported as `system.error`
-  `EVENT_INVALID`;
+- schema-invalid or non-JSON events, and events the caller already knows are broken (`invalid_reason`,
+  e.g. the mapper raised), are stored as `Invalid` rows and reported as `system.error` `EVENT_INVALID`;
 - anything unexpected rolls back the town-layer writes (seq + outbox) to a savepoint, goes to the Error
   Log and `emit_raw` returns None; the caller's own writes in the same transaction are untouched.
 The one exception: if that savepoint is gone (e.g. a deadlock made the server roll back the whole
@@ -49,11 +49,14 @@ def emit_raw(
 	correlation_id: str | None = None,
 	causation_id: str | None = None,
 	visibility: dict | None = None,
+	invalid_reason: str | None = None,
 ) -> str | None:
 	"""Store an event and register its publish job; return the event id (also for `Invalid` rows).
 
 	Defaults: `actor` from the session (`resolve_actor`, header problems reported as `system.error`),
 	`correlation_id = subject_name`, `visibility = {"level": "public", "roles": []}`.
+	`invalid_reason`: store the row `Invalid` with this `last_error` without schema validation (the event
+	still takes its seq and is reported as `EVENT_INVALID`; nothing is enqueued).
 	Returns None when nothing could be stored (see module docstring).
 	"""
 	title = f"ERP Town: emit {event_type} for {subject_doctype} {subject_name} failed"
@@ -79,7 +82,7 @@ def emit_raw(
 		_log_failure(title)
 		return None
 
-	stored = _store_in_savepoint(fields, title)
+	stored = _store_in_savepoint(fields, title, invalid_reason)
 	report = {"subject_doctype": subject_doctype, "subject_name": subject_name, "company": company}
 
 	if stored is not None:
@@ -95,13 +98,15 @@ def emit_raw(
 	return event_id if stored is not None else None
 
 
-def _store_in_savepoint(fields: dict, title: str) -> tuple[str, str | None] | None:
+def _store_in_savepoint(
+	fields: dict, title: str, invalid_reason: str | None = None
+) -> tuple[str, str | None] | None:
 	"""Allocate seq, validate and insert the outbox row; on failure undo only these writes."""
 	savepoint = f"town_emit_{frappe.generate_hash(length=10)}"
 	messages = len(getattr(frappe.local, "message_log", None) or [])
 	frappe.db.savepoint(savepoint)
 	try:
-		result = _insert_outbox_row(**fields)
+		result = _insert_outbox_row(**fields, invalid_reason=invalid_reason)
 	except Exception:
 		if not _rollback_to(savepoint):
 			raise
@@ -115,7 +120,13 @@ def _store_in_savepoint(fields: dict, title: str) -> tuple[str, str | None] | No
 
 
 def _insert_outbox_row(
-	*, event_id: str, event_type: str, subject_doctype: str, subject_name: str, **envelope_fields
+	*,
+	event_id: str,
+	event_type: str,
+	subject_doctype: str,
+	subject_name: str,
+	invalid_reason: str | None = None,
+	**envelope_fields,
 ) -> tuple[str, str | None]:
 	seq = next_seq(subject_doctype, subject_name)
 	event = build_envelope(
@@ -127,7 +138,9 @@ def _insert_outbox_row(
 		**envelope_fields,
 	)
 	payload, error = _serialize(event)
-	if error is None:
+	if invalid_reason is not None:
+		error = (str(invalid_reason).strip() or "invalid")[:_MAX_ERROR_MESSAGE]
+	elif error is None:
 		try:
 			validate_event(json.loads(payload))  # validate exactly what is stored and published
 		except EventSchemaError as e:
