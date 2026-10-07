@@ -357,7 +357,7 @@ def test_mapper_exception_does_not_block_submit(self): ...   # patch mapper.data
   - `sweep() -> int` — rows `Pending`, `creation < now-30s`, `next_attempt_at is null or <= now`, ordered by `creation`, limit 500.
   - `purge() -> int` — delete `Published` older than `outbox_retention_days`.
 
-- [ ] **Step 1: Write failing tests** (these talk to the real `redis-town`; each test uses a unique stream name via `Town Settings.stream_name = f"town:test:{frappe.generate_hash(8)}"` and deletes it in `tearDown`):
+- [x] **Step 1: Write failing tests** (these talk to the real `redis-town`; each test uses a unique stream name via `Town Settings.stream_name = f"town:test:{frappe.generate_hash(8)}"` and deletes it in `tearDown`):
 
 ```python
 def test_publish_marks_published_and_roundtrips_thai(self):   # Review Focus 3
@@ -371,10 +371,10 @@ def test_sweep_picks_only_due_rows(self): ...                   # backdate creat
 def test_purge_deletes_only_old_published(self): ...
 ```
 
-- [ ] **Step 2: Run** `pnpm erp:test -- --module erp_town.tests.test_publisher` → FAIL
-- [ ] **Step 3: Implement**
-- [ ] **Step 4: Run** → PASS
-- [ ] **Step 5: Commit** (`feat(events): redis stream publisher with sweeper and retention`, `Task: 8`)
+- [x] **Step 2: Run** `pnpm erp:test -- --module erp_town.tests.test_publisher` → FAIL
+- [x] **Step 3: Implement**
+- [x] **Step 4: Run** → PASS
+- [x] **Step 5: Commit** (`feat(events): redis stream publisher with sweeper and retention`, `Task: 8`)
 
 ---
 

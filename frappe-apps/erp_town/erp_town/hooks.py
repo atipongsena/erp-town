@@ -27,3 +27,9 @@ doc_events = {
 		"on_cancel": "erp_town.events.doc_hooks.on_doc_event",
 	},
 }
+
+# outbox -> redis-town stream (spec §4.3): the sweeper retries what the after-commit publish job missed
+scheduler_events = {
+	"cron": {"* * * * *": ["erp_town.events.publisher.sweep"]},
+	"daily": ["erp_town.events.publisher.purge"],
+}
