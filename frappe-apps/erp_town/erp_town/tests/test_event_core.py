@@ -169,32 +169,14 @@ class TestEventCore(IntegrationTestCase):
 		self.assertEqual(next_seq("Delivery Note", "SO-SEQ-T1"), 1)
 		self.assertEqual(frappe.db.count("Town Subject Seq", {"subject_name": "SO-SEQ-T1"}), 2)
 
-	def test_next_seq_recovers_from_concurrent_insert(self):
-		# Simulate another transaction creating the seq row between our SELECT ... FOR UPDATE and INSERT:
-		# the first lookup sees nothing, the insert then hits the unique (subject_doctype, subject_name) pair.
-		from erp_town.events import seq as seq_module
-
-		frappe.get_doc(
-			{
-				"doctype": "Town Subject Seq",
-				"subject_doctype": "Item",
-				"subject_name": "ITEM-RACE",
-				"last_seq": 4,
-			}
-		).insert(ignore_permissions=True)
-		real_lock = seq_module._lock_row
-		calls = []
-
-		def first_lookup_misses(subject_doctype, subject_name):
-			calls.append(subject_name)
-			return None if len(calls) == 1 else real_lock(subject_doctype, subject_name)
-
-		frappe.local.message_log = []
-		with patch.object(seq_module, "_lock_row", side_effect=first_lookup_misses):
-			self.assertEqual(next_seq("Item", "ITEM-RACE"), 5)
-		self.assertEqual(len(calls), 2)
-		self.assertEqual(frappe.local.message_log, [])  # the handled duplicate is not shown to the user
-		self.assertEqual(frappe.db.count("Town Subject Seq", {"subject_name": "ITEM-RACE"}), 1)
+	def test_failed_emit_on_existing_subject_restores_last_seq(self):
+		_emit_item("ITEM-RESTORE")
+		with patch("erp_town.events.emit.validate_event", side_effect=RuntimeError("town bug")):
+			self.assertIsNone(_emit_item("ITEM-RESTORE"))
+		self.assertEqual(
+			frappe.db.get_value("Town Subject Seq", {"subject_name": "ITEM-RESTORE"}, "last_seq"), 1
+		)
+		self.assertEqual(frappe.db.get_value("Town Event Outbox", _emit_item("ITEM-RESTORE"), "seq"), 2)
 
 	# --- invalid events -------------------------------------------------------------------------
 
@@ -435,3 +417,47 @@ class TestEventCore(IntegrationTestCase):
 				with self.assertRaises(EventSchemaError) as ctx:
 					validate_event(json.loads(path.read_text(encoding="utf-8")))
 				self.assertTrue(ctx.exception.message)
+
+
+class TestSeqConcurrency(IntegrationTestCase):
+	"""Two real DB connections with open transactions, as two concurrent document submits.
+
+	Kept out of `TestEventCore`: that class shares one never-committed transaction across its tests, and
+	InnoDB keeps the locks taken after a savepoint when rolling back to it, so leftovers from earlier tests
+	would block here. This class starts from a fresh transaction (setUpClass commits), like a request.
+	The tests run single-threaded, so any lock wait cannot resolve by itself and surfaces as a 2 s
+	lock-wait timeout instead of a hang.
+	"""
+
+	@contextmanager
+	def _secondary(self):
+		# Frappe's secondary_connection() captures the connection to restore only after its first
+		# frappe.connect(), which would leave frappe.db on the secondary connection afterwards.
+		primary = frappe.local.db
+		try:
+			with self.secondary_connection():
+				frappe.db.sql("set session innodb_lock_wait_timeout = 2")
+				yield
+		finally:
+			frappe.local.db = primary
+
+	def setUp(self):
+		previous = frappe.db.sql("select @@session.innodb_lock_wait_timeout")[0][0]
+		frappe.db.sql("set session innodb_lock_wait_timeout = 2")
+		self.addCleanup(frappe.db.sql, f"set session innodb_lock_wait_timeout = {int(previous)}")
+
+	def test_first_events_for_different_new_subjects_do_not_block(self):
+		# Monotonic document names land in the same trailing index gap; the former SELECT ... FOR UPDATE
+		# + INSERT allocation deadlocked here at REPEATABLE-READ (gap lock vs insert intention).
+		self.assertEqual(next_seq("Sales Order", "SO-CONC-0002"), 1)  # primary, left uncommitted
+		with self._secondary():
+			self.assertEqual(next_seq("Sales Order", "SO-CONC-0003"), 1)
+		self.assertEqual(next_seq("Sales Order", "SO-CONC-0002"), 2)
+		self.assertEqual(next_seq("Sales Order", "SO-CONC-0004"), 1)
+		with self._secondary():
+			self.assertEqual(next_seq("Sales Order", "SO-CONC-0003"), 2)
+			self.assertEqual(next_seq("Sales Order", "SO-CONC-0005"), 1)
+			# the same subject still serializes: it waits on the primary's uncommitted row
+			with self.assertRaises(frappe.QueryTimeoutError):
+				next_seq("Sales Order", "SO-CONC-0002")
+		self.assertEqual(next_seq("Sales Order", "SO-CONC-0002"), 3)
