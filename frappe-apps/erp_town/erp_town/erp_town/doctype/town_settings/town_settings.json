@@ -1,0 +1,105 @@
+{
+ "actions": [],
+ "creation": "2026-10-07 12:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "redis_town_url",
+  "stream_name",
+  "stream_retention_days",
+  "column_break_outbox",
+  "outbox_retention_days",
+  "max_attempts",
+  "overdue_job_hour",
+  "section_break_workflow",
+  "approval_states",
+  "section_break_naming",
+  "naming_rules"
+ ],
+ "fields": [
+  {
+   "description": "Leave empty to use town_redis_url from site config",
+   "fieldname": "redis_town_url",
+   "fieldtype": "Data",
+   "label": "Redis Town URL"
+  },
+  {
+   "default": "town:events",
+   "fieldname": "stream_name",
+   "fieldtype": "Data",
+   "label": "Stream Name"
+  },
+  {
+   "default": "7",
+   "fieldname": "stream_retention_days",
+   "fieldtype": "Int",
+   "label": "Stream Retention (Days)"
+  },
+  {
+   "fieldname": "column_break_outbox",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "400",
+   "fieldname": "outbox_retention_days",
+   "fieldtype": "Int",
+   "label": "Outbox Retention (Days)"
+  },
+  {
+   "default": "10",
+   "fieldname": "max_attempts",
+   "fieldtype": "Int",
+   "label": "Max Publish Attempts"
+  },
+  {
+   "default": "8",
+   "fieldname": "overdue_job_hour",
+   "fieldtype": "Int",
+   "label": "Overdue Job Hour"
+  },
+  {
+   "fieldname": "section_break_workflow",
+   "fieldtype": "Section Break",
+   "label": "Workflow"
+  },
+  {
+   "default": "รออนุมัติ",
+   "description": "Workflow states that count as awaiting approval, one per line or comma-separated",
+   "fieldname": "approval_states",
+   "fieldtype": "Small Text",
+   "label": "Approval States"
+  },
+  {
+   "fieldname": "section_break_naming",
+   "fieldtype": "Section Break",
+   "label": "Document Naming"
+  },
+  {
+   "fieldname": "naming_rules",
+   "fieldtype": "Table",
+   "label": "Naming Rules",
+   "options": "Town Naming Rule"
+  }
+ ],
+ "issingle": 1,
+ "links": [],
+ "modified": "2026-10-07 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "ERP Town",
+ "name": "Town Settings",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

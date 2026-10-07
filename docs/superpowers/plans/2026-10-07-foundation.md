@@ -248,11 +248,11 @@ def test_be_date(self):
   - `Town Agent Identity`: autoname `field:agent_key`; `user` Link User unique.
   - `Town Settings` (Single): fields from spec + `approval_states` (Small Text, default `รออนุมัติ`) + table `naming_rules` → child `Town Naming Rule` (`document_type` Link DocType, `prefix` Data). `get_town_settings() -> frappe._dict` in `erp_town/erp_town/doctype/town_settings/town_settings.py`, cached per request; `redis_town_url` falls back to `frappe.conf.town_redis_url`.
 
-- [ ] **Step 1: Write failing tests**: inserting two outbox rows with the same (`subject_doctype`, `subject_name`, `seq`) raises `frappe.UniqueValidationError`; `get_town_settings()` returns defaults (`stream_name == "town:events"`, `max_attempts == 10`, `stream_retention_days == 7`, `outbox_retention_days == 400`, `overdue_job_hour == 8`); `Town Agent Identity` with duplicate `user` raises.
-- [ ] **Step 2: Run** `pnpm erp:test -- --module erp_town.tests.test_doctypes` → FAIL
-- [ ] **Step 3: Implement** DocTypes; run `pnpm erp:bench -- --site all migrate`.
-- [ ] **Step 4: Run** tests → PASS
-- [ ] **Step 5: Commit** (`feat(erp_town): outbox, seq, agent identity and settings doctypes`, `Task: 5`)
+- [x] **Step 1: Write failing tests**: inserting two outbox rows with the same (`subject_doctype`, `subject_name`, `seq`) raises `frappe.UniqueValidationError`; `get_town_settings()` returns defaults (`stream_name == "town:events"`, `max_attempts == 10`, `stream_retention_days == 7`, `outbox_retention_days == 400`, `overdue_job_hour == 8`); `Town Agent Identity` with duplicate `user` raises.
+- [x] **Step 2: Run** `pnpm erp:test -- --module erp_town.tests.test_doctypes` → FAIL
+- [x] **Step 3: Implement** DocTypes; run `pnpm erp:bench -- --site all migrate`.
+- [x] **Step 4: Run** tests → PASS
+- [x] **Step 5: Commit** (`feat(erp_town): outbox, seq, agent identity and settings doctypes`, `Task: 5`)
 
 ---
 
