@@ -4,6 +4,7 @@ go 1.27
 
 require (
 	github.com/atombender/go-jsonschema v0.24.1
+	github.com/cockroachdb/apd/v3 v3.2.3
 	github.com/jackc/pgx/v5 v5.11.0
 	github.com/oklog/ulid/v2 v2.1.2
 	github.com/pressly/goose/v3 v3.28.0
@@ -20,6 +21,7 @@ require (
 	go.opentelemetry.io/otel/sdk/metric v1.47.0
 	go.uber.org/goleak v1.3.0
 	golang.org/x/text v0.42.0
+	pgregory.net/rapid v1.3.0
 )
 
 require (
