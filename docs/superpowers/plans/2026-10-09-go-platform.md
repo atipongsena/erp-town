@@ -6,7 +6,7 @@
 
 **Architecture:** Modular monolith: one module, one binary, roles switched on with `--roles` (this plan builds `gateway` and `outbox`). Domain code depends on `erp` interfaces only; `erp/erpnext` (Frappe REST, principal-scoped credentials) is chosen in `cmd/town`. `erp/porttest` is one conformance suite run against `erp/erpfake` (unit) and `erp/erpnext` on `test.localhost` (integration). Events reuse the Foundation envelope: Go validates against the same JSON Schema and golden fixtures, consumes `town:events` with consumer groups, and publishes its own events through a Postgres outbox.
 
-**Tech Stack:** Go 1.27, go-redis v9, pgx v5, goose v3, sqlc (Docker image), santhosh-tekuri/jsonschema v6, atombender/go-jsonschema (go tool), oklog/ulid v2, cockroachdb/apd v3, golang-jwt v5, OpenTelemetry metrics + Prometheus exporter, golangci-lint v2 (go tool), PostgreSQL 18.
+**Tech Stack:** Go 1.27, Huma v2 (on `net/http`), go-redis v9, pgx v5, goose v3, sqlc (Docker image), santhosh-tekuri/jsonschema v6, atombender/go-jsonschema (go tool), oklog/ulid v2, cockroachdb/apd v3, golang-jwt v5, OpenTelemetry metrics + Prometheus exporter, PostgreSQL 18. Tooling: golangci-lint v2, gotestsum, air (go tools). Tests: testify, testcontainers-go, `testing/synctest`, goleak, rapid, native fuzzing, `-race`.
 
 **Spec:** `docs/superpowers/specs/2026-10-09-go-platform-design.md` (program context: `docs/superpowers/specs/2026-10-07-program-overview.md`, event contract: `docs/superpowers/specs/2026-10-07-foundation-design.md` §3)
 
@@ -14,9 +14,9 @@
 
 - Go `1.27` (`go 1.27` in `go/go.mod`); module path `github.com/atipongsena/erp-town/go`; all builds `CGO_ENABLED=0`; tools pinned with the go.mod `tool` directive and run as `go tool <name>`; commands run from the repo root with `go -C go ...`.
 - `go/` is proprietary: `go/LICENSE` reads `Copyright (c) 2026 atipongsena. All rights reserved.`; no GPL headers in `go/`; no code from Frappe/ERPNext/HRMS is copied or translated into `go/` (clean-room, spec §12).
-- PostgreSQL 18 (`postgres:18-alpine`), user `town`, dev host port `127.0.0.1:5433`; databases `town` (dev), `town_test` (tests), `town_pilot` (pilot). Go never connects to MariaDB.
+- PostgreSQL 18 (`postgres:18-alpine`), user `town`, dev host port `127.0.0.1:5433`; databases `town` (dev) and `town_pilot` (pilot); tests use testcontainers. Go never connects to MariaDB.
 - `town` HTTP default `127.0.0.1:8090`; API routes under `/town/api/`; metrics at `/town/metrics`.
-- redis-town `127.0.0.1:6380`; Go unit tests use DB index 15 with a unique stream per test; stream default `town:events`, integration `town:test:events`; stream entry field `event` = UTF-8 JSON payload (no HTML escaping); stream retention 7 days (`MINID` approximate).
+- redis-town `127.0.0.1:6380`; stream default `town:events`, integration `town:test:events`; stream entry field `event` = UTF-8 JSON payload (no HTML escaping); stream retention 7 days (`MINID` approximate).
 - Envelope: `specversion` `"1.0"`, `schema_version` `1`, `id` ULID, `time` ISO 8601 with the `Asia/Bangkok` offset (`+07:00`) regardless of the host clock zone; `company` = Company abbr code.
 - Go outbox: statuses `Pending`/`Published`/`Failed`/`Invalid`; `max_attempts` 10; retry after `min(2^attempts, 300)` s; error codes exactly `EVENT_INVALID`, `OUTBOX_PUBLISH_FAILED`; a `system.error` row that exhausts its attempts becomes `Failed` without a new error event; Go never emits `erp.*` or `workflow.*` events (ERPNext owns those subjects' `seq`).
 - Consumer: dedupe window 8 days; reclaim pending entries idle 60 s (`XAUTOCLAIM`); an entry delivered 5 times without success is acked and dropped; schema-invalid entries are acked and counted.
@@ -27,6 +27,7 @@
 - Gateway error body `{"code","message","fields"?}` with exactly: `UNAUTHENTICATED` 401, `FORBIDDEN` 403, `NOT_FOUND` 404, `CONFLICT` 409, `VALIDATION` 422, `UNAVAILABLE` 503, `INTERNAL` 500, `CSRF_HEADER_MISSING` 403; state-changing requests (POST/PUT/PATCH/DELETE) require header `X-Town-Request: 1`.
 - Generated, never hand-edited: `go/internal/events/gen/`, `go/internal/events/schema/`, `go/internal/store/sqlc/` (plus the existing `packages/event-schema/src/generated.ts`, `frappe-apps/erp_town/erp_town/events/schema/`).
 - Tests never touch `town.localhost`; Go integration tests run only through `pnpm go:test:integration` (test.localhost seeded and restored).
+- Go unit tests: testify + table-driven; Postgres/Redis from testcontainers-go (`postgres:18-alpine`, `redis:7-alpine`), one container per test binary started lazily, isolation per test (schema / stream name) — they need Docker running, not the dev stack; always run with `-race` (cgo + gcc: MSYS2 ucrt64 on the Windows host); time-dependent logic without real I/O is tested inside `synctest.Test` instead of injecting clocks; every package that starts goroutines has `goleak.VerifyTestMain`; parsers get a native `Fuzz*` test (seed corpus from fixtures).
 - `pnpm lint` (Biome + golangci-lint) must pass before committing; LF line endings.
 - Commit trailer: `Plan: go-platform`, `Task: <n>`, `Agent: <claude|codex>`, `Status: <done|partial|blocked>`, then the agent's `Co-Authored-By` line (AGENTS.md).
 
@@ -37,7 +38,8 @@
 - R3: domain errors gain `ErrUnauthenticated` (gateway 401) next to the five in spec §4.2.
 - R4: `erp.Identities` (whoami) joins the Port; Frappe side is a new whitelisted `erp_town.session_api.whoami` returning user, roles, company codes and the session's CSRF token, so the browser never sends the Frappe CSRF token to Go; the gateway's own CSRF defence is the `X-Town-Request` header.
 - R5: Port interfaces in this plan cover the sales slice (`Documents`, `Sales`, `Delivery`, `Billing`, `Workflow`, `Identities`); `Stock`, `Parties`, `Projection` arrive with the C/E plans (spec §4.1: methods added as needed).
-- R6: sqlc runs from the `sqlc/sqlc` Docker image (sqlc needs cgo, unavailable on the Windows dev host).
+- R6: sqlc runs from the pinned `sqlc/sqlc` Docker image (its cgo dependency pg_query_go builds unreliably on Windows; one pinned binary for both agents).
+- R9: River (spec §2) is not used by this skeleton — the outbox publisher stays a plain loop with the Frappe outbox's rules; River enters with the E/F plans.
 - R7: `world_snapshots` and agent tables belong to the C/E plans; this plan's migration creates only event tables.
 - R8: same-origin routing of `/town/*` is done for the pilot (Caddy, Task 12); the dev-side proxy arrives with the client (D) — until then dev callers send the `sid` cookie to `127.0.0.1:8090` themselves.
 
@@ -54,7 +56,7 @@
 ## File Structure
 
 ```
-go/go.mod, go/go.sum, go/LICENSE, go/.golangci.yml
+go/go.mod, go/go.sum, go/LICENSE, go/.golangci.yml, go/.air.toml
 go/cmd/town/main.go                         ← CLI `town serve`, wiring of roles and adapters
 go/internal/platform/config.go              ← Config, LoadConfig, Roles
 go/internal/platform/server.go              ← HTTP server, /town/api/healthz, graceful shutdown
@@ -67,22 +69,22 @@ go/internal/events/consumer.go              ← stream consumer group: validate,
 go/internal/events/outbox.go                ← Emit into town_outbox
 go/internal/events/publisher.go             ← PublishDue / Run: XADD, backoff, Failed
 go/internal/events/clock.go                 ← Bangkok time formatting
-go/internal/events/eventstest/redis.go      ← test helper: Redis DB 15 + unique stream
+go/internal/events/eventstest/redis.go      ← test helper: Redis testcontainer + unique stream
 go/internal/store/db.go                     ← Open, Migrate (goose, embedded)
 go/internal/store/migrations/00001_events.sql
 go/internal/store/sqlc.yaml, queries/*.sql, sqlc/ (GENERATED)
-go/internal/store/storetest/storetest.go    ← test helper: isolated schema in town_test
+go/internal/store/storetest/storetest.go    ← test helper: Postgres testcontainer + isolated schema per test
 go/internal/erp/{principal,types,decimal,date,errors,port}.go
 go/internal/erp/erpfake/fake.go             ← in-memory Port
 go/internal/erp/porttest/{env,porttest}.go  ← conformance suite
 go/internal/erp/erpnext/{client,errors,adapter,sales,delivery,billing,workflow,documents,identities}.go
 go/internal/erp/erpnext/testdata/*.json     ← ERPNext v16 response samples
 go/internal/auth/{authenticator,jwt}.go
-go/internal/gateway/{gateway,errors,sales}.go
+go/internal/gateway/{gateway,errors,sales}.go   ← Huma v2 API
 go/internal/e2e/sales_flow_test.go          ← //go:build integration
 frappe-apps/erp_town/erp_town/session_api.py + tests/test_session_api.py
 tests/integration/test-site.ts              ← prepare → run command → restore
-infra/docker/compose.yaml (postgres, town), infra/docker/postgres/init.sql
+infra/docker/compose.yaml (postgres, town), infra/docker/postgres/init.sql (pilot DB)
 infra/docker/town/Containerfile, infra/docker/pilot/{Caddyfile,backup.sh,RESTORE.md,Containerfile}
 package.json, AGENTS.md, infra/docker/.env.example, scripts/erp.mjs
 ```
@@ -92,7 +94,7 @@ package.json, AGENTS.md, infra/docker/.env.example, scripts/erp.mjs
 ### Task 1: Go module, config, server and toolchain
 
 **Files:**
-- Create: `go/go.mod`, `go/LICENSE`, `go/.golangci.yml`, `go/cmd/town/main.go`, `go/internal/platform/config.go`, `go/internal/platform/server.go`
+- Create: `go/go.mod`, `go/LICENSE`, `go/.golangci.yml`, `go/.air.toml`, `go/cmd/town/main.go`, `go/internal/platform/config.go`, `go/internal/platform/server.go`
 - Test: `go/internal/platform/config_test.go`, `go/internal/platform/server_test.go`
 - Modify: `package.json` (scripts), `AGENTS.md` (Layout, Commands, Rules), `.gitignore` (`go/bin/`)
 
@@ -136,7 +138,7 @@ Expected: FAIL (package does not compile: `LoadConfig` undefined)
 
 - [ ] **Step 3: Implement config, server and `cmd/town`**
 
-`town serve [--roles=a,b]` (flag overrides `TOWN_ROLES`), signal-cancelled context (`os.Interrupt`, `SIGTERM`), logs with `slog` JSON handler. In this task `serve` only mounts `NewMux()`; later tasks add roles. `go/go.mod`: add `tool github.com/golangci/golangci-lint/v2/cmd/golangci-lint` at the latest v2 release. `go/.golangci.yml` (v2 format): linters `govet`, `staticcheck`, `errcheck`, `depguard`; formatter `gofumpt`; depguard rules:
+`town serve [--roles=a,b]` (flag overrides `TOWN_ROLES`), signal-cancelled context (`os.Interrupt`, `SIGTERM`), logs with `slog` JSON handler. In this task `serve` only mounts `NewMux()`; later tasks add roles. `go/go.mod` tools (latest releases, pinned by go.mod): `github.com/golangci/golangci-lint/v2/cmd/golangci-lint`, `gotest.tools/gotestsum`, `github.com/air-verse/air`. `go/.air.toml`: build `./cmd/town` to `tmp/town(.exe)`, run `serve`, watch `.go` files, exclude `tmp/`, `internal/events/schema/`. `go/.golangci.yml` (v2 format): linters `govet`, `staticcheck`, `errcheck`, `depguard`; formatter `gofumpt`; depguard rules:
   - `erp-adapter`: files `**/internal/**` except `**/internal/erp/erpnext/**` and `**/internal/e2e/**` deny `github.com/atipongsena/erp-town/go/internal/erp/erpnext` ("adapters are chosen in cmd/town")
   - `devbridge-no-erp`: files `**/internal/devbridge/**` deny `github.com/atipongsena/erp-town/go/internal/erp`
   - exclude `internal/events/gen/` and `internal/store/sqlc/` from linters (generated)
@@ -144,26 +146,26 @@ Expected: FAIL (package does not compile: `LoadConfig` undefined)
 `package.json` scripts (keep existing ones):
 
 ```json
-"go:test": "go -C go test ./...",
-"go:test:integration": "node tests/integration/test-site.ts run --scheduler -- go -C go test -p 1 -tags integration -count=1 ./...",
+"go:test": "go -C go tool gotestsum --format pkgname -- -race ./...",
+"go:test:integration": "node tests/integration/test-site.ts run --scheduler -- go -C go tool gotestsum --format pkgname -- -race -p 1 -tags integration -count=1 ./...",
 "go:lint": "go -C go tool golangci-lint run ./...",
 "go:gen": "pnpm schema:gen && go -C go generate ./...",
-"dev:town": "go -C go run ./cmd/town serve",
+"dev:town": "go -C go tool air",
 "lint": "biome check . && pnpm go:lint",
 "test": "pnpm -r test && pnpm go:test && pnpm erp:test"
 ```
 
-(`go:test:integration` becomes usable in Task 8.) AGENTS.md: add `go/` to Layout; add the `go:*` and `dev:town` rows to Commands (note: `go:test` needs `pnpm erp:up` for Postgres/Redis from Task 3 on); add to Rules the generated Go paths, the clean-room rule ("never open Frappe/ERPNext source as a model for `go/` code"), and `go/` license.
+(`go:test:integration` becomes usable in Task 8.) AGENTS.md: add `go/` to Layout; add the `go:*` and `dev:town` rows to Commands; add Requirements: Go 1.27, gcc on PATH for `-race` (Windows: MSYS2 ucrt64), Docker running for `go:test` (testcontainers); add to Rules the generated Go paths, the clean-room rule ("never open Frappe/ERPNext source as a model for `go/` code"), and `go/` license.
 
 - [ ] **Step 4: Run tests and lint**
 
-Run: `go -C go test ./internal/platform/... && pnpm lint`
+Run: `pnpm go:test && pnpm lint`
 Expected: PASS; Biome and golangci-lint report no issues
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add go package.json AGENTS.md .gitignore
+git add go package.json AGENTS.md .gitignore   # .gitignore: go/tmp/
 git commit   # feat(go): module skeleton, config, healthz and toolchain — trailer Plan: go-platform / Task: 1
 ```
 
@@ -194,6 +196,7 @@ func TestInvalidFixturesFail(t *testing.T)             // every schema/fixtures/
 func TestDataDecodesForEveryType(t *testing.T)         // for each valid fixture: gen.NewData(type) ok, json.Unmarshal(e.Data) with DisallowUnknownFields succeeds
 func TestEventTypesMatchSchema(t *testing.T)           // gen.EventTypes == envelope.json properties.type.enum (order-insensitive), len 13
 func TestEmbeddedSchemaMatchesSource(t *testing.T)     // byte-equal to ../../../packages/event-schema/{schema,fixtures} (drift)
+func FuzzDecode(f *testing.F) // seeds: every valid + invalid fixture; Decode never panics; when it succeeds, Decode(Marshal(e)) succeeds and is equal
 func TestMarshalKeepsThaiAndAmpersand(t *testing.T) {
 	raw := []byte(`...system.error fixture with "message":"ส่งไม่สำเร็จ & ลองใหม่ <1>"...`)
 	e, err := Decode(v, raw)
@@ -230,14 +233,14 @@ git commit   # feat(events): Go envelope, generated data types and contract test
 
 **Files:**
 - Modify: `infra/docker/compose.yaml` (service `postgres`, volume `postgres-data`), `infra/docker/.env.example` (`TOWN_PG_PASSWORD=town`, `TOWN_JWT_PRIVATE_KEY=`), `AGENTS.md` (Postgres line in Rules/Layout)
-- Create: `infra/docker/postgres/init.sql`, `go/internal/store/db.go`, `go/internal/store/migrations/00001_events.sql`, `go/internal/store/storetest/storetest.go`
+- Create: `go/internal/store/db.go`, `go/internal/store/migrations/00001_events.sql`, `go/internal/store/storetest/storetest.go`
 - Test: `go/internal/store/db_test.go`
 
 **Interfaces:**
 - Produces:
   - `func Open(ctx context.Context, url string) (*pgxpool.Pool, error)`
   - `func Migrate(ctx context.Context, pool *pgxpool.Pool) error` (goose provider over embedded `migrations/`, dialect postgres)
-  - `storetest.NewPool(t *testing.T) *pgxpool.Pool` — connects to `TOWN_TEST_DATABASE_URL` (default `postgres://town:town@127.0.0.1:5433/town_test?sslmode=disable`), creates schema `t_<random hex>`, sets it as `search_path` for every pool connection, runs `Migrate`, drops the schema with `t.Cleanup`; unreachable DB → `t.Fatal("postgres unreachable: run pnpm erp:up")`
+  - `storetest.NewPool(t *testing.T) *pgxpool.Pool` — first call in the test binary starts one `postgres:18-alpine` container (testcontainers-go `modules/postgres`, `sync.Once`, reaped by Ryuk after the process); each call creates schema `t_<random hex>`, sets it as `search_path` for every pool connection, runs `Migrate`, drops the schema with `t.Cleanup`; Docker unavailable → `t.Fatal("docker unavailable: start Docker Desktop")`
   - tables (migration 00001): `town_outbox(id text pk, type text, subject_doctype text, subject_name text, payload text, status text check in ('Pending','Published','Failed','Invalid'), attempts int default 0, last_error text, next_attempt_at timestamptz, stream_id text, created_at timestamptz default now(), published_at timestamptz)` + index `(status, next_attempt_at)`; `town_subject_seq(subject_doctype text, subject_name text, last_seq bigint, pk(subject_doctype, subject_name))`; `consumed_events(consumer_group text, event_id text, consumed_at timestamptz default now(), pk(consumer_group, event_id))`; `consumer_subject_seq(consumer_group text, subject_doctype text, subject_name text, last_seq bigint, pk(consumer_group, subject_doctype, subject_name))`
 
 - [ ] **Step 1: Write the failing tests**
@@ -255,12 +258,12 @@ Expected: FAIL (`Open` undefined)
 
 - [ ] **Step 3: Add the compose service and implement the store**
 
-Compose `postgres`: `image: postgres:18-alpine`, no profile (shared like mariadb), `restart: unless-stopped`, env `POSTGRES_USER=town`, `POSTGRES_PASSWORD=${TOWN_PG_PASSWORD:-town}`, `POSTGRES_DB=town`, ports `127.0.0.1:5433:5432`, volume `postgres-data:/var/lib/postgresql` (PG 18 layout), `./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro`, healthcheck `pg_isready -U town`. `init.sql`: `CREATE DATABASE town_test;` (pilot DB is created in Task 12). Header comment in compose describing the service like the others.
+Compose `postgres` (used by `pnpm dev:town` and the pilot; tests use testcontainers): `image: postgres:18-alpine`, no profile (shared like mariadb), `restart: unless-stopped`, env `POSTGRES_USER=town`, `POSTGRES_PASSWORD=${TOWN_PG_PASSWORD:-town}`, `POSTGRES_DB=town`, ports `127.0.0.1:5433:5432`, volume `postgres-data:/var/lib/postgresql` (PG 18 layout), healthcheck `pg_isready -U town`. Header comment in compose describing the service like the others.
 
 - [ ] **Step 4: Start Postgres and run tests**
 
-Run: `pnpm erp:up && go -C go test ./internal/store/...`
-Expected: PASS
+Run: `go -C go test -race ./internal/store/... && docker compose -f infra/docker/compose.yaml up -d postgres`
+Expected: PASS (container started and reaped by the test run); dev `postgres` healthy on 127.0.0.1:5433
 
 - [ ] **Step 5: Commit**
 
@@ -285,7 +288,8 @@ git commit   # feat(store): PostgreSQL 18 service, goose migrations and isolated
   - `type ConsumerConfig struct { Stream, Group, Name string; Block, ClaimIdle time.Duration; MaxDeliveries int64; DedupeWindow time.Duration }` with `func DefaultConsumerConfig(stream, group, name string) ConsumerConfig` (Block 5 s, ClaimIdle 60 s, MaxDeliveries 5, DedupeWindow 8×24 h)
   - `func NewConsumer(rdb *redis.Client, pool *pgxpool.Pool, v *Validator, m *platform.Metrics, cfg ConsumerConfig, h Handler) *Consumer`; `func (c *Consumer) Run(ctx context.Context) error` (creates the group with `MKSTREAM` from `$` if missing); `func (c *Consumer) PurgeConsumed(ctx context.Context) (int64, error)`
   - `type Metrics struct { EventsInvalid, EventsDropped, OutboxPublishFailures metric.Int64Counter }`; `func NewMetrics() (*Metrics, http.Handler, error)` (Prometheus exporter; handler mounted at `/town/metrics` in Task 10); `platform.NewTestMetrics() (*Metrics, func(name string) int64)` reads counters via an SDK manual reader
-  - `eventstest.NewRedis(t *testing.T) (*redis.Client, string)` — `TOWN_TEST_REDIS_URL` (default `redis://127.0.0.1:6380/15`), stream `test:<random hex>`, deleted on cleanup
+  - `eventstest.NewRedis(t *testing.T) (*redis.Client, string)` — one `redis:7-alpine` testcontainer per test binary (`sync.Once`), stream `test:<random hex>` per test, deleted on cleanup
+  - `go/internal/events/main_test.go`: `goleak.VerifyTestMain(m)` (ignore the testcontainers/Ryuk goroutines by top function)
 
 Processing of one entry (in this order): decode/validate (fail → ack, `EventsInvalid`+1) → transaction: `INSERT consumed_events … ON CONFLICT DO NOTHING` (0 rows → commit, ack, skip) → `last_seq` of `(group, subject)` `FOR UPDATE`; `e.Seq <= last_seq` → commit, ack, skip → call `h` (error → rollback, no ack) → upsert `last_seq = e.Seq` → commit → `XACK`. Pending entries idle ≥ `ClaimIdle` are taken with `XAUTOCLAIM`; an entry whose delivery count exceeds `MaxDeliveries` is acked without calling `h`, `EventsDropped`+1, logged with its id. `PurgeConsumed` deletes `consumed_events` older than `DedupeWindow`; `Run` calls it hourly.
 
@@ -417,6 +421,9 @@ Submit semantics (all adapters): no workflow → submit; with a workflow → amo
 func TestParseDecimalExact(t *testing.T)    // "1234567.89","0.1","135.0" round-trip String() exactly; JSON `"0.1"`
 func TestDecimalRoundTo(t *testing.T)       // "8.405".RoundTo(2) == "8.41"
 func TestParseDateRejectsBad(t *testing.T)  // "2026-13-01" error; "2026-10-09" → String() same
+func TestDecimalProperties(t *testing.T)    // rapid: Add commutative and associative; RoundTo(2) idempotent; ParseDecimal(d.String()) == d; JSON round-trip
+func FuzzParseDecimal(f *testing.F)         // never panics; accepted input round-trips through String()
+func FuzzParseDate(f *testing.F)            // never panics; accepted input == String()
 
 // porttest.Run subtests
 // CreateAndGet: create SO (Customer, Item qty 3) → Get: Status Draft, 1 line, NetTotal == 36, GrandTotal == NetTotal+TaxTotal, |TaxTotal − NetTotal×0.07| ≤ 0.01
@@ -448,7 +455,7 @@ Expected: PASS
 - [ ] **Step 5: Commit**
 
 ```bash
-git add go/internal/erp go/go.mod go/go.sum
+git add go/internal/erp go/go.mod go/go.sum   # pgregory.net/rapid added
 git commit   # feat(erp): domain types, Port, in-memory fake and porttest suite — Task: 6
 ```
 
@@ -463,14 +470,14 @@ git commit   # feat(erp): domain types, Port, in-memory fake and porttest suite 
 **Interfaces:**
 - Consumes: `erp` credentials, principal, errors (Task 6)
 - Produces:
-  - `type ClientConfig struct { BaseURL, Site string; Timeout time.Duration; Sleep func(time.Duration) }` (Timeout default 10 s; Sleep default `time.Sleep`, injectable for tests)
+  - `type ClientConfig struct { BaseURL, Site string; Timeout time.Duration; Transport http.RoundTripper }` (Timeout default 10 s; Transport default `http.DefaultTransport`; tests pass an in-memory RoundTripper)
   - `func NewClient(cfg ClientConfig) *Client`
   - `func (c *Client) Call(ctx context.Context, as erp.Principal, method string, args any, out any) error` (POST `/api/method/<method>`, JSON body, unwraps `message`)
   - `func (c *Client) Get(ctx context.Context, as erp.Principal, path string, query url.Values, out any) error` (GET `/api/...`, unwraps `data` or `message`)
   - `func (c *Client) CallCred(ctx context.Context, cred erp.Credential, method string, args, out any) error` (for `Whoami`, no principal yet)
   - JSON decoding of responses uses `Decoder.UseNumber()`
 
-Headers on every request: `X-Frappe-Site-Name: <Site>`, `Accept: application/json`; `SessionCredential` → `Cookie: sid=<id>` + `X-Frappe-CSRF-Token`; `APIKeyCredential` → `Authorization: token <key>:<secret>`; `Principal.OnBehalfOf != ""` → `X-Town-On-Behalf-Of: <OnBehalfOf>`. Error mapping by `exc_type` first, HTTP status second: `DoesNotExistError`/404 → `ErrNotFound`; `PermissionError`/403 → `ErrForbidden`; `AuthenticationError`/401 → `ErrUnauthenticated`; `TimestampMismatchError`/409 → `ErrConflict`; `ValidationError`, `LinkValidationError`, `MandatoryError` (and other `*ValidationError`)/417 → `*erp.ValidationError{Message}` (text from `_server_messages`, HTML tags stripped); 5xx, timeout, connection refused → `ErrUnavailable`; anything else → wrapped error with status and `exc_type`.
+Header assertions use a recording RoundTripper (no TCP). Headers on every request: `X-Frappe-Site-Name: <Site>`, `Accept: application/json`; `SessionCredential` → `Cookie: sid=<id>` + `X-Frappe-CSRF-Token`; `APIKeyCredential` → `Authorization: token <key>:<secret>`; `Principal.OnBehalfOf != ""` → `X-Town-On-Behalf-Of: <OnBehalfOf>`. Error mapping by `exc_type` first, HTTP status second: `DoesNotExistError`/404 → `ErrNotFound`; `PermissionError`/403 → `ErrForbidden`; `AuthenticationError`/401 → `ErrUnauthenticated`; `TimestampMismatchError`/409 → `ErrConflict`; `ValidationError`, `LinkValidationError`, `MandatoryError` (and other `*ValidationError`)/417 → `*erp.ValidationError{Message}` (text from `_server_messages`, HTML tags stripped); 5xx, timeout, connection refused → `ErrUnavailable`; anything else → wrapped error with status and `exc_type`.
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -478,8 +485,9 @@ Headers on every request: `X-Frappe-Site-Name: <Site>`, `Accept: application/jso
 func TestSessionHeaders(t *testing.T)            // httptest server records: Cookie sid=s1, X-Frappe-CSRF-Token c1, X-Frappe-Site-Name test.localhost
 func TestTokenAndOnBehalfOfHeaders(t *testing.T) // Authorization "token k:s", X-Town-On-Behalf-Of "sales@acme-th.test"
 func TestErrorMapping(t *testing.T)              // table: each exc_type/status above → expected sentinel; 417 with _server_messages `["{\"message\":\"<b>Customer</b> CUST-NOPE not found\"}"]` → ValidationError.Message "Customer CUST-NOPE not found"
-func TestGetRetriesTwiceThenFails(t *testing.T)  // server always 503 → 3 requests, Sleep called with 200ms then 800ms, ErrUnavailable
-func TestWritesAreNeverRetried(t *testing.T)     // Call to a 503 / hanging server (Timeout 50ms) → exactly 1 request, ErrUnavailable (Review Focus 2)
+func TestGetRetriesTwiceThenFails(t *testing.T)  // synctest.Test + RoundTripper always 503 → 3 requests at fake times 0, 200ms, 1000ms; ErrUnavailable
+func TestWritesAreNeverRetried(t *testing.T)     // synctest.Test: 503 → 1 request; hanging RoundTripper (blocks until ctx done) → ErrUnavailable after exactly 10s fake time, 1 request (Review Focus 2)
+func FuzzMapError(f *testing.F)                  // arbitrary status + body never panics and always returns a non-nil error for status >= 400
 func TestNumbersDecodeExactly(t *testing.T)      // {"message":{"grand_total":1234567.89}} → json.Number "1234567.89"
 ```
 
@@ -583,9 +591,9 @@ git commit   # feat(erpnext): Port adapter, whoami endpoint and Go integration h
 **Interfaces:**
 - Consumes: `erp.Identities`, `erp.Principal`, `erp.SessionCredential`, `erp.ErrUnauthenticated` (Task 6)
 - Produces:
-  - `func NewAuthenticator(ids erp.Identities, ttl time.Duration, now func() time.Time) *Authenticator` (ttl 30 s in production)
+  - `func NewAuthenticator(ids erp.Identities, ttl time.Duration) *Authenticator` (ttl 30 s in production; uses `time.Now`, tested under synctest)
   - `func (a *Authenticator) FromRequest(r *http.Request) (erp.Principal, error)` — cookie `sid` missing, empty or `Guest` → `ErrUnauthenticated`; else cached `Whoami` per sid → `Principal{Kind: user, ID: identity.User, Roles, Companies, Credential: identity.Credential}`
-  - `func NewJWTIssuer(seedBase64 string, ttl time.Duration, now func() time.Time) (*JWTIssuer, error)` (seed must decode to 32 bytes)
+  - `func NewJWTIssuer(seedBase64 string, ttl time.Duration) (*JWTIssuer, error)` (seed must decode to 32 bytes)
   - `func (j *JWTIssuer) Issue(p erp.Principal) (token string, expires time.Time, err error)`; `func (j *JWTIssuer) Verify(token string) (Claims, error)`
   - `type Claims struct { Subject string; Roles, Companies []string; ExpiresAt time.Time }`
 
@@ -593,10 +601,10 @@ git commit   # feat(erpnext): Port adapter, whoami endpoint and Go integration h
 
 ```go
 func TestFromRequestWithoutCookieIsUnauthenticated(t *testing.T) // no cookie / sid=Guest → ErrUnauthenticated, Whoami not called (Review Focus 3)
-func TestFromRequestCachesWhoamiFor30s(t *testing.T)            // erpfake ids counting calls: 2 requests at t, t+29s → 1 call; t+31s → 2 calls
+func TestFromRequestCachesWhoamiFor30s(t *testing.T)            // synctest.Test, counting Identities stub: requests at 0 and after time.Sleep(29s) → 1 call; after another 2s → 2 calls
 func TestExpiredSessionIsUnauthenticated(t *testing.T)          // Whoami returns ErrUnauthenticated → FromRequest returns it (not cached)
-func TestJWTRoundTrip(t *testing.T)                             // Issue → Verify: Subject, Roles, Companies equal; ExpiresAt == now+15m
-func TestJWTRejectsExpiredAndTampered(t *testing.T)             // now+16m → error; flipped payload byte → error; token signed by another key → error
+func TestJWTRoundTrip(t *testing.T)                             // synctest.Test: Issue → Verify: Subject, Roles, Companies equal; ExpiresAt == time.Now()+15m
+func TestJWTRejectsExpiredAndTampered(t *testing.T)             // synctest.Test: Verify after time.Sleep(16m) → error; flipped payload byte → error; token signed by another key → error
 func TestJWTRejectsBadSeed(t *testing.T)                        // seed of 31 bytes → error
 ```
 
@@ -624,16 +632,16 @@ git commit   # feat(auth): Frappe-session authenticator and Ed25519 JWT — Task
 ### Task 10: Gateway and `town serve` wiring
 
 **Files:**
-- Create: `go/internal/gateway/gateway.go`, `go/internal/gateway/errors.go`, `go/internal/gateway/sales.go`
+- Create: `go/internal/gateway/gateway.go`, `go/internal/gateway/errors.go`, `go/internal/gateway/sales.go` (Huma v2: `github.com/danielgtaylor/huma/v2` + `humago` adapter on the `platform.NewMux()` ServeMux)
 - Modify: `go/cmd/town/main.go`, `go/internal/platform/config.go` (gateway role requires a valid `TOWN_JWT_PRIVATE_KEY`)
 - Test: `go/internal/gateway/gateway_test.go`, `go/internal/platform/config_test.go`
 
 **Interfaces:**
 - Consumes: `erp.Port` (Task 6), `Authenticator`, `JWTIssuer` (Task 9), `platform.NewMux`, `Metrics` handler (Tasks 1, 4)
 - Produces:
-  - `func New(port erp.Port, authn *auth.Authenticator, jwt *auth.JWTIssuer) http.Handler`
+  - `func New(mux *http.ServeMux, port erp.Port, authn *auth.Authenticator, jwt *auth.JWTIssuer) huma.API` — registers operations with `huma.Register` (operation IDs `get-me`, `issue-token`, `create-sales-order`, `get-sales-order`, `submit-document`), OpenAPI 3.1 at `GET /town/api/openapi.json`, docs at `GET /town/api/docs`, title `ERP Town API`; auth + `X-Town-Request` check as Huma middleware
   - routes: `GET /town/api/me` → `{"user","roles","companies"}`; `POST /town/api/auth/token` → `{"token","expires_at"}`; `POST /town/api/sales-orders` body `{"company","customer","transaction_date","delivery_date","lines":[{"item_code","qty","rate"?}]}` → 201 `{"name"}`; `GET /town/api/sales-orders/{name}` → SalesOrder JSON (snake_case keys, decimals as strings); `POST /town/api/documents/{doctype}/{name}/submit` (`doctype` ∈ `sales-order|delivery-note|sales-invoice|payment-entry`) → `{"submitted","workflow_state"}`
-  - `func WriteError(w http.ResponseWriter, err error)` mapping per Global Constraints; `ValidationError.Fields` → `fields`; unexpected errors logged with a request id, body message `"internal error"`
+  - `type APIError struct { Status int; Code, Message string; Fields map[string]string }` implementing `huma.StatusError`; `huma.NewError` is overridden once in `New` so Huma's own validation failures become `422 VALIDATION` with `fields` keyed by Huma's location (e.g. `body.lines[0].qty`); `func toAPIError(err error) *APIError` maps domain errors per Global Constraints; unexpected errors logged with a request id, message `"internal error"`
 - `cmd/town`: role `gateway` → `NewAdapter(NewClient(ClientConfig{BaseURL: ERPURL, Site: ERPSite}))`, authenticator (30 s), issuer (15 min), mux with gateway + `/town/metrics`; role `outbox` → `store.Open` + `Migrate` + `Publisher.Run(ctx, 1s)` on `Stream`
 
 - [ ] **Step 1: Write the failing tests** (gateway over `erpfake`, httptest)
@@ -645,21 +653,23 @@ func TestCreateGetSubmitSalesOrder(t *testing.T)             // sales session: P
 func TestDomainErrorsMapToHTTP(t *testing.T)                 // fake returning each sentinel → status + code table; ValidationError fields echoed
 func TestUnavailableIs503AndNotRetried(t *testing.T)         // Port stub returning ErrUnavailable on create → 503 UNAVAILABLE, stub called once (Review Focus 2)
 func TestTokenEndpointIssuesVerifiableJWT(t *testing.T)      // POST /town/api/auth/token → Verify(token).Subject == sales user
-func TestMalformedBodyIs422(t *testing.T)                    // qty "abc" → 422 VALIDATION fields.lines[0].qty
+func TestMalformedBodyIs422(t *testing.T)                    // qty "abc" → 422 VALIDATION, fields has key "body.lines[0].qty"
+func TestOpenAPIDocumentsEveryRoute(t *testing.T)           // GET /town/api/openapi.json: openapi "3.1.0", paths contain /town/api/me, /town/api/auth/token, /town/api/sales-orders, /town/api/sales-orders/{name}, /town/api/documents/{doctype}/{name}/submit; error responses reference our error schema
+func TestDocsPageServed(t *testing.T)                        // GET /town/api/docs → 200 text/html
 func TestGatewayRoleRequiresJWTKey(t *testing.T)             // LoadConfig with TOWN_ROLES=gateway, no key → error mentioning TOWN_JWT_PRIVATE_KEY
 ```
 
 - [ ] **Step 2: Run tests to verify they fail**
 
-Run: `go -C go test ./internal/gateway/... ./internal/platform/...`
+Run: `go -C go test -race ./internal/gateway/... ./internal/platform/...`
 Expected: FAIL (`gateway.New` undefined)
 
 - [ ] **Step 3: Implement gateway and wiring**
 
 - [ ] **Step 4: Run tests and a manual smoke**
 
-Run: `go -C go test ./... && pnpm lint`
-Expected: PASS. Then with the dev stack up and a generated key in `infra/docker/.env` (`TOWN_JWT_PRIVATE_KEY`; document in AGENTS.md how to generate one, e.g. `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"`): `pnpm dev:town` and `curl http://127.0.0.1:8090/town/api/healthz` → `{"status":"ok"}`; `curl http://127.0.0.1:8090/town/api/me` → 401.
+Run: `pnpm go:test && pnpm lint`
+Expected: PASS. Then with the dev stack up and a generated key in `infra/docker/.env` (`TOWN_JWT_PRIVATE_KEY`; document in AGENTS.md how to generate one, e.g. `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"`): `pnpm dev:town` and `curl http://127.0.0.1:8090/town/api/healthz` → `{"status":"ok"}`; `curl http://127.0.0.1:8090/town/api/me` → 401; `http://127.0.0.1:8090/town/api/docs` shows the API reference.
 
 - [ ] **Step 5: Commit**
 
@@ -711,7 +721,8 @@ git commit   # test(e2e): gateway → ERPNext → stream → Go consumer on test
 
 **Files:**
 - Create: `infra/docker/town/Containerfile`
-- Modify: `infra/docker/compose.yaml` (service `town`, profile pilot), `infra/docker/postgres/init.sql` (`CREATE DATABASE town_pilot;` — and a note in RESTORE.md for existing volumes: `CREATE DATABASE town_pilot` once by hand), `infra/docker/pilot/Caddyfile`, `infra/docker/pilot/backup.sh`, `infra/docker/pilot/Containerfile` (add `postgresql-client-18` from the PGDG apt repo for `pg_dump`/`pg_restore`), `infra/docker/pilot/RESTORE.md`, `infra/docker/.env.example` (pilot `PILOT_TOWN_*` keys), `scripts/erp.mjs` (`pilot:build` also builds `erp-town/town:<same tag>`; `PILOT_SERVICES` gains `town`), `AGENTS.md` (commands table)
+- Create: `infra/docker/postgres/init.sql` (`CREATE DATABASE town_pilot;`, mounted into `/docker-entrypoint-initdb.d/`; runs only on a fresh volume — RESTORE.md notes `CREATE DATABASE town_pilot` once by hand for an existing one)
+- Modify: `infra/docker/compose.yaml` (service `town`, profile pilot; init.sql mount on `postgres`), `infra/docker/pilot/Caddyfile`, `infra/docker/pilot/backup.sh`, `infra/docker/pilot/Containerfile` (add `postgresql-client-18` from the PGDG apt repo for `pg_dump`/`pg_restore`), `infra/docker/pilot/RESTORE.md`, `infra/docker/.env.example` (pilot `PILOT_TOWN_*` keys), `scripts/erp.mjs` (`pilot:build` also builds `erp-town/town:<same tag>`; `PILOT_SERVICES` gains `town`), `AGENTS.md` (commands table)
 
 **Interfaces:**
 - Consumes: `town serve` (Task 10)

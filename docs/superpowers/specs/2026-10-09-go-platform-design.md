@@ -29,6 +29,9 @@
 | World State | เขียนเองบน WebSocket + protobuf; ศึกษา Colyseus (MIT) เป็นแนวปฏิบัติ | Colyseus (Node), Nakama (หนักเกิน, ต้องมี DB/plugin ของตัวเอง) |
 | ข้อมูลของ Go | **PostgreSQL 18** | เก็บใน Frappe doctype: ผูก core เดิม และไม่ได้ฝึก DB ที่เฟส 2 ใช้ |
 | License โค้ด Go | **proprietary** (ยังไม่เปิด) | เปิดทีหลังได้เสมอ ปิดทีหลังไม่ได้ |
+| HTTP API | **stdlib `net/http` + Huma v2** (OpenAPI 3.1 อัตโนมัติ) | Gin/Echo: แทบไม่เพิ่มอะไรจาก ServeMux ของ Go 1.22+; Fiber: fasthttp ไม่เข้ากับ `net/http`; Connect-RPC: protobuf ใช้เฉพาะ wire ของ world |
+| งานเบื้องหลัง | **River** (job queue บน Postgres, enqueue ใน transaction เดียวกับข้อมูล) — เริ่มใช้ใน E/F | Temporal: ต้องมี server + DB แยก (พิจารณาใหม่ใน spec ของ E ถ้าจำเป็น); Watermill: กติกา outbox/seq ของเราเฉพาะเกินไป |
+| การทดสอบ | testify + table-driven, `testing/synctest`, `-race`, goleak, native fuzzing, rapid (property-based), gotestsum, **testcontainers-go** สำหรับ Postgres/Redis | Ginkgo/Gomega: ไม่ใช่สไตล์ Go มาตรฐาน; gomock: ใช้ fake + `porttest` แทน mock |
 
 ## 3. โครง module
 
@@ -147,7 +150,7 @@ event ที่ Go ผลิต (`agent.*`, `presence.*`, `dev.*` และ `sys
 
 ## 7. Gateway และ Auth
 
-- `net/http` ของ stdlib (ServeMux แบบ pattern) ไม่ใช้ framework; ทุก route อยู่ใต้ `/town/api/*`
+- `net/http` ของ stdlib + **Huma v2** (adapter `humago` บน ServeMux): request/response แบบ typed, validate input อัตโนมัติ, OpenAPI 3.1 ที่ `GET /town/api/openapi.json` และหน้าเอกสาร `/town/api/docs`; client (D) generate TS client ด้วย `openapi-typescript`; ทุก route อยู่ใต้ `/town/api/*`; error body ใช้รูปแบบของเรา (`{"code","message","fields"}`) แทน problem+json ของ Huma
 - Caddy (pilot) / dev proxy ทำ same-origin: `/` → Frappe, `/town/*` → Go — cookie `sid` ของ Frappe จึงมาถึง gateway
 - Principal ของผู้ใช้: gateway ตรวจ `sid` กับ Frappe (`frappe.auth.get_logged_user` + roles) cache 30 s ต่อ sid; การเขียนผ่าน Port ส่ง `sid` + CSRF token ของผู้ใช้
 - `POST /town/api/auth/token` → JWT EdDSA (Ed25519) อายุ 15 นาที claims: `sub` (user), `roles`, `companies`; ใช้กับ WebSocket เท่านั้น — key อยู่ใน `.env` (`TOWN_JWT_PRIVATE_KEY`, ชื่อ key ลง `.env.example`)
@@ -157,7 +160,7 @@ event ที่ Go ผลิต (`agent.*`, `presence.*`, `dev.*` และ `sys
 
 ## 8. PostgreSQL
 
-- PostgreSQL 18 เป็น service ใหม่ใน compose; dev bind `127.0.0.1:5433`; database `town` (dev), `town_test` (tests), `town_pilot` (pilot)
+- PostgreSQL 18 เป็น service ใหม่ใน compose; dev bind `127.0.0.1:5433`; database `town` (dev), `town_pilot` (pilot); เทสต์ใช้ testcontainers
 - เก็บเฉพาะข้อมูลที่ไม่ใช่ข้อมูลธุรกิจ ERP: agent runs, tool-call audit, XP/level, ความจำ agent, world snapshots, `consumed_events`, `town_outbox`, `town_subject_seq`
 - `github.com/jackc/pgx/v5` + sqlc (query type-safe) + goose (migration ใน `go/internal/store/migrations`, รันตอน start)
 - Go ไม่แตะ MariaDB ของ ERPNext โดยตรงเด็ดขาด
@@ -169,13 +172,14 @@ event ที่ Go ผลิต (`agent.*`, `presence.*`, `dev.*` และ `sys
 - Provider adapters: Claude → `github.com/anthropics/anthropic-sdk-go`; OpenAI Responses → `github.com/openai/openai-go`; Codex ไม่มี Go SDK → สั่ง `codex app-server` (JSON-RPC บน stdio) แยกเป็น adapter เดี่ยว (เปราะกว่า มีเทสต์ด้วย process ปลอม)
 - Tool registry เดียว: แต่ละ tool map ไปที่ method ของ Port เปิดเป็น native tool ของ Claude/OpenAI และเป็น MCP server ด้วย `github.com/modelcontextprotocol/go-sdk` สำหรับ Codex/client ภายนอก
 - Policy proxy (ทุก tool call ไม่มีทางอ้อม): allowlist action ต่อ agent → เพดานยอดเงิน/จำนวน (เกิน = ส่ง workflow ขออนุมัติแทน submit) → rate limit → audit ลง Postgres → Port ด้วย Principal ของ agent; error code เดิม `ON_BEHALF_OF_REJECTED` / `ON_BEHALF_OF_INVALID`
+- agent run แบบยาว/ตั้งเวลา/retry ใช้ **River** (job อยู่ใน Postgres, enqueue ใน transaction เดียวกับ audit)
 - XP/level คำนวณจาก `agent.*` event ใช้กับ AI agents เท่านั้น (หลักการข้อ 4)
 - รายละเอียด (prompt, ชุด tool, ค่า policy) อยู่ใน spec ของ E
 
 ## 10. Integrations (F) และ Dev bridge (H)
 
 - **PromptPay:** package `promptpay` สร้าง payload EMVCo (tag 29 เบอร์/เลขบัตร, tag 30 bill payment) + CRC16-CCITT ทดสอบด้วย test vector; การยืนยันสลิป/API ธนาคารตัดสินใน spec ของ F
-- **LINE OA:** `github.com/line/line-bot-sdk-go/v8`, ตรวจลายเซ็น webhook (HMAC-SHA256 ด้วย channel secret) ก่อนอ่าน body; บันทึก Payment Entry ผ่าน Port ด้วย Principal ของ integration
+- **LINE OA:** `github.com/line/line-bot-sdk-go/v8`, ตรวจลายเซ็น webhook (HMAC-SHA256 ด้วย channel secret) ก่อนอ่าน body; รับ webhook แล้ว enqueue งานลง River ตอบ 200 ทันที; บันทึก Payment Entry ผ่าน Port ด้วย Principal ของ integration
 - **Dev bridge:** hooks ของ Claude Code/Codex `POST /town/api/dev/events` (bind เฉพาะ 127.0.0.1, token ใน `.env`) → event `dev.*` ผ่าน Go outbox; `devbridge` ไม่ import `erp` (depguard)
 
 ## 11. Toolchain, การทดสอบ และ deploy
@@ -185,11 +189,12 @@ event ที่ Go ผลิต (`agent.*`, `presence.*`, `dev.*` และ `sys
   - `pnpm go:test` = `go test ./...` ใน `go/`
   - `pnpm go:lint` = golangci-lint
   - `pnpm go:gen` = Go types จาก schema + sqlc + buf
-  - `pnpm go:test:integration` = `go test -tags integration ./...` กับ `test.localhost`, `town:test:events`, `town_test`
-  - `pnpm dev:town` = `go run ./cmd/town serve` บน Windows โดยตรง ต่อ `redis-town` (127.0.0.1:6380) และ Postgres (127.0.0.1:5433); HTTP ที่ `127.0.0.1:8090`
+  - `pnpm go:test:integration` = `go test -tags integration ./...` กับ `test.localhost`, `town:test:events` (Postgres จาก testcontainers)
+  - `pnpm dev:town` = `air` (hot reload ของ `town serve`) บน Windows โดยตรง ต่อ `redis-town` (127.0.0.1:6380) และ Postgres (127.0.0.1:5433); HTTP ที่ `127.0.0.1:8090`
 - `pnpm test` และ `pnpm lint` เรียก `go:test` / `go:lint` ด้วย; `pnpm schema:gen` เรียกขั้น Go ด้วย
 - integration: แยก seed/restore ของ `test.localhost` จาก `tests/integration/setup.ts` เป็น `scripts/test-site.mjs prepare|restore` ให้ Vitest และ Go ใช้ชุดเดียว (Go เรียกผ่าน `TestMain`)
-- unit test ใช้ `erpfake` + Postgres จริงที่ `town_test` (schema ต่อ package ผ่าน `search_path` สุ่มชื่อ) — ไม่ mock DB
+- unit test ใช้ `erpfake` + Postgres 18/Redis 7 จริงจาก **testcontainers-go** (หนึ่ง container ต่อ package, schema/DB index แยกต่อเทสต์) — ไม่ mock DB และไม่ต้องเปิด dev stack; integration กับ ERPNext ยังใช้ dev stack (`test.localhost`)
+- เครื่องมือทดสอบ: testify, `testing/synctest` (ตรรกะที่ขึ้นกับเวลาแต่ไม่มี I/O จริง), `-race` ทุกครั้ง (ต้องมี gcc — dev host ใช้ MSYS2 ucrt64), goleak ใน package ที่มี goroutine, native fuzzing (decode envelope, แปลง error ของ Frappe, `Decimal`/`Date`), rapid (invariant ของ `Decimal` และ seq/dedupe; เฟส 2: บัญชีคู่สมดุล), gotestsum เป็นตัวรัน, benchmark ด้วย `b.Loop()` + benchstat
 - pilot image: `infra/docker/town/Containerfile` multi-stage (`golang:1.27` → distroless static), `CGO_ENABLED=0`; service `town` ใน profile `pilot` (และ `dev` เป็นทางเลือกเมื่อไม่รัน native)
 - AGENTS.md: เพิ่มคำสั่ง Go, path ไฟล์ generate ใหม่ (`go/internal/events/gen/`, `go/internal/store/sqlc/`, ไฟล์ generate ของ world-proto) ในกฎห้ามแก้มือ และ Go ต้องผ่าน `pnpm go:lint` ก่อน commit
 
@@ -227,7 +232,10 @@ event ที่ Go ผลิต (`agent.*`, `presence.*`, `dev.*` และ `sys
 | Agents (E) | TS service | Go: anthropic-sdk-go, openai-go, Codex app-server, MCP go-sdk |
 | PromptPay/LINE (F), Dev bridge (H) | ไม่ระบุภาษา | Go |
 | ข้อมูลของบริการ | — | PostgreSQL 18 |
-| Monorepo | pnpm, Biome, Vitest, Playwright | + Go module `go/`, golangci-lint, buf, sqlc |
+| HTTP API framework | Hono | Huma v2 บน `net/http` |
+| งานเบื้องหลัง | — | River (E/F) |
+| ทดสอบฝั่ง Go | — | testify, synctest, goleak, rapid, fuzz, gotestsum, testcontainers-go |
+| Monorepo | pnpm, Biome, Vitest, Playwright | + Go module `go/`, golangci-lint, buf, sqlc, air |
 
 ไม่เปลี่ยน: ERPNext v16 + HRMS + MariaDB, Redis Streams `redis-town`, event envelope, client (D) Vite/React/R3F, Blender/asset pipeline, Docker Compose profiles, `scripts/erp.mjs`, `packages/event-schema` (เพิ่มขั้น generate Go)
 
