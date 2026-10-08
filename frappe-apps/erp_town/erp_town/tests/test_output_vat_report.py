@@ -68,13 +68,28 @@ class TestOutputVatReport(IntegrationTestCase):
 			.name
 		)
 
-	def _si(self, posting_date: str, rate: float, *, inclusive: bool = False, customer: str | None = None):
+	def _si(
+		self,
+		posting_date: str,
+		rate: float,
+		*,
+		inclusive: bool = False,
+		customer: str | None = None,
+		is_opening: bool = False,
+	):
 		si = make_si(
 			customer or self.customer,
 			[{"item_code": self.item, "qty": 1, "rate": rate}],
 			submit=False,
 			posting_date=posting_date,
 		)
+		if is_opening:  # opening entries post to a balance-sheet account (ERPNext: Temporary Opening)
+			si.is_opening = "Yes"
+			temporary = frappe.db.get_value(
+				"Account", {"company": TEST_COMPANY, "account_type": "Temporary", "is_group": 0}
+			)
+			for row in si.items:
+				row.income_account = temporary
 		si.append(
 			"taxes",
 			{
@@ -126,6 +141,16 @@ class TestOutputVatReport(IntegrationTestCase):
 		self.assertEqual(
 			(f"{total['net_amount']:,.2f}", f"{total['vat_amount']:,.2f}"), ("2,000.00", "140.00")
 		)
+
+	def test_opening_invoices_are_excluded(self):
+		"""Opening balances (`is_opening = Yes`) are not sales of the tax month."""
+		regular = self._si(IN_PERIOD[0], 1000)
+		opening = self._si(IN_PERIOD[1], 5000, is_opening=True)
+		self.assertEqual(frappe.db.get_value("Sales Invoice", opening.name, "is_opening"), "Yes")
+
+		_, data = self._run()
+		self.assertEqual([r["invoice_no"] for r in data], [regular.name, "รวม"])
+		self.assertEqual((data[-1]["net_amount"], data[-1]["vat_amount"]), (1000, 70))
 
 	def test_other_month_has_only_its_own_invoices(self):
 		self._si(IN_PERIOD[0], 1000)

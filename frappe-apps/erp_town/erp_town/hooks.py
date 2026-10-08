@@ -37,9 +37,14 @@ naming_series_variables = {"BEYY": "erp_town.thai.naming.be_yy", "BEMM": "erp_to
 
 # town events for the sales slice (spec §4.2); on_update_after_submit has no event type in slice 1
 doc_events = {
-	# Thai 13-digit tax ID check (spec §5.1); blocks the save, unlike the town layer below
-	"Company": {"validate": "erp_town.thai.setup.validate_tax_id"},
-	"Customer": {"validate": "erp_town.thai.setup.validate_tax_id"},
+	# Thai 13-digit tax ID and 5-digit branch code checks (spec §5.1); block the save, unlike the town layer
+	"Company": {
+		"validate": ["erp_town.thai.setup.validate_tax_id", "erp_town.thai.setup.validate_branch_code"]
+	},
+	"Customer": {
+		"validate": ["erp_town.thai.setup.validate_tax_id", "erp_town.thai.setup.validate_branch_code"]
+	},
+	"Address": {"validate": "erp_town.thai.setup.validate_branch_code"},
 	"Sales Order": {
 		# credit-limit approval flag read by the `อนุมัติ SO เกินวงเงิน` workflow (an ERP rule, may block)
 		"validate": "erp_town.selling.credit_approval.set_requires_approval",

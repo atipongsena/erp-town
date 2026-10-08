@@ -1,3 +1,6 @@
+# Copyright (c) 2026, ERP Town
+# License: GNU General Public License v3. See LICENSE
+
 """Thai amount in words, following Excel BAHTTEXT conventions."""
 
 from decimal import ROUND_HALF_UP, Decimal
@@ -8,15 +11,19 @@ _MILLION = "ล้าน"
 _GROUP = 1_000_000
 
 
-def _group_words(n: int) -> str:
-	"""Words for 0 < n < 1,000,000 (one 'ล้าน' group); returns '' for 0."""
+def _group_words(n: int, has_higher: bool = False) -> str:
+	"""Words for 0 < n < 1,000,000 (one 'ล้าน' group); returns '' for 0.
+
+	A units digit 1 is 'เอ็ด' after any higher non-zero digit, in this group or (``has_higher``) in a
+	higher million group: 11 -> สิบเอ็ด, 1,000,001 -> หนึ่งล้านเอ็ด; a lone 1 is 'หนึ่ง'.
+	"""
 	words = []
 	digits = str(n)[::-1]
 	for pos in range(len(digits) - 1, -1, -1):
 		d = int(digits[pos])
 		if d == 0:
 			continue
-		if pos == 0 and d == 1 and n > 1:
+		if pos == 0 and d == 1 and (n > 1 or has_higher):
 			words.append("เอ็ด")
 		elif pos == 1 and d == 1:
 			words.append("สิบ")
@@ -33,7 +40,8 @@ def _integer_words(n: int) -> str:
 	while n:
 		n, rem = divmod(n, _GROUP)
 		groups.append(rem)
-	return _MILLION.join(_group_words(g) for g in reversed(groups))
+	groups.reverse()  # highest group first
+	return _MILLION.join(_group_words(g, has_higher=any(groups[:i])) for i, g in enumerate(groups))
 
 
 def bahttext(amount: Decimal | float | int | str) -> str:  # noqa: PYI041 -- signature per plan interface

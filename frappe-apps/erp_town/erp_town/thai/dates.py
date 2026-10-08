@@ -1,3 +1,6 @@
+# Copyright (c) 2026, ERP Town
+# License: GNU General Public License v3. See LICENSE
+
 """Buddhist Era (พ.ศ.) date formatting."""
 
 from datetime import date, datetime

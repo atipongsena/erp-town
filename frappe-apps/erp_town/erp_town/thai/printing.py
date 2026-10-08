@@ -11,9 +11,8 @@ import frappe
 from frappe.contacts.doctype.address.address import get_default_address, render_address
 from frappe.utils import cint, flt
 
-from erp_town.thai.setup import VAT_OUTPUT_ACCOUNT, company_account
+from erp_town.thai.setup import HEAD_OFFICE_BRANCH, VAT_OUTPUT_ACCOUNT, company_account
 
-HEAD_OFFICE_BRANCH = "00000"
 HEAD_OFFICE_LABEL = "สำนักงานใหญ่"
 VAT_LABEL = "ภาษีมูลค่าเพิ่ม"
 

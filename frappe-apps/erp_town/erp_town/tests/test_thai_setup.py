@@ -229,6 +229,35 @@ class TestThaiFieldsAndTaxId(IntegrationTestCase):
 			company.save()
 		self.assertIn("เลขประจำตัวผู้เสียภาษีไม่ถูกต้อง", str(ctx.exception))
 
+	def test_branch_code_must_be_five_ascii_digits(self):
+		customer = make_customer()
+		if not frappe.db.exists("Address Template", {"country": "Thailand"}):  # blank test site; rolled back
+			frappe.get_doc({"doctype": "Address Template", "country": "Thailand", "is_default": 1}).insert()
+		address = frappe.get_doc(
+			{
+				"doctype": "Address",
+				"address_title": "Branch test",
+				"address_line1": "1 ถนนสีลม",
+				"city": "กรุงเทพมหานคร",
+				"country": "Thailand",
+				"links": [{"link_doctype": "Customer", "link_name": customer}],
+			}
+		).insert()
+		for doctype, name in (("Company", TEST_COMPANY), ("Customer", customer), ("Address", address.name)):
+			for bad in ("0001", "000001", "0000A", "๐๐๐๐๑", " 0001"):
+				doc = frappe.get_doc(doctype, name)
+				doc.th_branch_code = bad
+				with self.assertRaises(frappe.ValidationError, msg=f"{doctype} {bad!r}") as ctx:
+					doc.save()
+				self.assertIn("รหัสสาขา", str(ctx.exception))
+			doc = frappe.get_doc(doctype, name)
+			doc.th_branch_code = "00012"
+			doc.save()
+			self.assertEqual(frappe.db.get_value(doctype, name, "th_branch_code"), "00012")
+			doc.th_branch_code = ""
+			doc.save()
+			self.assertEqual(frappe.db.get_value(doctype, name, "th_branch_code"), "00000")
+
 
 class TestThaiChartFile(UnitTestCase):
 	def test_chart_is_marked_draft_and_in_erpnext_format(self):

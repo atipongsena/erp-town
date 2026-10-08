@@ -5,7 +5,8 @@
 """Sales VAT report `รายงานภาษีขาย` (spec §5.4).
 
 One row per submitted or cancelled Sales Invoice (credit notes included, negative) of the company dated in
-the tax month, ordered by posting date then number, plus a final total row. Amounts are in company
+the tax month, ordered by posting date then number, plus a final total row. Opening invoices
+(`is_opening = Yes`, balances brought forward) are excluded. Amounts are in company
 currency: `net_amount` is the invoice's `base_net_total`, `vat_amount` the sum of its tax rows on the
 company's output-VAT account `ภาษีขาย`. Cancelled invoices keep their row, marked ` (ยกเลิก)`, with zero
 amounts.
@@ -67,7 +68,12 @@ def get_data(company: str, start: date, end: date) -> list[dict]:
 
 	invoices = frappe.get_all(
 		"Sales Invoice",
-		filters={"company": company, "docstatus": ["in", [1, 2]], "posting_date": ["between", [start, end]]},
+		filters={
+			"company": company,
+			"docstatus": ["in", [1, 2]],
+			"posting_date": ["between", [start, end]],
+			"is_opening": ["!=", "Yes"],  # opening balances are not sales of the month
+		},
 		fields=[
 			"name",
 			"posting_date",

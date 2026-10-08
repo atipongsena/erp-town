@@ -1,3 +1,6 @@
+# Copyright (c) 2026, ERP Town
+# License: GNU General Public License v3. See LICENSE
+
 """Jinja filters registered via hooks.py ``jinja["filters"]`` (filter name = function name).
 
 Thin wrappers: empty values (None / "") render as "" so print formats with blank fields don't fail.

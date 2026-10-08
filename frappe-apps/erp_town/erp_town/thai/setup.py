@@ -5,11 +5,13 @@
 
 - `ensure_custom_fields` / `ensure_naming` / `ensure_default_print_formats` run after every migrate
   (hooks.py) and on install; `ensure_naming` also runs whenever Town Settings is saved.
-- `validate_tax_id` is the Company / Customer `validate` hook.
+- `validate_tax_id` (Company / Customer) and `validate_branch_code` (Company / Customer / Address) are
+  `validate` hooks.
 - `create_thai_company` builds a Thai company: draft TFRS-for-NPAEs chart, default accounts, VAT templates.
 """
 
 import json
+import re
 
 import frappe
 from frappe import _
@@ -46,6 +48,20 @@ def ensure_custom_fields() -> None:
 		},
 		update=True,
 	)
+
+
+_BRANCH_CODE = re.compile(r"[0-9]{5}")
+
+
+def validate_branch_code(doc, method=None) -> None:
+	"""Company / Customer / Address `validate`: `th_branch_code` is exactly 5 ASCII digits (tax data on the
+	tax invoice, Revenue Code §86/4); blank becomes `00000` (head office). Blocks the save otherwise."""
+	code = doc.get("th_branch_code")
+	if code is None or code == "":
+		doc.th_branch_code = HEAD_OFFICE_BRANCH
+		return
+	if not _BRANCH_CODE.fullmatch(code):
+		frappe.throw(_("รหัสสาขาต้องเป็นตัวเลข 5 หลัก (00000 = สำนักงานใหญ่): {0}").format(code))
 
 
 # --- tax ID --------------------------------------------------------------------------------------------

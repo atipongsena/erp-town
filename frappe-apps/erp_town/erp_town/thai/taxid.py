@@ -1,3 +1,6 @@
+# Copyright (c) 2026, ERP Town
+# License: GNU General Public License v3. See LICENSE
+
 """Thai 13-digit tax ID (เลขประจำตัวผู้เสียภาษี / national ID) checksum."""
 
 _ASCII_DIGITS = frozenset("0123456789")
