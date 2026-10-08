@@ -19,8 +19,8 @@
   "correlation_id": "SO6910-0042",
   "causation_id": "01JA0K6Y8Z9P3R4S5T6V7W8XA4",
   "visibility": {
-    "level": "roles",
-    "roles": ["Accounts User", "Accounts Manager"]
+    "level": "public",
+    "roles": []
   },
   "data": {
     "due_date": "2026-11-07",

@@ -26,6 +26,8 @@
     "status": "Unpaid",
     "party": "CUST-001",
     "due_date": "2026-11-07",
+    "is_return": false,
+    "return_against": null,
     "against": ["SO6910-0042", "DN6910-0017"]
   }
 }

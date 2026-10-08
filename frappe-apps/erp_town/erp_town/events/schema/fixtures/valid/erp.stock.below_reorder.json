@@ -5,10 +5,10 @@
   "source": "erp/stock",
   "time": "2026-10-08T09:00:01+07:00",
   "schema_version": 1,
-  "company": null,
+  "company": "ACME-TH",
   "actor": {
     "kind": "system",
-    "id": "system.scheduler",
+    "id": "system.town",
     "on_behalf_of": null
   },
   "subject": {

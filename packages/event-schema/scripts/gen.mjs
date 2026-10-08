@@ -177,6 +177,10 @@ def load_validator() -> Draft202012Validator:
     )
 \`\`\`
 
+Envelope rules (see \`packages/event-schema/README.md\`): \`company\` is the company code (Company
+abbr); \`seq\` is per subject across all event types and statuses and has expected gaps (Invalid rows
+are never published, \`system.error\` is role-restricted), so consumers never wait for a missing seq.
+
 \`format\` assertions are optional in Python (\`date-time\` needs \`rfc3339-validator\`); the schemas
 also carry \`pattern\`s for \`time\` and dates so validation results match ajv either way.
 `,

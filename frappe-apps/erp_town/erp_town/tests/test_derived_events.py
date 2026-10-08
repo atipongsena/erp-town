@@ -10,9 +10,9 @@ from frappe.utils import add_days, get_datetime, getdate, nowdate
 
 from erp_town.erp_town.doctype.town_settings.town_settings import get_town_settings
 from erp_town.events import jobs, stock, workflow
-from erp_town.events.schema import validate_event
+from erp_town.events.schema import SCHEMA_DIR, validate_event
 from erp_town.tests.factories import (
-	TEST_COMPANY,
+	TEST_ABBR,
 	TEST_WAREHOUSE,
 	ensure_test_company,
 	make_customer,
@@ -20,6 +20,7 @@ from erp_town.tests.factories import (
 	make_item,
 	make_pe_for_si,
 	make_si,
+	make_si_from_dn,
 	make_so,
 )
 
@@ -72,8 +73,8 @@ class _OutboxTestCase(IntegrationTestCase):
 			frappe.local.future_sle.clear()
 
 
-class TestApprovalEvents(_OutboxTestCase):
-	"""A Sales Order workflow exists only while this class runs (created and removed with commits)."""
+class _WorkflowTestCase(_OutboxTestCase):
+	"""A Sales Order workflow exists only while the class runs (created and removed with commits)."""
 
 	@classmethod
 	def setUpClass(cls):
@@ -94,6 +95,8 @@ class TestApprovalEvents(_OutboxTestCase):
 		_remove_test_workflow(cls.created_custom_field, cls.other_active)
 		super().tearDownClass()
 
+
+class TestApprovalEvents(_WorkflowTestCase):
 	def setUp(self):
 		super().setUp()
 		self.item = make_item()
@@ -110,7 +113,7 @@ class TestApprovalEvents(_OutboxTestCase):
 			requested["data"], {"from_state": DRAFT, "to_state": PENDING, "approver_role": "Sales Manager"}
 		)
 		self.assertEqual(requested["source"], "erp/workflow")
-		self.assertEqual(requested["company"], TEST_COMPANY)
+		self.assertEqual(requested["company"], TEST_ABBR)
 		self.assertEqual(requested["correlation_id"], so.name)
 		self.assertIsNone(requested["causation_id"])
 		self.assertEqual(
@@ -130,7 +133,7 @@ class TestApprovalEvents(_OutboxTestCase):
 		)
 		self.assertEqual(decided["causation_id"], submitted["id"])
 		self.assertEqual(decided["correlation_id"], so.name)
-		self.assertEqual(decided["company"], TEST_COMPANY)
+		self.assertEqual(decided["company"], TEST_ABBR)
 		self.assertEqual([e["seq"] for e in events], [1, 2, 3])
 		for e in events:
 			validate_event(e)
@@ -218,6 +221,62 @@ class TestApprovalEvents(_OutboxTestCase):
 		self.assertIn("settings bug", events[0]["data"]["message"])
 
 
+FIXTURES_DIR = SCHEMA_DIR / "fixtures" / "valid"
+
+
+def _fixture(event_type: str) -> dict:
+	return json.loads((FIXTURES_DIR / f"{event_type}.json").read_text(encoding="utf-8"))
+
+
+class TestProducersMatchFixtures(_WorkflowTestCase):
+	"""Every event type built by its real producer has the shape of its golden fixture (Ruling AD)."""
+
+	def test_real_producer_events_match_valid_fixtures(self):
+		item = make_item(reorder_level=3, opening_qty=4)
+		so = make_so(self.customer, [{"item_code": item, "qty": 2}], submit=False)
+		apply_workflow(so.as_dict(), "Review")  # workflow.approval.requested
+		so = apply_workflow(frappe.get_doc("Sales Order", so.name).as_dict(), "Approve")  # submitted, decided
+		so = frappe.get_doc("Sales Order", so.name)
+		dn = make_dn_from_so(so)  # erp.delivery_note.submitted + erp.stock.below_reorder (4 -> 2 < 3)
+		si = make_si_from_dn(dn)
+		jobs.emit_overdue(today=add_days(getdate(si.due_date), 3))  # erp.sales_invoice.overdue
+		pe = make_pe_for_si(si)
+		for doc in (pe, si, dn, so):  # cancellations, downstream first
+			frappe.get_doc(doc.doctype, doc.name).cancel()
+		with patch("erp_town.events.doc_hooks.find_lineage", side_effect=RuntimeError("lineage bug")):
+			broken = make_so(self.customer, [make_item()])  # system.error EVENT_INVALID
+
+		subjects = [("Item", item)] + [(d.doctype, d.name) for d in (so, dn, si, pe, broken)]
+		produced = {}
+		for doctype, name in subjects:
+			for event in _events_for(doctype, name):
+				produced.setdefault(event["type"], event)
+
+		fixture_types = sorted(p.stem for p in FIXTURES_DIR.glob("*.json"))
+		self.assertEqual(sorted(produced), fixture_types)
+		company_names = set(frappe.get_all("Company", pluck="name"))
+		for event_type, event in produced.items():
+			with self.subTest(event_type):
+				fixture = _fixture(event_type)
+				validate_event(event)
+				self.assertEqual(set(event), set(fixture))
+				self.assertEqual(set(event["data"]), set(fixture["data"]))
+				self.assertEqual(event["visibility"], fixture["visibility"])
+				self.assertEqual(event["source"], fixture["source"])
+				self.assertEqual(
+					event["subject"]["doctype"] == "Item", fixture["subject"]["doctype"] == "Item"
+				)
+				if fixture["actor"]["kind"] == "system":
+					self.assertEqual(event["actor"], fixture["actor"])
+				else:
+					self.assertNotEqual(event["actor"]["kind"], "system")
+				if fixture["company"] is None:
+					self.assertIsNone(event["company"])
+				else:
+					self.assertEqual(event["company"], TEST_ABBR)  # the code, like "ACME-TH"
+					self.assertNotIn(event["company"], company_names)
+
+
 class TestBelowReorderEvents(_OutboxTestCase):
 	def _deliver(self, item: str, *qtys: float):
 		"""One Delivery Note against one Sales Order per qty (rows aggregate per item/warehouse)."""
@@ -246,7 +305,7 @@ class TestBelowReorderEvents(_OutboxTestCase):
 		self.assertEqual(event["data"], {"warehouse": TEST_WAREHOUSE, "fill_ratio": 0.67})
 		self.assertEqual(event["causation_id"], dn_event["id"])
 		self.assertEqual(event["correlation_id"], dn_event["correlation_id"])
-		self.assertEqual(event["company"], TEST_COMPANY)
+		self.assertEqual(event["company"], TEST_ABBR)
 		self.assertEqual(event["source"], "erp/stock")
 		self.assertEqual(event["subject"], {"doctype": "Item", "name": item})
 		self.assertEqual(event["actor"]["kind"], "system")
@@ -334,7 +393,7 @@ class TestOverdueEvents(_OutboxTestCase):
 		self.assertEqual(event["actor"], {"kind": "system", "id": "system.scheduler", "on_behalf_of": None})
 		self.assertEqual(event["causation_id"], submitted["id"])
 		self.assertEqual(event["correlation_id"], submitted["correlation_id"])
-		self.assertEqual(event["company"], TEST_COMPANY)
+		self.assertEqual(event["company"], TEST_ABBR)
 		self.assertEqual(event["source"], "erp/accounts")
 		validate_event(event)
 		self.assertEqual(_events_for("Sales Invoice", yesterday.name)[-1]["data"]["days_overdue"], 1)

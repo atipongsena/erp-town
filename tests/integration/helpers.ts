@@ -30,6 +30,8 @@ const SNAPSHOT = `${BENCH_DIR}/sites/${TEST_SITE}/private/backups/erp-town-suite
 
 // --- seeded master data (erp_town/setup/seed.py) ---------------------------------------------------------
 export const COMPANY = 'บริษัท ตัวอย่างเทรดดิ้ง จำกัด'
+/** the envelope `company` is the Company code (abbr), not the record name (Ruling AD) */
+export const COMPANY_CODE = 'ACME-TH'
 export const WAREHOUSE_NAME = 'คลังหลัก'
 export const PRICE_LIST = 'ขายมาตรฐาน'
 export const CURRENCY = 'THB'

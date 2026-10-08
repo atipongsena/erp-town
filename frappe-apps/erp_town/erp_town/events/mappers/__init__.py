@@ -40,6 +40,15 @@ def status_of(doc, action: str) -> str:
 	return doc.get("status") or ("Cancelled" if action == CANCELLED else "Submitted")
 
 
+def return_fields(doc) -> dict:
+	"""`is_return` / `return_against` of DN / SI `submitted` data (Ruling AF; always sent)."""
+	is_return = bool(doc.get("is_return"))
+	return {
+		"is_return": is_return,
+		"return_against": (doc.get("return_against") or None) if is_return else None,
+	}
+
+
 def iso_date(value) -> str | None:
 	return getdate(value).isoformat() if value else None
 

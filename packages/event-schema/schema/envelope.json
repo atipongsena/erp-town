@@ -51,13 +51,17 @@
     },
     "schema_version": { "const": 1 },
     "company": {
-      "description": "Company code; null only for system.* events and subjects without a company (e.g. Item).",
+      "description": "Company code (the ERPNext Company abbr, e.g. ACME-TH), not the Company record name; null only for system.* events and subjects without a company (e.g. Item).",
       "type": ["string", "null"],
       "minLength": 1
     },
     "actor": { "$ref": "#/$defs/actor" },
     "subject": { "$ref": "#/$defs/subject" },
-    "seq": { "type": "integer", "minimum": 1 },
+    "seq": {
+      "description": "Per-subject sequence, starting at 1, shared by all event types and statuses of that subject. Gaps are expected: Invalid events take a seq but are never published, and system.error events are role-restricted. Order by seq; never wait for a missing seq.",
+      "type": "integer",
+      "minimum": 1
+    },
     "correlation_id": { "type": "string", "minLength": 1 },
     "causation_id": {
       "anyOf": [{ "$ref": "#/$defs/ulid" }, { "type": "null" }]

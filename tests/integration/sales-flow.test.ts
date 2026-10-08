@@ -4,6 +4,7 @@
 import { validateEvent } from '@erp-town/event-schema'
 import { afterAll, describe, expect, it } from 'vitest'
 import {
+  COMPANY_CODE,
   closeTownRedis,
   createSalesOrder,
   getList,
@@ -55,6 +56,7 @@ describe('sales flow over REST', () => {
     for (const { event } of chain) {
       expect(validateEvent(event), JSON.stringify(event)).toEqual({ valid: true })
       expect(event.seq).toBe(1)
+      expect(event.company).toBe(COMPANY_CODE)
       expect(event.actor).toEqual({ kind: 'user', id: 'user.Administrator', on_behalf_of: null })
     }
     expect(new Set(chain.map((e) => e.event.id)).size).toBe(4)

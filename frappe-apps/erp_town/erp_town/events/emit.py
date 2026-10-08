@@ -20,7 +20,7 @@ from frappe.utils import now_datetime
 from frappe.utils.response import json_handler
 
 from erp_town.events.actor import resolve_actor_with_issues
-from erp_town.events.envelope import build_envelope, default_visibility
+from erp_town.events.envelope import build_envelope, company_code, default_visibility
 from erp_town.events.schema import EventSchemaError, validate_event
 from erp_town.events.seq import next_seq
 from erp_town.events.ulid import new_ulid
@@ -54,7 +54,8 @@ def emit_raw(
 ) -> str | None:
 	"""Store an event and register its publish job; return the event id (also for `Invalid` rows).
 
-	Defaults: `actor` from the session (`resolve_actor`, header problems reported as `system.error`),
+	`company` is the Company record name (e.g. `doc.company`); the envelope carries its abbr
+	(`company_code`). Defaults: `actor` from the session (`resolve_actor`, header problems reported as `system.error`),
 	`correlation_id = subject_name`, `visibility = {"level": "public", "roles": []}`.
 	`invalid_reason`: store the row `Invalid` with this `last_error` without schema validation (the event
 	still takes its seq and is reported as `EVENT_INVALID`; nothing is enqueued).
@@ -72,7 +73,7 @@ def emit_raw(
 			"source": source,
 			"subject_doctype": subject_doctype,
 			"subject_name": subject_name,
-			"company": company,
+			"company": company_code(company),
 			"data": data,
 			"actor": actor,
 			"correlation_id": correlation_id or subject_name,

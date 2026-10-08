@@ -1,7 +1,7 @@
 # Copyright (c) 2026, ERP Town
 # License: GNU General Public License v3. See LICENSE
 
-from erp_town.events.mappers import CANCELLED, status_of, unique
+from erp_town.events.mappers import CANCELLED, return_fields, status_of, unique
 
 
 class DeliveryNoteMapper:
@@ -23,6 +23,7 @@ class DeliveryNoteMapper:
 			"party": doc.customer,
 			"item_count": len(items),
 			"warehouse": warehouse,
+			**return_fields(doc),
 		}
 
 	def upstream(self, doc) -> list[tuple[str, str]]:

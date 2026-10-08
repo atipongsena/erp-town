@@ -66,7 +66,8 @@ D:\ERP_Town
 | `time` | ISO 8601 พร้อม offset ตาม timezone ระบบ (`Asia/Bangkok`) |
 | `actor.kind` | `user` \| `agent` \| `system` \| `dev` |
 | `actor.on_behalf_of` | ตั้งได้เฉพาะเมื่อ `kind = agent` |
-| `seq` | เริ่มที่ 1 ต่อ subject เพิ่มทีละ 1 ไม่มีช่องว่าง; ผู้รับเรียงตาม seq |
+| `company` | รหัสบริษัท (Company `abbr` เช่น `ACME-TH`) ไม่ใช่ชื่อ record ของ Company; `null` เฉพาะ `system.*` และ subject ที่ไม่มีบริษัท (Ruling AD) |
+| `seq` | เริ่มที่ 1 ต่อ subject เพิ่มทีละ 1 ตอนจอง; ผู้รับเรียงตาม seq — **หมายเหตุ (Ruling AE):** seq เป็นตัวนับเดียวต่อ subject ข้ามทุก event type และทุกสถานะ จึง**มีช่องว่างได้ตามปกติ** (แถว `Invalid` จอง seq แต่ไม่ถูก publish; `system.error` เห็นเฉพาะ role ที่กำหนด) — ผู้รับห้ามรอ seq ที่หายไป |
 | `correlation_id` | ชื่อเอกสารราก (root) ของสาย flow |
 | `causation_id` | `id` ของ event ล่าสุดของเอกสารต้นทางที่ทำให้เกิด event นี้ หรือ `null` |
 | `visibility.level` | `public` \| `roles` \| `private`; `roles` ใช้คู่กับรายชื่อ role |
@@ -84,8 +85,8 @@ D:\ERP_Town
 |---|---|---|---|
 | `erp.sales_order.submitted` | Sales Order | user/agent | `status`, `party`, `item_count`, `delivery_date` |
 | `erp.sales_order.cancelled` | Sales Order | user/agent | `status` |
-| `erp.delivery_note.submitted` | Delivery Note | user/agent | `status`, `party`, `item_count`, `warehouse`, `against` (SO names) |
-| `erp.sales_invoice.submitted` | Sales Invoice | user/agent | `status`, `party`, `due_date`, `against` (SO/DN names) |
+| `erp.delivery_note.submitted` | Delivery Note | user/agent | `status`, `party`, `item_count`, `warehouse`, `is_return`, `return_against`, `against` (SO names) |
+| `erp.sales_invoice.submitted` | Sales Invoice | user/agent | `status`, `party`, `due_date`, `is_return`, `return_against`, `against` (SO/DN names) |
 | `erp.sales_invoice.overdue` | Sales Invoice | system (`system.scheduler`) | `due_date`, `days_overdue` |
 | `erp.payment_entry.submitted` | Payment Entry | user/agent | `party`, `mode_of_payment`, `against` (SI names) |
 | `erp.stock.below_reorder` | Item | system | `warehouse`, `fill_ratio` (actual_qty / reorder_level, ทศนิยม 2 ตำแหน่ง) |
@@ -94,6 +95,8 @@ D:\ERP_Town
 | `system.error` | เอกสารที่เกี่ยวข้อง หรือ `{doctype: "Town Event Outbox"}` | system | `code`, `message` (ไม่มี stack trace) |
 
 `cancelled` ใช้กับ DN/SI/PE ด้วยรูปแบบเดียวกับ SO (`erp.<doctype>.cancelled`)
+
+`is_return` / `return_against` (เพิ่มแบบ additive, Ruling AF): producer ส่งทุกครั้ง — `false`/`null` สำหรับเอกสารปกติ; DN/SI ที่เป็นการคืน (ใบลดหนี้) ส่ง `true` และชื่อเอกสารต้นฉบับ
 
 Causation ของ event ที่ระบบสร้าง: `erp.sales_invoice.overdue` → event ล่าสุดของ SI ใบนั้น, correlation เดียวกับ SI; `erp.stock.below_reorder` → event `erp.delivery_note.submitted` ที่ทำให้สต็อกข้ามเส้น, correlation เดียวกับ DN
 

@@ -7,6 +7,7 @@ from frappe.tests import IntegrationTestCase
 from erp_town.events.schema import validate_event
 from erp_town.events.system import emit_system_error
 from erp_town.tests.factories import (
+	TEST_ABBR,
 	TEST_COMPANY,
 	TEST_WAREHOUSE,
 	ensure_test_company,
@@ -105,7 +106,7 @@ class TestSalesFlowEvents(IntegrationTestCase):
 			+ [("Sales Invoice", si.name, 1), ("Payment Entry", pe.name, 1)],
 		)
 		self.assertEqual([e["source"] for e in evs[:4]], ["erp/selling", "erp/stock"] + ["erp/accounts"] * 2)
-		self.assertTrue(all(e["company"] == TEST_COMPANY for e in evs[:4]))
+		self.assertTrue(all(e["company"] == TEST_ABBR for e in evs[:4]))
 		self.assertTrue(all(e["visibility"] == {"level": "public", "roles": []} for e in evs[:4]))
 		self.assertEqual(evs[0]["actor"], {"kind": "user", "id": "user.Administrator", "on_behalf_of": None})
 
@@ -126,6 +127,8 @@ class TestSalesFlowEvents(IntegrationTestCase):
 				"party": self.customer,
 				"item_count": 1,
 				"warehouse": TEST_WAREHOUSE,
+				"is_return": False,
+				"return_against": None,
 				"against": [so.name],
 			},
 		)
@@ -135,6 +138,8 @@ class TestSalesFlowEvents(IntegrationTestCase):
 				"status": si.status,
 				"party": self.customer,
 				"due_date": str(si.due_date),
+				"is_return": False,
+				"return_against": None,
 				"against": [dn.name, so.name],
 			},
 		)
@@ -143,6 +148,31 @@ class TestSalesFlowEvents(IntegrationTestCase):
 		)
 		statuses = frappe.get_all("Town Event Outbox", filters={"correlation_id": so.name}, pluck="status")
 		self.assertEqual(set(statuses), {"Pending"})
+
+	def test_returns_carry_is_return_and_return_against(self):
+		"""Ruling AF: a return DN / credit-note SI says so, and names the original document."""
+		from erpnext.accounts.doctype.sales_invoice.sales_invoice import make_sales_return as si_return
+		from erpnext.stock.doctype.delivery_note.delivery_note import make_sales_return as dn_return
+
+		so = make_so(self.customer, [self.item])
+		dn = make_dn_from_so(so)
+		si = make_si_from_dn(dn)
+
+		credit_note = si_return(si.name)
+		credit_note.insert(ignore_permissions=True)
+		credit_note.submit()
+		returned = dn_return(dn.name)
+		returned.insert(ignore_permissions=True)
+		returned.submit()
+
+		si_data = _erp_events_for(credit_note)[0]["data"]
+		self.assertIs(si_data["is_return"], True)
+		self.assertEqual(si_data["return_against"], si.name)
+		dn_data = _erp_events_for(returned)[0]["data"]
+		self.assertIs(dn_data["is_return"], True)
+		self.assertEqual(dn_data["return_against"], dn.name)
+		for doc in (credit_note, returned):
+			validate_event(_erp_events_for(doc)[0])
 
 	def test_dn_against_two_sos_uses_first_and_lists_all(self):
 		item2 = make_item()
@@ -315,7 +345,30 @@ class TestSalesFlowEvents(IntegrationTestCase):
 		self.assertEqual([e["type"] for e in events], ["system.error"])
 		self.assertEqual(events[0]["data"]["code"], "EVENT_INVALID")
 		self.assertIn("lineage bug", events[0]["data"]["message"])
-		self.assertEqual(events[0]["company"], TEST_COMPANY)
+		self.assertEqual(events[0]["company"], TEST_ABBR)
+
+	def test_envelope_company_is_the_company_code(self):
+		"""Ruling AD: producers pass the Company record name; the envelope carries its abbr."""
+		from erp_town.events.emit import emit_raw
+
+		def emit(company):
+			eid = emit_raw(
+				"system.error",
+				source="erp/town",
+				subject_doctype="Town Event Outbox",
+				subject_name=f"T-{frappe.generate_hash(length=6)}",
+				company=company,
+				data={"code": "TEST", "message": "company mapping"},
+				actor={"kind": "system", "id": "system.town", "on_behalf_of": None},
+				visibility={"level": "roles", "roles": ["System Manager"]},
+			)
+			return json.loads(frappe.db.get_value("Town Event Outbox", eid, "payload"))["company"]
+
+		self.assertEqual(emit(TEST_COMPANY), TEST_ABBR)
+		self.assertEqual(emit(TEST_ABBR), TEST_ABBR)  # already a code: kept
+		self.assertIsNone(emit(None))
+		with self.assertLogs(frappe.logger("erp_town"), level="WARNING"):
+			self.assertEqual(emit("No Such Company Ltd"), "No Such Company Ltd")  # kept and logged
 
 	def test_payment_entry_without_customer_party_emits_nothing(self):
 		from erp_town.events.doc_hooks import on_doc_event

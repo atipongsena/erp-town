@@ -23,6 +23,15 @@
       "format": "date",
       "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
     },
+    "is_return": {
+      "description": "True for a return (credit note); producers always send it.",
+      "type": "boolean"
+    },
+    "return_against": {
+      "description": "The Sales Invoice this return was made against; null when is_return is false.",
+      "type": ["string", "null"],
+      "minLength": 1
+    },
     "against": {
       "description": "Sales Order / Delivery Note names this Sales Invoice was made against.",
       "type": "array",

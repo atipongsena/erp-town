@@ -37,11 +37,14 @@ export interface TownEventEnvelope {
   time: string;
   schema_version: 1;
   /**
-   * Company code; null only for system.* events and subjects without a company (e.g. Item).
+   * Company code (the ERPNext Company abbr, e.g. ACME-TH), not the Company record name; null only for system.* events and subjects without a company (e.g. Item).
    */
   company: string | null;
   actor: Actor;
   subject: Subject;
+  /**
+   * Per-subject sequence, starting at 1, shared by all event types and statuses of that subject. Gaps are expected: Invalid events take a seq but are never published, and system.error events are role-restricted. Order by seq; never wait for a missing seq.
+   */
   seq: number;
   correlation_id: string;
   causation_id: Ulid | null;
@@ -108,6 +111,14 @@ export interface ErpDeliveryNoteSubmittedData {
    */
   warehouse: string;
   /**
+   * True for a return (goods returned); producers always send it.
+   */
+  is_return?: boolean;
+  /**
+   * The Delivery Note this return was made against; null when is_return is false.
+   */
+  return_against?: string | null;
+  /**
    * Sales Order names this Delivery Note was made against.
    *
    * @minItems 0
@@ -141,6 +152,14 @@ export interface ErpSalesInvoiceSubmittedData {
    * Payment due date (YYYY-MM-DD).
    */
   due_date: string;
+  /**
+   * True for a return (credit note); producers always send it.
+   */
+  is_return?: boolean;
+  /**
+   * The Sales Invoice this return was made against; null when is_return is false.
+   */
+  return_against?: string | null;
   /**
    * Sales Order / Delivery Note names this Sales Invoice was made against.
    *

@@ -5,6 +5,7 @@
 
 from zoneinfo import ZoneInfo
 
+import frappe
 from frappe.utils import get_system_timezone, now_datetime
 
 SPECVERSION = "1.0"
@@ -13,6 +14,23 @@ SCHEMA_VERSION = 1
 
 def default_visibility() -> dict:
 	return {"level": "public", "roles": []}
+
+
+def company_code(company: str | None) -> str | None:
+	"""The envelope `company`: the Company's `abbr` (code, e.g. "ACME-TH") for a Company record name (Ruling AD).
+
+	Producers pass `doc.company` (the record name); the abbr is read through Frappe's document cache
+	(invalidated when the Company is saved). None stays None; a value that already is an abbr is kept;
+	anything else is kept as given and logged (the event is still stored, never blocked).
+	"""
+	if not company:
+		return None
+	abbr = frappe.get_cached_value("Company", company, "abbr")
+	if abbr:
+		return abbr
+	if not frappe.db.exists("Company", {"abbr": company}):
+		frappe.logger("erp_town").warning(f"ERP Town: event company {company!r} is not a known Company")
+	return company
 
 
 def event_time() -> str:

@@ -27,6 +27,8 @@
     "party": "CUST-001",
     "item_count": 3,
     "warehouse": "Stores - ACME",
+    "is_return": false,
+    "return_against": null,
     "against": ["SO6910-0042"]
   }
 }

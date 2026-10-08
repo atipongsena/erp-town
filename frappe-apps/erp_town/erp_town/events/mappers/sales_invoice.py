@@ -1,7 +1,7 @@
 # Copyright (c) 2026, ERP Town
 # License: GNU General Public License v3. See LICENSE
 
-from erp_town.events.mappers import CANCELLED, iso_date, status_of, unique
+from erp_town.events.mappers import CANCELLED, iso_date, return_fields, status_of, unique
 
 
 class SalesInvoiceMapper:
@@ -20,6 +20,7 @@ class SalesInvoiceMapper:
 			"status": status_of(doc, action),
 			"party": doc.customer,
 			"due_date": iso_date(doc.get("due_date") or doc.get("posting_date")),
+			**return_fields(doc),
 		}
 
 	def upstream(self, doc) -> list[tuple[str, str]]:
