@@ -22,27 +22,37 @@ SOURCE = "erp/accounts"
 OVERDUE = "erp.sales_invoice.overdue"
 
 
+COMMIT_EVERY = 20  # invoices per transaction in the scheduled run
+
+
 def emit_overdue_hourly() -> int | None:
 	"""Run `emit_overdue()` when the current hour is `overdue_job_hour`; None in any other hour."""
 	if now_datetime().hour != get_town_settings().overdue_job_hour:
 		return None
-	return emit_overdue()
+	return emit_overdue(commit_every=COMMIT_EVERY)
 
 
-def emit_overdue(today: date | None = None) -> int:
+def emit_overdue(today: date | None = None, commit_every: int | None = None) -> int:
 	"""`erp.sales_invoice.overdue` for each submitted SI with `outstanding_amount > 0` and `due_date < today`,
 	at most once per invoice per day (an overdue outbox row created today counts, whatever its status).
 
+	`commit_every`: commit after every that many invoices and at the end, so the per-subject seq row locks
+	are held for one small batch instead of the whole run (each commit also flushes that batch's publish
+	job). None (default) leaves the transaction to the caller. One failing invoice never stops the run.
 	Actor is `system.scheduler`. Returns the number of events stored.
 	"""
 	today = getdate(today or nowdate())
 	previous = frappe.flags.town_system_actor
 	frappe.flags.town_system_actor = True
 	try:
-		count = 0
-		for invoice in _overdue_invoices(today):
+		count = done = 0
+		for done, invoice in enumerate(_overdue_invoices(today), start=1):
 			if _emit(invoice, today):
 				count += 1
+			if commit_every and done % commit_every == 0:
+				frappe.db.commit()
+		if commit_every and done % commit_every:
+			frappe.db.commit()
 		return count
 	finally:
 		frappe.flags.town_system_actor = previous

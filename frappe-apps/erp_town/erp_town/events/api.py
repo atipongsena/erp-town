@@ -5,7 +5,8 @@
 
 - `requeue_failed(event_ids)`: the "ส่งใหม่" button of the `Town Outbox Status` report. Rows that are
   currently `Failed` go back to `Pending` with a fresh retry budget and one `publish` job is enqueued
-  after commit; any other id (unknown, `Pending`, `Published`, `Invalid`) is ignored.
+  after commit; any other id (unknown, `Pending`, `Published`, `Invalid`) is ignored. POST only (it
+  changes state); `frappe.call` posts.
 - `oldest_pending_age_seconds()`: the `Town Oldest Pending Age` number card.
 """
 
@@ -18,7 +19,7 @@ from erp_town.events.publisher import FAILED, OUTBOX
 SYSTEM_MANAGER = "System Manager"
 
 
-@frappe.whitelist()
+@frappe.whitelist(methods=["POST"])
 def requeue_failed(event_ids: list[str] | str) -> int:
 	"""Reset the listed `Failed` rows to `Pending` (`attempts = 0`) and enqueue publish; return the count."""
 	frappe.only_for(SYSTEM_MANAGER)

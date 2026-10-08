@@ -104,6 +104,10 @@ class TestTownStatus(IntegrationTestCase):
 		self.assertEqual(requeue_failed(second), 1)
 		self.assertEqual(frappe.db.get_value(OUTBOX, second, "status"), "Pending")
 
+	def test_requeue_is_post_only(self):
+		"""A state-changing endpoint: GET must not requeue (the report button posts via frappe.call)."""
+		self.assertEqual(frappe.allowed_http_methods_for_whitelisted_func[requeue_failed], ["POST"])
+
 	def test_requeue_with_nothing_failed_enqueues_nothing(self):
 		self.assertEqual(requeue_failed([self._row("Published")]), 0)
 		self.assertEqual(requeue_failed([]), 0)

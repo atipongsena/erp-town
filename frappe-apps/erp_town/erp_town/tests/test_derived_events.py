@@ -311,6 +311,21 @@ class TestBelowReorderEvents(_OutboxTestCase):
 		self.assertEqual(event["actor"]["kind"], "system")
 		validate_event(event)
 
+	def test_events_are_emitted_in_item_code_order(self):
+		"""One lock order for the Item seq rows, whatever the DN row order (no seq-lock deadlocks)."""
+		items = sorted(make_item(reorder_level=3, opening_qty=4) for _ in range(3))
+		sos = [make_so(self.customer, [{"item_code": code, "qty": 2}]) for code in reversed(items)]
+		emitted = []
+		real_emit = stock.emit_raw
+
+		def spy(*args, **kwargs):
+			emitted.append(kwargs["subject_name"])
+			return real_emit(*args, **kwargs)
+
+		with patch("erp_town.events.stock.emit_raw", side_effect=spy):
+			make_dn_from_so(*sos)
+		self.assertEqual(emitted, items)
+
 	def test_landing_exactly_on_level_is_not_below(self):
 		item = make_item(reorder_level=3, opening_qty=4)
 		self._deliver(item, 1)  # 4 -> 3
@@ -421,6 +436,26 @@ class TestOverdueEvents(_OutboxTestCase):
 		self.assertEqual(errors[0]["data"]["code"], "EVENT_INVALID")
 		self.assertIn("dedupe bug", errors[0]["data"]["message"])
 
+	def test_scheduled_run_commits_per_small_batch(self):
+		"""Seq locks are held for one batch, not the whole run (the scheduled job passes commit_every)."""
+		for days in (1, 2, 3):
+			make_si(self.customer, [self.item], posting_date=add_days(self.today, -days))
+		overdue_at_commit = []
+
+		def commit():
+			overdue_at_commit.append(frappe.db.count("Town Event Outbox", {"event_type": jobs.OVERDUE}))
+
+		with patch.object(frappe.db, "commit", side_effect=commit):
+			self.assertEqual(jobs.emit_overdue(commit_every=2), 3)
+		self.assertEqual(overdue_at_commit, [2, 3])
+		self.assertEqual(jobs.COMMIT_EVERY, 20)
+
+	def test_direct_call_does_not_commit(self):
+		make_si(self.customer, [self.item], posting_date=add_days(self.today, -1))
+		with patch.object(frappe.db, "commit") as commit:
+			jobs.emit_overdue()
+		commit.assert_not_called()
+
 	def test_next_day_emits_again(self):
 		si = make_si(self.customer, [self.item], posting_date=add_days(self.today, -1))
 		jobs.emit_overdue()
@@ -455,7 +490,7 @@ class TestOverdueEvents(_OutboxTestCase):
 			patch("erp_town.events.jobs.now_datetime", return_value=_at_hour(hour)),
 		):
 			jobs.emit_overdue_hourly()
-			emit_overdue.assert_called_once_with()
+			emit_overdue.assert_called_once_with(commit_every=jobs.COMMIT_EVERY)
 
 	def test_hooks_are_registered(self):
 		hooks = frappe.get_hooks("scheduler_events", app_name="erp_town")

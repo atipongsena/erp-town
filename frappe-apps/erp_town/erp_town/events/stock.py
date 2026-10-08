@@ -8,7 +8,8 @@ entries are posted and `Bin.actual_qty` already includes them. Per (item, wareho
 in stock UOM summed over its rows — with an `Item Reorder` row for that warehouse: `after = Bin.actual_qty`,
 `before = after + delivered`; an event is emitted only when `before >= level > after` (crossed down).
 Subject is the Item; company, correlation and causation come from the DN and its latest (`submitted`) event.
-Return DNs add stock and are skipped. Town-layer failures never block the submit.
+Events are emitted in (item_code, warehouse) order, so concurrent DNs take the Item seq locks in the same
+order. Return DNs add stock and are skipped. Town-layer failures never block the submit.
 """
 
 from collections import defaultdict
@@ -61,7 +62,8 @@ def on_dn_submit(doc, method: str | None = None) -> None:
 
 
 def _crossings(doc) -> list[tuple[str, str, float]]:
-	"""(item_code, warehouse, fill_ratio) for each pair this DN took from `>= level` to `< level`."""
+	"""(item_code, warehouse, fill_ratio) for each pair this DN took from `>= level` to `< level`, sorted by
+	(item_code, warehouse): the events lock their Item seq rows in one consistent order."""
 	delivered: dict[tuple[str, str], float] = defaultdict(float)
 	for row in doc.get("items") or []:
 		if row.get("item_code") and row.get("warehouse"):
@@ -81,7 +83,7 @@ def _crossings(doc) -> list[tuple[str, str, float]]:
 		before = after + qty
 		if before >= level > after:
 			crossings.append((item_code, warehouse, fill_ratio(after, level)))
-	return crossings
+	return sorted(crossings)
 
 
 def _reorder_levels(pairs) -> dict[tuple[str, str], float]:
