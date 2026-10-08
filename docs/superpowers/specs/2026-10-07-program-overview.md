@@ -47,6 +47,8 @@ B → C → D → G                  │ (D ต้องผ่าน gate ขอ
 
 ## Tech stack ที่ตกลงแล้ว
 
+> **แก้ไข 2026-10-09:** บริการ C, E, F, H และ API/BFF เปลี่ยนเป็น **Go** (modular monolith `go/`) + เพิ่ม PostgreSQL 18; ERPNext ยังเป็น system of record ในเฟส 1 และย้าย core เป็น Go ในเฟส 2 — ดู [Go Platform spec](2026-10-09-go-platform-design.md) §14 แถวในตารางด้านล่างที่ขัดกับ spec นั้นถือตาม spec นั้น
+
 | ชั้น | เลือก | หมายเหตุ |
 |---|---|---|
 | ERP core | **ERPNext v16** + HRMS (Frappe v16), MariaDB 11 | Classic view = Frappe Desk + ธีม CSS ของเรา |
