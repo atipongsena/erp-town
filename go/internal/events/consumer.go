@@ -16,10 +16,13 @@ import (
 	"github.com/atipongsena/erp-town/go/internal/store/sqlc"
 )
 
-// Handler applies one event. It runs inside the consumer's dedupe/seq transaction
-// window: an error rolls that transaction back and leaves the stream entry pending, so
-// it is delivered again after ClaimIdle (at most MaxDeliveries times in total).
-type Handler func(ctx context.Context, e Envelope) error
+// Handler applies one event. tx is the consumer's transaction that also records the
+// event id (dedupe) and the subject's new seq: Postgres writes the handler makes through
+// tx commit together with them, so they happen exactly once per group. An error rolls
+// the whole transaction back and leaves the stream entry pending; it is delivered again
+// after ClaimIdle (the handler sees it at most MaxDeliveries times). Side effects
+// outside Postgres are at-least-once. The handler must not commit or roll back tx.
+type Handler func(ctx context.Context, tx pgx.Tx, e Envelope) error
 
 // ConsumerConfig configures one member of a Redis Streams consumer group.
 type ConsumerConfig struct {
@@ -54,6 +57,9 @@ const (
 	purgeInterval = time.Hour
 	retryDelay    = time.Second
 	cleanupTime   = 5 * time.Second
+	pingTimeout   = 5 * time.Second
+	dbRetryMin    = 200 * time.Millisecond
+	dbRetryMax    = 5 * time.Second
 )
 
 // Consumer reads town events from a stream through a consumer group and hands each
@@ -78,8 +84,9 @@ func NewConsumer(rdb *redis.Client, pool *pgxpool.Pool, v *Validator, m *platfor
 
 // Run creates the group (MKSTREAM, from $) if it is missing, then reclaims idle pending
 // entries and reads new ones until ctx is cancelled, when it returns nil. It purges
-// expired dedupe rows at start and hourly. Redis and Postgres errors are logged and
-// retried; only failing to create the group at start is returned.
+// expired dedupe rows at start and hourly. Redis errors are logged and retried after
+// 1 s; while Postgres is unreachable the consumer pauses on the current entry (see
+// process). Only failing to create the group at start is returned.
 func (c *Consumer) Run(ctx context.Context) error {
 	if err := c.ensureGroup(ctx); err != nil {
 		if ctx.Err() != nil {
@@ -239,7 +246,10 @@ func (c *Consumer) drop(ctx context.Context, msg redis.XMessage, deliveries int6
 }
 
 // process handles one entry: invalid entries are acked and counted; otherwise the entry
-// is acked only after apply committed.
+// is acked only after apply committed. While Postgres is unreachable process blocks
+// (retrying the same entry with backoff), so the consumer neither reads nor reclaims
+// and an outage never uses up deliveries; only handler failures (and statement errors
+// while the database answers) leave the entry pending toward MaxDeliveries.
 func (c *Consumer) process(ctx context.Context, msg redis.XMessage) {
 	raw, ok := msg.Values[eventField].(string)
 	if !ok {
@@ -251,14 +261,65 @@ func (c *Consumer) process(ctx context.Context, msg redis.XMessage) {
 		c.invalid(ctx, msg, err)
 		return
 	}
-	if err := c.apply(ctx, e); err != nil {
-		if ctx.Err() == nil {
-			c.log.Warn("consumer: event not applied, left pending",
-				"entry", msg.ID, "event_id", e.ID, "type", e.Type, "err", err)
+	for {
+		err := c.apply(ctx, e)
+		if err == nil {
+			c.ack(ctx, msg.ID)
+			return
 		}
-		return
+		if ctx.Err() != nil {
+			return
+		}
+		var he *handlerError
+		if errors.As(err, &he) {
+			c.log.Warn("consumer: handler failed, entry left pending",
+				"entry", msg.ID, "event_id", e.ID, "type", e.Type, "err", err)
+			return
+		}
+		if c.dbReachable(ctx) {
+			// The database answers but our statement failed: treat it like a handler
+			// failure (counts toward MaxDeliveries) so one bad entry cannot stall the group.
+			c.log.Error("consumer: event not applied, entry left pending",
+				"entry", msg.ID, "event_id", e.ID, "type", e.Type, "err", err)
+			return
+		}
+		// Outage: hold this entry (and the rest of the batch) without reading or
+		// reclaiming anything, so no delivery is used up, and retry once Postgres is back.
+		c.log.Error("consumer: database unavailable, pausing", "entry", msg.ID, "event_id", e.ID, "err", err)
+		if !c.waitForDB(ctx) {
+			return
+		}
+		c.log.Info("consumer: database available again, resuming", "entry", msg.ID)
 	}
-	c.ack(ctx, msg.ID)
+}
+
+// handlerError marks a failure returned by the Handler, as opposed to the consumer's
+// own Postgres work.
+type handlerError struct{ err error }
+
+func (e *handlerError) Error() string { return "handler: " + e.err.Error() }
+func (e *handlerError) Unwrap() error { return e.err }
+
+func (c *Consumer) dbReachable(ctx context.Context) bool {
+	pctx, cancel := context.WithTimeout(ctx, pingTimeout)
+	defer cancel()
+	return c.pool.Ping(pctx) == nil
+}
+
+// waitForDB pings Postgres with exponential backoff (200 ms doubling, capped at 5 s)
+// until it answers (true) or ctx is cancelled (false).
+func (c *Consumer) waitForDB(ctx context.Context) bool {
+	delay := dbRetryMin
+	for {
+		sleep(ctx, delay)
+		if ctx.Err() != nil {
+			return false
+		}
+		if c.dbReachable(ctx) {
+			return true
+		}
+		delay = min(2*delay, dbRetryMax)
+	}
 }
 
 func (c *Consumer) invalid(ctx context.Context, msg redis.XMessage, err error) {
@@ -305,8 +366,8 @@ func (c *Consumer) apply(ctx context.Context, e Envelope) (err error) {
 		return commit(ctx, tx)
 	}
 
-	if err := c.h(ctx, e); err != nil {
-		return fmt.Errorf("handler: %w", err)
+	if err := c.h(ctx, tx, e); err != nil {
+		return &handlerError{err: err}
 	}
 	// The handler succeeded: finish even if ctx is cancelled now, so a shutdown does not
 	// make the handler run a second time on redelivery.

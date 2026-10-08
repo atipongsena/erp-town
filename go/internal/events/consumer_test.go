@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/oklog/ulid/v2"
 	"github.com/redis/go-redis/v9"
@@ -30,7 +31,7 @@ type recorder struct {
 	err  error
 }
 
-func (r *recorder) handle(_ context.Context, e Envelope) error {
+func (r *recorder) handle(_ context.Context, _ pgx.Tx, e Envelope) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	r.seen = append(r.seen, e)
@@ -95,7 +96,13 @@ func (h *harness) createGroupFromStart(t *testing.T) {
 // that Run returned nil.
 func (h *harness) run(t *testing.T, cfg ConsumerConfig, handler Handler) {
 	t.Helper()
-	c := NewConsumer(h.rdb, h.pool, h.v, h.m, cfg, handler)
+	h.runOn(t, h.pool, cfg, handler)
+}
+
+// runOn is run with the consumer using pool instead of the harness pool.
+func (h *harness) runOn(t *testing.T, pool *pgxpool.Pool, cfg ConsumerConfig, handler Handler) {
+	t.Helper()
+	c := NewConsumer(h.rdb, pool, h.v, h.m, cfg, handler)
 	ctx, cancel := context.WithCancel(context.Background())
 	done := make(chan error, 1)
 	go func() { done <- c.Run(ctx) }()
@@ -266,6 +273,80 @@ func TestConsumerDropsAfterMaxDeliveries(t *testing.T) {
 	require.NoError(t, json.Unmarshal(raw, &e))
 	assert.Equal(t, 0, h.count(t, "SELECT count(*) FROM consumed_events WHERE event_id = $1", e.ID))
 	assert.Equal(t, 0, h.count(t, "SELECT count(*) FROM consumer_subject_seq WHERE subject_name = 'SO-FAIL'"))
+}
+
+func TestConsumerHandlerWritesFollowTransaction(t *testing.T) {
+	h := newHarness(t)
+	_, err := h.pool.Exec(t.Context(), "CREATE TABLE handler_writes (event_id text NOT NULL, attempt int NOT NULL)")
+	require.NoError(t, err)
+	h.createGroupFromStart(t)
+	h.add(t, testEvent(t, "SO-TX", 1, nil))
+
+	var mu sync.Mutex
+	attempts := 0
+	handler := func(ctx context.Context, tx pgx.Tx, e Envelope) error {
+		mu.Lock()
+		attempts++
+		n := attempts
+		mu.Unlock()
+		if _, err := tx.Exec(ctx, "INSERT INTO handler_writes VALUES ($1, $2)", e.ID, n); err != nil {
+			return err
+		}
+		if n == 1 {
+			return errors.New("fail after writing")
+		}
+		return nil
+	}
+	cfg := h.config()
+	cfg.ClaimIdle = 50 * time.Millisecond
+	h.run(t, cfg, handler)
+	h.waitDrained(t)
+
+	mu.Lock()
+	defer mu.Unlock()
+	assert.Equal(t, 2, attempts)
+	// the first attempt's write was rolled back with the failed handler, the second committed
+	assert.Equal(t, 0, h.count(t, "SELECT count(*) FROM handler_writes WHERE attempt = 1"))
+	assert.Equal(t, 1, h.count(t, "SELECT count(*) FROM handler_writes WHERE attempt = 2"))
+}
+
+func TestConsumerPausesWhileDatabaseIsDown(t *testing.T) {
+	h := newHarness(t)
+	pool, proxy := proxiedPool(t, h.pool)
+	h.createGroupFromStart(t)
+	for seq := int64(1); seq <= 3; seq++ {
+		h.add(t, testEvent(t, "SO-OUTAGE", seq, nil))
+	}
+	first, err := h.rdb.XRange(t.Context(), h.stream, "-", "+").Result()
+	require.NoError(t, err)
+
+	proxy.setDown(true)
+	rec := &recorder{}
+	cfg := h.config()
+	cfg.ClaimIdle = 50 * time.Millisecond
+	cfg.MaxDeliveries = 5
+	h.runOn(t, pool, cfg, rec.handle)
+
+	// the consumer reads the batch, then pauses on the database outage
+	require.Eventually(t, func() bool {
+		g, ok := h.groupInfo(t)
+		return ok && g.Pending > 0
+	}, 20*time.Second, 20*time.Millisecond)
+	time.Sleep(time.Duration(cfg.MaxDeliveries+5) * cfg.ClaimIdle) // well past MaxDeliveries x ClaimIdle
+
+	p, err := h.rdb.XPendingExt(t.Context(), &redis.XPendingExtArgs{
+		Stream: h.stream, Group: testGroup, Start: first[0].ID, End: first[0].ID, Count: 1,
+	}).Result()
+	require.NoError(t, err)
+	require.Len(t, p, 1)
+	assert.Equal(t, int64(1), p[0].RetryCount, "no reclaim while the database is down")
+	assert.Empty(t, rec.calls())
+
+	proxy.setDown(false)
+	h.waitDrained(t)
+	assert.Equal(t, []int64{1, 2, 3}, rec.seqs("SO-OUTAGE"))
+	assert.Equal(t, int64(0), h.read("town_events_dropped_total"))
+	assert.Equal(t, 3, h.count(t, "SELECT count(*) FROM consumed_events WHERE consumer_group = $1", testGroup))
 }
 
 func TestConsumerDeliversThaiDataExactly(t *testing.T) {
