@@ -3,6 +3,13 @@
     and price; VAT on its own line; amount in words. -#}
 {%- set title_th = "ใบกำกับภาษี/ใบแจ้งหนี้" %}
 {%- set title_en = "TAX INVOICE / INVOICE" %}
+{%- if doc.is_return %}
+{#- Return Sales Invoice = credit note (ใบลดหนี้, Ruling AF). Interim layout — draft — accountant review
+    required before the pilot (Revenue Code §86/10 credit-note elements: reason, original value,
+    corrected value and difference are not printed yet). Amounts print as ERPNext stores them. -#}
+{%- set title_th = "ใบลดหนี้" %}
+{%- set title_en = "CREDIT NOTE" %}
+{%- endif %}
 {%- set buyer_label = "ผู้ซื้อ" %}
 {%- set p = th_parties(doc) %}
 {%- set t = th_totals(doc) %}
@@ -15,6 +22,9 @@
 		<div class="th-box th-meta">
 			<div><span class="th-label">เลขที่</span> {{ doc.name }}</div>
 			<div><span class="th-label">วันที่</span> {{ doc.posting_date | be_date }}</div>
+			{%- if doc.is_return and doc.return_against %}
+			<div><span class="th-label">อ้างอิงใบกำกับภาษีเลขที่</span> {{ doc.return_against }}</div>
+			{%- endif %}
 			{%- if doc.due_date %}
 			<div><span class="th-label">ครบกำหนดชำระ</span> {{ doc.due_date | be_date }}</div>
 			{%- endif %}

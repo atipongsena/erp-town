@@ -38,6 +38,7 @@ Requires Node >= 24, pnpm 10, Docker Desktop. Run from the repo root.
 | `pnpm erp:pilot:build` | build `erp-town/erpnext:v16-<git short sha>[-dirty]` from `infra/docker/pilot/Containerfile` |
 | `pnpm erp:pilot:up` / `erp:pilot:down` | profile `pilot` (Caddy TLS on `https://$SITE_NAME`, shares mariadb/redis with dev) / remove only the pilot containers |
 | `pnpm erp:pilot:bench <args...>` / `erp:pilot:backup` | `bench` in the pilot `backend` / one S3 backup now (drill: `infra/docker/pilot/RESTORE.md`) |
+| `pnpm erp:pilot:bench -- --site <site> execute erp_town.setup.pilot.bootstrap --kwargs '{"company_name":…,"abbr":…,"tax_id":…}'` | once per pilot site: Thai settings + the real company (no demo data); `erp:seed` refuses outside `developer_mode`/`allow_tests` sites |
 
 Pass options after `--` with pnpm (e.g. `pnpm erp:test -- --module erp_town.tests.test_smoke`), or call
 `node scripts/erp.mjs <command> [args...]` directly; `node scripts/erp.mjs --help` lists everything.

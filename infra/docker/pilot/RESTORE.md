@@ -68,7 +68,8 @@ A real pilot has real data. On a rehearsal stack (`SITE_NAME=pilot.localhost`), 
 note the Sales Invoice count:
 
 ```bash
-dc exec backend bench --site pilot.localhost execute erp_town.setup.seed.run
+# seed.run refuses on a site without developer_mode / allow_tests; force=True for a rehearsal only
+dc exec backend bench --site pilot.localhost execute erp_town.setup.seed.run --kwargs '{"force": true}'
 dc exec backend bench --site pilot.localhost execute erp_town.setup.scenario.run --kwargs '{"days":3}'
 dc exec backend bench --site pilot.localhost execute frappe.db.count --args '["Sales Invoice"]'
 ```
@@ -115,7 +116,9 @@ bench --site "$NEW" restore "$P-database.sql.gz" \
   --with-public-files "$P-files.tar" \
   --with-private-files "$P-private-files.tar" \
   --db-root-password "$DB_ROOT_PASSWORD"
-# the restored database has the scheduler on; a drill site must not run jobs or publish events
+# the scheduler flag is site config, not database: the restored site keeps the target's previous
+# state (disabled for a fresh new-site). Disable it explicitly anyway: a drill site must never run
+# jobs or publish events
 bench --site "$NEW" disable-scheduler
 bench --site "$NEW" migrate
 bench --site "$NEW" list-apps
@@ -168,6 +171,22 @@ Tick each item (date, initials) before the pilot starts; keep the filled copy wi
 - [ ] DNS A/AAAA record of `SITE_NAME` points at the host; ports 80 and 443 open; `pnpm erp:pilot:up`
       ends with `pilot is up at https://<SITE_NAME>`; browser shows a valid Let's Encrypt certificate
 - [ ] `dc exec backend bench --site <SITE_NAME> list-apps` lists frappe, erpnext, hrms, erp_town
+- [ ] Thai company bootstrapped on the pilot site (once; idempotent, no demo data or users — never
+      run `erp_town.setup.seed.run` on the pilot): System Settings th / Asia/Bangkok / Thailand / THB,
+      base masters, the company with the draft Thai chart and VAT templates, setup marked complete:
+
+      ```bash
+      pnpm erp:pilot:bench -- --site <SITE_NAME> execute erp_town.setup.pilot.bootstrap \
+        --kwargs '{"company_name": "<ชื่อบริษัทตามทะเบียน>", "abbr": "<CODE-TH>", "tax_id": "<13 digits>"}'
+      ```
+
+      then in Desk check Company → tax ID, `th_branch_code` (00000 = สำนักงานใหญ่) and the address;
+      the chart and VAT templates are drafts until the accountant signs them off
+- [ ] PDF of each Thai print format (ใบยืนยันคำสั่งซื้อ, ใบส่งของ, ใบกำกับภาษี/ใบแจ้งหนี้, ใบลดหนี้ of a
+      return invoice, ใบเสร็จรับเงิน) downloaded from the pilot's Desk ("PDF", Chrome generator) renders
+      Sarabun: Thai vowels and tone marks correct, no fallback font (`pdffonts <file>.pdf` lists
+      Sarabun). The dev bench has no Chromium, so the automated check
+      (`test_tax_invoice_pdf_through_chrome_embeds_sarabun`) is skipped there
 - [ ] Bucket for backups exists outside the pilot host, versioning or object lock on if the provider
       has it; `BACKUP_S3_*` keys are scoped to that bucket only
 - [ ] `pnpm erp:pilot:backup` succeeds; the `backup` service log shows the next daily run

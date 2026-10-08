@@ -24,6 +24,7 @@ from erp_town.selling.credit_approval import (
 	ensure_approval_workflow,
 	ensure_credit_controller,
 )
+from erp_town.setup.masters import ensure_system_settings, mark_setup_complete
 from erp_town.thai.setup import HEAD_OFFICE_BRANCH, company_account, create_thai_company
 
 COMPANY = "บริษัท ตัวอย่างเทรดดิ้ง จำกัด"
@@ -173,8 +174,18 @@ STOCK_ENTRY_TYPES = ("Material Receipt", "Material Issue", "Material Transfer")
 # --- entry point ---------------------------------------------------------------------------------------
 
 
-def run() -> dict:
-	"""Seed the dev site; returns the number of seeded records of each kind (equal on every run)."""
+def run(force: bool = False) -> dict:
+	"""Seed the dev site; returns the number of seeded records of each kind (equal on every run).
+
+	Demo data, demo users and a known default password: refused unless the site is a development or test
+	site (`developer_mode` or `allow_tests` in its config) or `force=True` (e.g. a rehearsal pilot site,
+	infra/docker/pilot/RESTORE.md). A real pilot site uses `erp_town.setup.pilot.bootstrap` instead.
+	"""
+	if not (force or frappe.conf.get("developer_mode") or frappe.conf.get("allow_tests")):
+		frappe.throw(
+			f"erp_town.setup.seed.run refused on site {frappe.local.site}: demo data only on a developer_mode "
+			"or allow_tests site; pass force=True for a rehearsal (real pilot: erp_town.setup.pilot.bootstrap)"
+		)
 	ensure_approval_fields()  # DDL first: commits nothing but itself
 	_ensure_system_settings()
 	create_thai_company(COMPANY, ABBR, COMPANY_TAX_ID)  # chart, VAT templates, fiscal years around today
@@ -193,7 +204,7 @@ def run() -> dict:
 	credentials = _ensure_agents()
 	ensure_credit_controller()
 	ensure_approval_workflow()
-	_mark_setup_complete()
+	mark_setup_complete()
 	_print_credentials(credentials)
 	return counts()
 
@@ -237,14 +248,7 @@ def counts() -> dict:
 
 
 def _ensure_system_settings() -> None:
-	wanted = {"language": LANGUAGE, "time_zone": TIME_ZONE, "country": COUNTRY, "currency": CURRENCY}
-	if not frappe.db.get_value("Currency", CURRENCY, "enabled"):
-		frappe.db.set_value("Currency", CURRENCY, "enabled", 1)
-	settings = frappe.get_single("System Settings")
-	if all(settings.get(k) == v for k, v in wanted.items()):
-		return
-	settings.update(wanted)
-	settings.save(ignore_permissions=True)
+	ensure_system_settings(language=LANGUAGE, time_zone=TIME_ZONE, country=COUNTRY, currency=CURRENCY)
 
 
 def _ensure_global_defaults() -> None:
@@ -254,15 +258,6 @@ def _ensure_global_defaults() -> None:
 		return
 	defaults.update(wanted)
 	defaults.save(ignore_permissions=True)
-
-
-def _mark_setup_complete() -> None:
-	"""Desk would otherwise open the setup wizard (the seed does the wizard's work for this company)."""
-	if not frappe.db.get_single_value("System Settings", "setup_complete"):
-		frappe.db.set_single_value("System Settings", "setup_complete", 1)
-	frappe.db.set_value(
-		"Installed Application", {"is_setup_complete": 0}, "is_setup_complete", 1, update_modified=False
-	)
 
 
 def _set_single_if_empty(doctype: str, values: dict) -> None:

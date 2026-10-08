@@ -191,6 +191,24 @@ class TestThaiPrintFormats(IntegrationTestCase):
 		self.assertEqual(si.rounded_total, si.grand_total)
 		self.assertNotIn("ปัดเศษ", html)
 
+	def test_credit_note_heading_and_reference(self):
+		"""Ruling AF: a return Sales Invoice prints as ใบลดหนี้ referencing the original (draft layout)."""
+		from erpnext.accounts.doctype.sales_invoice.sales_invoice import make_sales_return
+
+		si = self._si_with_vat()
+		self.assertNotIn("ใบลดหนี้", _print("Sales Invoice", si.name, TAX_INVOICE))
+		credit_note = make_sales_return(si.name)
+		credit_note.insert(ignore_permissions=True)
+		credit_note.submit()
+		html = _print("Sales Invoice", credit_note.name, TAX_INVOICE)
+		for needle in ["ใบลดหนี้", "CREDIT NOTE", credit_note.name]:
+			self.assertIn(needle, html)
+		self.assertRegex(html, rf"อ้างอิงใบกำกับภาษีเลขที่</span> {re.escape(si.name)}<")
+		self.assertIn("<h1>ใบลดหนี้</h1>", html)
+		self.assertNotIn("<h1>ใบกำกับภาษี/ใบแจ้งหนี้</h1>", html)
+		template = APP / "thai_localization" / "print_format" / "th_tax_invoice" / "th_tax_invoice.html"
+		self.assertIn("draft — accountant review", template.read_text(encoding="utf-8"))
+
 	def test_tax_invoice_rounding_prints_adjustment_and_payable_in_words(self):
 		si = self._si_with_vat(rate=1250.5)  # 2,501.00 + 175.07 = 2,676.07, ERPNext rounds to 2,676.00
 		self.assertEqual((si.grand_total, si.rounded_total, si.rounding_adjustment), (2676.07, 2676, -0.07))
@@ -312,6 +330,35 @@ class TestThaiPrintFormats(IntegrationTestCase):
 		self.assertIn("@font-face", html)
 		for url in FONT_URLS:
 			self.assertIn(url, html)
+
+	def test_tax_invoice_pdf_through_chrome_embeds_sarabun(self):
+		"""Spec §5.3: the PDF from v16's Chrome generator embeds Sarabun (the format's pdf_generator)."""
+		chromium = _installed_chromium()
+		if chromium is None:
+			# never let the test download Chromium (Frappe's generator would fetch it on first use);
+			# the pilot checks this by hand: infra/docker/pilot/RESTORE.md pre-pilot checklist
+			self.skipTest(
+				"Chromium headless shell is not installed in this bench (no chromium_path, no ./chromium)"
+			)
+		si = self._si_with_vat()
+		pdf = frappe.get_print(
+			"Sales Invoice", si.name, print_format=TAX_INVOICE, as_pdf=True, no_letterhead=1
+		)
+		self.assertTrue(pdf.startswith(b"%PDF"), chromium)
+		self.assertIn(b"Sarabun", pdf)
+
+
+def _installed_chromium() -> str | None:
+	"""The Chromium the Chrome PDF generator would use, only if it is already installed."""
+	import shutil
+
+	from frappe.utils.print_utils import EXECUTABLE_PATHS
+
+	configured = frappe.get_common_site_config().get("chromium_path")
+	if configured and shutil.which(configured):
+		return shutil.which(configured)
+	path = Path(frappe.utils.get_bench_path(), "chromium", *EXECUTABLE_PATHS["linux"])
+	return str(path) if path.exists() else None
 
 
 class TestBranchLabel(UnitTestCase):

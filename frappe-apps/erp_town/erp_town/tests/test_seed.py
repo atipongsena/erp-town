@@ -150,6 +150,33 @@ class TestRequiresApprovalHook(UnitTestCase):
 		self.assertIn("erp_town.selling.credit_approval.set_requires_approval", hooks)
 
 
+class TestSeedSiteGuard(UnitTestCase):
+	"""seed.run() writes demo users with a known password: dev/test sites only unless forced."""
+
+	def test_refuses_without_developer_mode_or_allow_tests(self):
+		with (
+			patch.dict(frappe.conf, {"developer_mode": 0, "allow_tests": False}),
+			patch.object(seed, "ensure_approval_fields") as first_step,
+			self.assertRaises(frappe.ValidationError) as ctx,
+		):
+			seed.run()
+		first_step.assert_not_called()
+		self.assertIn("pilot.bootstrap", str(ctx.exception))
+
+	def test_runs_on_dev_test_or_forced(self):
+		for conf, kwargs in (
+			({"developer_mode": 1, "allow_tests": False}, {}),
+			({"developer_mode": 0, "allow_tests": True}, {}),
+			({"developer_mode": 0, "allow_tests": False}, {"force": True}),
+		):
+			with (
+				patch.dict(frappe.conf, conf),
+				patch.object(seed, "ensure_approval_fields", side_effect=RuntimeError("past the guard")),
+				self.assertRaisesRegex(RuntimeError, "past the guard", msg=repr((conf, kwargs))),
+			):
+				seed.run(**kwargs)
+
+
 class TestSeed(IntegrationTestCase):
 	@classmethod
 	def setUpClass(cls):

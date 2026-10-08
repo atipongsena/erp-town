@@ -20,6 +20,28 @@ TREE_ROOTS = (
 DEFAULT_UOM = "Nos"
 
 
+def ensure_system_settings(*, language: str, time_zone: str, country: str, currency: str) -> None:
+	"""System Settings language / time zone / country / currency (enables the currency); saves only on a
+	difference."""
+	wanted = {"language": language, "time_zone": time_zone, "country": country, "currency": currency}
+	if not frappe.db.get_value("Currency", currency, "enabled"):
+		frappe.db.set_value("Currency", currency, "enabled", 1)
+	settings = frappe.get_single("System Settings")
+	if all(settings.get(k) == v for k, v in wanted.items()):
+		return
+	settings.update(wanted)
+	settings.save(ignore_permissions=True)
+
+
+def mark_setup_complete() -> None:
+	"""Desk would otherwise open ERPNext's setup wizard (the caller did the wizard's work)."""
+	if not frappe.db.get_single_value("System Settings", "setup_complete"):
+		frappe.db.set_single_value("System Settings", "setup_complete", 1)
+	frappe.db.set_value(
+		"Installed Application", {"is_setup_complete": 0}, "is_setup_complete", 1, update_modified=False
+	)
+
+
 def ensure_base_masters() -> None:
 	"""Tree roots, the `Nos` UOM, the `Transit` warehouse type and calendar fiscal years around today."""
 	ensure_tree_roots()

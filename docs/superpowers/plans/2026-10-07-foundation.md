@@ -460,7 +460,7 @@ def test_dn_and_so_render(self): ...  # contain doc name and be_date
 ### Task 12: Sales VAT report
 
 **Files:**
-- Create: `erp_town/thai_localization/report/th_output_vat_report/` (JSON `report_type: "Script Report"`, `.py`, `.js` filters), `erp_town/tests/test_output_vat_report.py`
+- Create: `erp_town/thai_localization/report/รายงานภาษีขาย/` — folder and module carry the report's Thai name because Frappe v16 resolves a standard report's code at `<module>/report/<scrub(name)>/<scrub(name)>.py` and the Thai report name is mandated (was `th_output_vat_report/`) — (JSON `report_type: "Script Report"`, `.py`, `.js` filters), `erp_town/tests/test_output_vat_report.py`
 
 **Interfaces:**
 - Produces: report name `รายงานภาษีขาย`; filters `company` (Link, required), `month` (Select 1–12), `year` (Int, Gregorian; label shows BE in `.js`); `execute(filters) -> (columns, data)` with columns (fieldnames exact): `idx`, `posting_date_be`, `invoice_no`, `customer_name`, `customer_tax_id`, `customer_branch`, `net_amount`, `vat_amount`; a final total row `{"invoice_no": "รวม", "net_amount": Σ, "vat_amount": Σ}`. Cancelled SIs in the period appear with `customer_name` suffixed ` (ยกเลิก)` and zero amounts. Source: submitted/cancelled SIs of the company in the month, VAT from tax rows whose account is the company's `ภาษีขาย` account.
