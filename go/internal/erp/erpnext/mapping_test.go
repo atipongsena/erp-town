@@ -63,6 +63,7 @@ func patchDoc(t testing.TB, raw []byte, envelope string, set map[string]any) []b
 }
 
 type call struct {
+	Ctx          context.Context
 	Method, Path string
 	Query        string
 	Header       http.Header
@@ -117,7 +118,7 @@ func (f *fakeERP) RoundTrip(r *http.Request) (*http.Response, error) {
 	if r.Body != nil {
 		body, _ = io.ReadAll(r.Body)
 	}
-	c := call{Method: r.Method, Path: r.URL.Path, Query: r.URL.RawQuery, Header: r.Header.Clone(), Body: body}
+	c := call{Ctx: r.Context(), Method: r.Method, Path: r.URL.Path, Query: r.URL.RawQuery, Header: r.Header.Clone(), Body: body}
 	f.mu.Lock()
 	f.calls = append(f.calls, c)
 	h, ok := f.routes[r.Method+" "+r.URL.Path]
@@ -125,6 +126,9 @@ func (f *fakeERP) RoundTrip(r *http.Request) (*http.Response, error) {
 	status, out := 404, []byte(`{"exc_type":"DoesNotExistError","exception":"no route `+r.Method+" "+r.URL.Path+`"}`)
 	if ok {
 		status, out = h(c)
+	}
+	if err := r.Context().Err(); err != nil {
+		return nil, err // like a real transport: the request was abandoned
 	}
 	return resp(status, string(out)), nil
 }
@@ -525,12 +529,59 @@ func TestWorkflowMetaIsCached(t *testing.T) {
 }
 
 func TestCancel(t *testing.T) {
-	f := newFakeERP(t)
-	f.on("POST "+pathMethod+"frappe.client.cancel", fixedReply(200, patchDoc(t, fixture(t, "sales_order.json"), "message", map[string]any{"docstatus": 2})))
-	require.NoError(t, f.adapter().Cancel(context.Background(), sales, erp.DocRef{DocType: erp.DocSalesOrder, Name: soName}))
-	cancels := f.callsTo("POST " + pathMethod + "frappe.client.cancel")
-	require.Len(t, cancels, 1)
-	assert.Equal(t, map[string]any{"doctype": "Sales Order", "name": soName}, cancels[0].args(t))
+	ref := erp.DocRef{DocType: erp.DocSalesOrder, Name: soName}
+	linked := []byte(`{"exc_type":"LinkExistsError","_server_messages":"[\"{\\\"message\\\":\\\"linked with DN6910-0001\\\"}\"]"}`)
+	cases := []struct {
+		name       string
+		docstatus  int
+		cancel     handler
+		target     error
+		wantCancel bool
+	}{
+		{"submitted", 1, fixedReply(200, nil), nil, true},
+		{"already cancelled", 2, nil, erp.ErrConflict, false},
+		{"draft", 0, nil, erp.ErrValidation, false},
+		{"linked submitted documents", 1, fixedReply(417, linked), erp.ErrConflict, true},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			f := newFakeERP(t)
+			f.on("GET "+pathSO, fixedReply(200, patchDoc(t, fixture(t, "sales_order.json"), "data", map[string]any{"docstatus": c.docstatus})))
+			cancelled := patchDoc(t, fixture(t, "sales_order.json"), "message", map[string]any{"docstatus": 2})
+			if c.cancel != nil {
+				f.on("POST "+pathMethod+"frappe.client.cancel", func(cl call) (int, []byte) {
+					status, body := c.cancel(cl)
+					if body == nil {
+						body = cancelled
+					}
+					return status, body
+				})
+			}
+			err := f.adapter().Cancel(context.Background(), sales, ref)
+			cancels := f.callsTo("POST " + pathMethod + "frappe.client.cancel")
+			if c.wantCancel {
+				require.Len(t, cancels, 1)
+				assert.Equal(t, map[string]any{"doctype": "Sales Order", "name": soName}, cancels[0].args(t))
+			} else {
+				assert.Empty(t, cancels, "refused before calling ERPNext")
+			}
+			if c.target == nil {
+				require.NoError(t, err)
+				return
+			}
+			require.ErrorIs(t, err, c.target)
+			if c.target == erp.ErrConflict {
+				assert.NotErrorIs(t, err, erp.ErrValidation)
+			}
+		})
+	}
+
+	t.Run("missing document", func(t *testing.T) {
+		f := newFakeERP(t)
+		err := f.adapter().Cancel(context.Background(), sales, erp.DocRef{DocType: erp.DocSalesOrder, Name: "SO-NOPE"})
+		require.ErrorIs(t, err, erp.ErrNotFound)
+		assert.Empty(t, f.callsTo("POST "+pathMethod+"frappe.client.cancel"))
+	})
 }
 
 func TestCreateDeliveryNote(t *testing.T) {
@@ -720,5 +771,157 @@ func FuzzMapSalesOrder(f *testing.F) {
 			return
 		}
 		_, _ = mapSalesOrder(doc, func(name string) (string, error) { return name, nil })
+	})
+}
+
+func principalFor(sess string) erp.Principal {
+	return erp.Principal{Kind: erp.PrincipalUser, ID: sess + "@acme-th.test", Credential: erp.SessionCredential{SessionID: sess}}
+}
+
+// companyRoute answers the Company list after delay with the rows visible to
+// each session (views: sid -> rows JSON); sessions not listed see the fixture.
+func companyRoute(t *testing.T, f *fakeERP, delay time.Duration, status int, views map[string]string) {
+	f.on("GET /api/resource/Company", func(c call) (int, []byte) {
+		select {
+		case <-time.After(delay):
+		case <-c.Ctx.Done():
+			return 0, nil
+		}
+		if status != 200 {
+			return status, []byte(`{}`)
+		}
+		sid := strings.TrimPrefix(c.Header.Get("Cookie"), "sid=")
+		if rows, ok := views[sid]; ok {
+			return 200, []byte(`{"data":` + rows + `}`)
+		}
+		return 200, fixture(t, "company_list.json")
+	})
+}
+
+func TestConcurrentCompanyLookupsShareOneLoad(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		f := newFakeERP(t)
+		companyRoute(t, f, 2*time.Second, 200, nil)
+		a := f.adapter()
+		var wg sync.WaitGroup
+		for i := range 5 {
+			wg.Go(func() {
+				name, err := a.companyName(context.Background(), principalFor(fmt.Sprintf("s%d", i)), "ACME-TH")
+				assert.NoError(t, err)
+				assert.Equal(t, companyName, name)
+			})
+		}
+		wg.Wait()
+		assert.Len(t, f.callsTo("GET /api/resource/Company"), 1)
+	})
+}
+
+func TestCompanyViewsAreMerged(t *testing.T) {
+	f := newFakeERP(t)
+	companyRoute(t, f, 0, 200, map[string]string{
+		"sess-a": `[{"name":"` + companyName + `","abbr":"ACME-TH"}]`,
+		"sess-b": `[{"name":"ERP Town Test Company","abbr":"ETT"}]`,
+	})
+	a := f.adapter()
+	ctx := context.Background()
+	userA, userB := principalFor("sess-a"), principalFor("sess-b")
+
+	name, err := a.companyName(ctx, userA, "ACME-TH")
+	require.NoError(t, err)
+	assert.Equal(t, companyName, name)
+	name, err = a.companyName(ctx, userB, "ETT")
+	require.NoError(t, err)
+	assert.Equal(t, "ERP Town Test Company", name)
+
+	for range 3 {
+		_, err = a.companyName(ctx, userA, "ACME-TH")
+		require.NoError(t, err)
+		_, err = a.companyName(ctx, userB, "ETT")
+		require.NoError(t, err)
+	}
+	abbr, err := a.companyAbbr(ctx, userA)("ERP Town Test Company")
+	require.NoError(t, err)
+	assert.Equal(t, "ETT", abbr)
+	assert.Len(t, f.callsTo("GET /api/resource/Company"), 2, "one load per view, then everything from the merged cache")
+}
+
+func TestUnknownCompanyReloadIsRateLimited(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		f := newFakeERP(t)
+		a := f.adapter()
+		ctx := context.Background()
+		_, err := a.companyName(ctx, sales, "ACME-TH")
+		require.NoError(t, err)
+		for range 3 {
+			_, err = a.companyName(ctx, sales, "NOPE")
+			require.ErrorIs(t, err, erp.ErrValidation)
+		}
+		assert.Len(t, f.callsTo("GET /api/resource/Company"), 2, "the first miss reloads, the next ones do not")
+
+		time.Sleep(companyMissTTL + time.Second)
+		_, err = a.companyName(ctx, sales, "NOPE")
+		require.ErrorIs(t, err, erp.ErrValidation)
+		assert.Len(t, f.callsTo("GET /api/resource/Company"), 3, "a miss may reload again after the TTL")
+	})
+}
+
+func TestWaitingForCompanyLoadRespectsContext(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		f := newFakeERP(t)
+		companyRoute(t, f, 8*time.Second, 200, nil)
+		a := f.adapter()
+		loaded := make(chan error, 1)
+		go func() {
+			_, err := a.companyName(context.Background(), principalFor("loader"), "ACME-TH")
+			loaded <- err
+		}()
+		synctest.Wait() // the loader is inside the slow GET
+
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		defer cancel()
+		start := time.Now()
+		_, err := a.companyName(ctx, principalFor("waiter"), "ACME-TH")
+		require.ErrorIs(t, err, context.DeadlineExceeded)
+		assert.Equal(t, time.Second, time.Since(start), "returns when its own context ends")
+
+		require.NoError(t, <-loaded)
+		assert.Len(t, f.callsTo("GET /api/resource/Company"), 1)
+	})
+}
+
+func TestFailedCompanyLoadIsSharedByWaiters(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		f := newFakeERP(t)
+		companyRoute(t, f, time.Second, 503, nil)
+		a := f.adapter()
+		var wg sync.WaitGroup
+		for i := range 3 {
+			wg.Go(func() {
+				_, err := a.companyName(context.Background(), principalFor(fmt.Sprintf("s%d", i)), "ACME-TH")
+				assert.ErrorIs(t, err, erp.ErrUnavailable)
+			})
+		}
+		wg.Wait()
+		assert.Len(t, f.callsTo("GET /api/resource/Company"), 3, "one load (a GET and its two retries), not one per caller")
+	})
+}
+
+func TestCancelledLoaderDoesNotFailWaiters(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		f := newFakeERP(t)
+		companyRoute(t, f, 2*time.Second, 200, nil)
+		a := f.adapter()
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		defer cancel()
+		loaderDone := make(chan error, 1)
+		go func() {
+			_, err := a.companyName(ctx, principalFor("loader"), "ACME-TH")
+			loaderDone <- err
+		}()
+		synctest.Wait()
+		name, err := a.companyName(context.Background(), principalFor("waiter"), "ACME-TH")
+		require.NoError(t, err, "the waiter loads for itself when the loader gave up")
+		assert.Equal(t, companyName, name)
+		require.ErrorIs(t, <-loaderDone, context.DeadlineExceeded)
 	})
 }

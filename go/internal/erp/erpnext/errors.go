@@ -42,7 +42,8 @@ func mapError(status int, body []byte) error {
 		return fmt.Errorf("%w: %s", erp.ErrForbidden, detail(fe))
 	case excType == "AuthenticationError":
 		return fmt.Errorf("%w: %s", erp.ErrUnauthenticated, detail(fe))
-	case excType == "TimestampMismatchError":
+	case excType == "TimestampMismatchError", excType == "LinkExistsError":
+		// LinkExistsError: other documents still depend on this one (cancel/delete)
 		return fmt.Errorf("%w: %s", erp.ErrConflict, detail(fe))
 	case strings.HasSuffix(excType, "ValidationError") || excType == "MandatoryError" ||
 		strings.HasSuffix(excType, "MandatoryError"):

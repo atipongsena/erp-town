@@ -50,8 +50,20 @@ func (a *Adapter) Submit(ctx context.Context, as erp.Principal, ref erp.DocRef) 
 	return a.applyTransition(ctx, as, wf, doc, t.Action)
 }
 
-// Cancel cancels a submitted document (frappe.client.cancel).
+// Cancel cancels a submitted document (frappe.client.cancel). A cancelled
+// document, or one that submitted documents still link to (LinkExistsError),
+// is ErrConflict; a draft is a ValidationError.
 func (a *Adapter) Cancel(ctx context.Context, as erp.Principal, ref erp.DocRef) error {
+	var doc rawDoc
+	if err := a.getDoc(ctx, as, ref, &doc); err != nil {
+		return err
+	}
+	switch doc.docstatus() {
+	case 2:
+		return fmt.Errorf("%w: %s %s is already cancelled", erp.ErrConflict, ref.DocType, ref.Name)
+	case 0:
+		return erp.NewValidation("docstatus", "only a submitted document can be cancelled")
+	}
 	args := map[string]any{"doctype": string(ref.DocType), "name": ref.Name}
 	return a.c.Call(ctx, as, "frappe.client.cancel", args, nil)
 }

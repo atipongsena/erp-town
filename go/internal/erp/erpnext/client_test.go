@@ -121,6 +121,7 @@ func TestErrorMapping(t *testing.T) {
 		{"403 plain", 403, `nope`, erp.ErrForbidden},
 		{"authentication", 401, `{"exc_type":"AuthenticationError"}`, erp.ErrUnauthenticated},
 		{"timestamp", 409, `{"exc_type":"TimestampMismatchError"}`, erp.ErrConflict},
+		{"link exists", 417, `{"exc_type":"LinkExistsError"}`, erp.ErrConflict},
 		{"validation 417", 417, msgs, erp.ErrValidation},
 		{"link validation", 417, `{"exc_type":"LinkValidationError"}`, erp.ErrValidation},
 		{"mandatory", 417, `{"exc_type":"MandatoryError"}`, erp.ErrValidation},
@@ -305,4 +306,12 @@ func TestGetBodyDecodesTheWholeResponse(t *testing.T) {
 	assert.Equal(t, json.Number("1.50"), out.Docs[0]["n"])
 	assert.Equal(t, http.MethodGet, rec.reqs[0].Method)
 	assert.Equal(t, "doctype=Sales+Order", rec.reqs[0].URL.RawQuery)
+}
+
+func TestLinkExistsIsAConflictNotValidation(t *testing.T) {
+	body := `{"exc_type":"LinkExistsError","_server_messages":"[\"{\\\"message\\\":\\\"SO-1 is linked with DN-1\\\"}\"]"}`
+	err := mapError(417, []byte(body))
+	require.ErrorIs(t, err, erp.ErrConflict)
+	assert.NotErrorIs(t, err, erp.ErrValidation)
+	assert.Contains(t, err.Error(), "SO-1 is linked with DN-1")
 }

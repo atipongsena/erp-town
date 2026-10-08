@@ -25,6 +25,7 @@ func Run(t *testing.T, env Env) {
 		{"NotFound", notFound},
 		{"UnknownCustomerIsValidation", unknownCustomerIsValidation},
 		{"CancelSubmittedOrder", cancelSubmittedOrder},
+		{"CancelConflicts", cancelConflicts},
 		{"WhoamiReturnsRolesAndCompanies", whoami},
 	}
 	for _, c := range cases {
@@ -199,6 +200,30 @@ func cancelSubmittedOrder(t *testing.T, env Env) {
 	so, err := env.Port.GetSalesOrder(ctx, env.Sales, ref.Name)
 	require.NoError(t, err)
 	assert.Equal(t, erp.DocCancelled, so.Status)
+}
+
+// cancelConflicts: only a submitted document without submitted follow-up
+// documents can be cancelled; a draft is invalid input, a cancelled document
+// or one a submitted delivery depends on is a conflict.
+func cancelConflicts(t *testing.T, env Env) {
+	ctx := context.Background()
+	draft := newOrder(t, env, env.Customer, env.Item, erp.MustDecimal("1"))
+	assert.ErrorIs(t, env.Port.Cancel(ctx, env.Sales, draft), erp.ErrValidation, "a draft is not cancellable")
+
+	cancelled := newOrder(t, env, env.Customer, env.Item, erp.MustDecimal("1"))
+	submit(t, env, env.Sales, cancelled)
+	require.NoError(t, env.Port.Cancel(ctx, env.Sales, cancelled))
+	assert.ErrorIs(t, env.Port.Cancel(ctx, env.Sales, cancelled), erp.ErrConflict, "already cancelled")
+
+	delivered := newOrder(t, env, env.Customer, env.Item, erp.MustDecimal("1"))
+	submit(t, env, env.Sales, delivered)
+	dn, err := env.Port.CreateDeliveryNote(ctx, env.Stock, delivered, nil)
+	require.NoError(t, err)
+	submit(t, env, env.Stock, dn)
+	assert.ErrorIs(t, env.Port.Cancel(ctx, env.Sales, delivered), erp.ErrConflict, "a submitted delivery note depends on it")
+	so, err := env.Port.GetSalesOrder(ctx, env.Sales, delivered.Name)
+	require.NoError(t, err)
+	assert.Equal(t, erp.DocSubmitted, so.Status)
 }
 
 func whoami(t *testing.T, env Env) {
