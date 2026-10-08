@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://erp-town.local/schema/events/erp.stock.below_reorder.json",
+  "title": "erp.stock.below_reorder data",
+  "description": "An Item's stock in a warehouse crossed below its reorder level.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["warehouse", "fill_ratio"],
+  "properties": {
+    "warehouse": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Warehouse name."
+    },
+    "fill_ratio": {
+      "description": "actual_qty / reorder_level, rounded to 2 decimals by the producer.",
+      "type": "number",
+      "minimum": 0
+    }
+  }
+}

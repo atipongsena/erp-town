@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://erp-town.local/schema/events/workflow.approval.requested.json",
+  "title": "workflow.approval.requested data",
+  "description": "A document entered a workflow state awaiting approval.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["from_state", "to_state", "approver_role"],
+  "properties": {
+    "from_state": {
+      "type": "string",
+      "minLength": 1
+    },
+    "to_state": {
+      "type": "string",
+      "minLength": 1
+    },
+    "approver_role": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Role allowed to approve."
+    }
+  }
+}

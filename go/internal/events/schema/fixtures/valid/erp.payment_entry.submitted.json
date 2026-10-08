@@ -1,0 +1,30 @@
+{
+  "specversion": "1.0",
+  "id": "01JA0K6Y8Z9P3R4S5T6V7W8XA6",
+  "type": "erp.payment_entry.submitted",
+  "source": "erp/accounts",
+  "time": "2026-11-11T11:05:00+07:00",
+  "schema_version": 1,
+  "company": "ACME-TH",
+  "actor": {
+    "kind": "user",
+    "id": "user.malee@acme.example",
+    "on_behalf_of": null
+  },
+  "subject": {
+    "doctype": "Payment Entry",
+    "name": "RC6911-0004"
+  },
+  "seq": 1,
+  "correlation_id": "SO6910-0042",
+  "causation_id": "01JA0K6Y8Z9P3R4S5T6V7W8XA5",
+  "visibility": {
+    "level": "public",
+    "roles": []
+  },
+  "data": {
+    "party": "CUST-001",
+    "mode_of_payment": "Bank Transfer",
+    "against": ["IV6910-0009"]
+  }
+}

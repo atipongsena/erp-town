@@ -1,0 +1,31 @@
+{
+  "specversion": "1.0",
+  "id": "01JA0K6Y8Z9P3R4S5T6V7W8XA1",
+  "type": "erp.sales_order.submitted",
+  "source": "erp/selling",
+  "time": "2026-10-07T10:15:00+07:00",
+  "schema_version": 1,
+  "company": "ACME-TH",
+  "actor": {
+    "kind": "agent",
+    "id": "agent.sales_assistant",
+    "on_behalf_of": "user.somchai@acme.example"
+  },
+  "subject": {
+    "doctype": "Sales Order",
+    "name": "SO6910-0042"
+  },
+  "seq": 0,
+  "correlation_id": "SO6910-0042",
+  "causation_id": null,
+  "visibility": {
+    "level": "public",
+    "roles": []
+  },
+  "data": {
+    "status": "To Deliver and Bill",
+    "party": "CUST-001",
+    "item_count": 3,
+    "delivery_date": "2026-10-14"
+  }
+}

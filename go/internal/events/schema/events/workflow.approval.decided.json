@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://erp-town.local/schema/events/workflow.approval.decided.json",
+  "title": "workflow.approval.decided data",
+  "description": "A document left a workflow approval state.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["from_state", "to_state", "decision"],
+  "properties": {
+    "from_state": {
+      "type": "string",
+      "minLength": 1
+    },
+    "to_state": {
+      "type": "string",
+      "minLength": 1
+    },
+    "decision": {
+      "type": "string",
+      "enum": ["approved", "rejected"]
+    }
+  }
+}

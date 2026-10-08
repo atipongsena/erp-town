@@ -10,8 +10,10 @@ and an ajv validator.
 - `src/generated.ts` — generated types; `src/index.ts` — `validateEvent()`, `createAjv()`
 
 Edit only `schema/` and `fixtures/`, then run `pnpm schema:gen` from the repo root: it regenerates
-`src/generated.ts` and copies schema + fixtures into `frappe-apps/erp_town/erp_town/events/schema/`
-(never edit either by hand; `test/drift.test.ts` fails when the copy is stale). Changes are additive
+`src/generated.ts`, copies schema + fixtures into `frappe-apps/erp_town/erp_town/events/schema/` and into
+`go/internal/events/schema/` (embedded by the Go module), and generates the Go per-type data structs
+(`go/internal/events/gen/`, via `go tool go-jsonschema`). Never edit any of these by hand; the
+drift tests (`test/drift.test.ts`, Go `TestEmbeddedSchemaMatchesSource`) fail when a copy is stale. Changes are additive
 only; anything else bumps `schema_version`.
 
 ## Envelope rules consumers rely on

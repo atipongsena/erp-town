@@ -1,0 +1,29 @@
+{
+  "specversion": "1.0",
+  "id": "01JA0K6Y8Z9P3R4S5T6V7W8XB3",
+  "type": "system.error",
+  "source": "erp/town",
+  "time": "2026-10-07T10:15:01+07:00",
+  "schema_version": 1,
+  "company": "ACME-TH",
+  "actor": {
+    "kind": "system",
+    "id": "system.town",
+    "on_behalf_of": null
+  },
+  "subject": {
+    "doctype": "Town Event Outbox",
+    "name": "01JA0K6Y8Z9P3R4S5T6V7W8XA1"
+  },
+  "seq": 1,
+  "correlation_id": "01JA0K6Y8Z9P3R4S5T6V7W8XA1",
+  "causation_id": null,
+  "visibility": {
+    "level": "roles",
+    "roles": ["System Manager"]
+  },
+  "data": {
+    "code": "EVENT_INVALID",
+    "message": "data must NOT have additional properties (bogus)"
+  }
+}

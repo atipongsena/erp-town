@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://erp-town.local/schema/events/erp.sales_order.submitted.json",
+  "title": "erp.sales_order.submitted data",
+  "description": "A Sales Order was submitted.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["status", "party", "item_count", "delivery_date"],
+  "properties": {
+    "status": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Document status after the action (ERPNext status field)."
+    },
+    "party": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Party (customer) code, never a display name."
+    },
+    "item_count": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "delivery_date": {
+      "description": "Sales Order delivery date (YYYY-MM-DD).",
+      "type": "string",
+      "format": "date",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+    }
+  }
+}

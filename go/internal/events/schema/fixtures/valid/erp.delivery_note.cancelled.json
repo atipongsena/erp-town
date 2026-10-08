@@ -1,0 +1,28 @@
+{
+  "specversion": "1.0",
+  "id": "01JA0K6Y8Z9P3R4S5T6V7W8XA8",
+  "type": "erp.delivery_note.cancelled",
+  "source": "erp/stock",
+  "time": "2026-10-09T16:10:00+07:00",
+  "schema_version": 1,
+  "company": "ACME-TH",
+  "actor": {
+    "kind": "user",
+    "id": "user.somchai@acme.example",
+    "on_behalf_of": null
+  },
+  "subject": {
+    "doctype": "Delivery Note",
+    "name": "DN6910-0018"
+  },
+  "seq": 2,
+  "correlation_id": "SO6910-0043",
+  "causation_id": null,
+  "visibility": {
+    "level": "public",
+    "roles": []
+  },
+  "data": {
+    "status": "Cancelled"
+  }
+}

@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://erp-town.local/schema/events/erp.sales_invoice.submitted.json",
+  "title": "erp.sales_invoice.submitted data",
+  "description": "A Sales Invoice was submitted.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["status", "party", "due_date", "against"],
+  "properties": {
+    "status": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Document status after the action (ERPNext status field)."
+    },
+    "party": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Party (customer) code, never a display name."
+    },
+    "due_date": {
+      "description": "Payment due date (YYYY-MM-DD).",
+      "type": "string",
+      "format": "date",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+    },
+    "is_return": {
+      "description": "True for a return (credit note); producers always send it.",
+      "type": "boolean"
+    },
+    "return_against": {
+      "description": "The Sales Invoice this return was made against; null when is_return is false.",
+      "type": ["string", "null"],
+      "minLength": 1
+    },
+    "against": {
+      "description": "Sales Order / Delivery Note names this Sales Invoice was made against.",
+      "type": "array",
+      "minItems": 0,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    }
+  }
+}
