@@ -4,8 +4,9 @@
 #   erp-town-backup                  `bench --site $SITE_NAME backup --with-files`, upload of the new set
 #                                    to S3-compatible storage, removal of remote sets older than
 #                                    BACKUP_RETENTION_DAYS (14). `pnpm erp:pilot:backup` runs this.
-#   erp-town-backup --daily          the above every day at BACKUP_TIME_UTC (default 19:00 UTC = 02:00
-#                                    Asia/Bangkok); command of compose service `backup`
+#   erp-town-backup --daily          checks the env and the bucket (exits non-zero if either is wrong),
+#                                    then the above every day at BACKUP_TIME_UTC (default 19:00 UTC =
+#                                    02:00 Asia/Bangkok); command of compose service `backup`
 #   erp-town-backup --list           remote backup sets of $SITE_NAME, oldest first
 #   erp-town-backup --fetch <set|latest>
 #                                    download one set to sites/.restore/<set>/ (restore drill:
@@ -16,19 +17,6 @@
 #                                                     .../<...>-files.tar, <...>-private-files.tar,
 #                                                     .../<...>-site_config_backup.json
 set -euo pipefail
-
-if [ "${1:-}" = --daily ]; then
-	at=${BACKUP_TIME_UTC:-19:00}
-	while :; do
-		now=$(date -u +%s)
-		next=$(date -u -d "today $at" +%s)
-		[ "$next" -gt "$now" ] || next=$(date -u -d "tomorrow $at" +%s)
-		echo "[backup] next run $(date -u -d "@$next" +%FT%TZ)"
-		sleep $((next - now))
-		# a failed run is logged and retried the next day; the container keeps running
-		"$0" || echo "[backup] FAILED (exit $?)" >&2
-	done
-fi
 
 : "${SITE_NAME:?SITE_NAME is not set (infra/docker/.env)}"
 : "${BACKUP_S3_ENDPOINT:?BACKUP_S3_ENDPOINT is not set (infra/docker/.env)}"
@@ -53,11 +41,48 @@ printf '[default]\ns3 =\n    addressing_style = %s\n' "${BACKUP_S3_ADDRESSING_ST
 s3() { aws --endpoint-url "$BACKUP_S3_ENDPOINT" s3 "$@"; }
 # remote set names (YYYYmmdd_HHMMSS) that hold objects, oldest first. Derived from object keys, not
 # from "directory" prefixes: some S3-compatible stores (e.g. SeaweedFS) keep an empty prefix after
-# its objects were deleted.
+# its objects were deleted. `aws s3 ls` exits 1 with no output when nothing matches (no sets yet);
+# any other failure (bad credentials, missing bucket, unreachable endpoint: exit 255) is fatal.
 remote_sets() {
-	s3 ls --recursive "$REMOTE/" | awk '{ print $4 }' | cut -d/ -f2 |
-		grep -E '^[0-9]{8}_[0-9]{6}$' | sort -u || true
+	local out err rc=0
+	err=$(mktemp)
+	out=$(s3 ls --recursive "$REMOTE/" 2>"$err") || rc=$?
+	if [ "$rc" -ne 0 ] && { [ "$rc" -ne 1 ] || [ -s "$err" ] || [ -n "$out" ]; }; then
+		cat "$err" >&2
+		rm -f "$err"
+		log "ERROR: cannot list $REMOTE/ (aws exit $rc)"
+		return 1
+	fi
+	rm -f "$err"
+	[ -n "$out" ] || return 0
+	awk '{ print $4 }' <<<"$out" | cut -d/ -f2 | { grep -E '^[0-9]{8}_[0-9]{6}$' || true; } | sort -u
 }
+
+# Fail fast on a target that cannot work (credentials, bucket, endpoint).
+probe_bucket() {
+	if ! aws --endpoint-url "$BACKUP_S3_ENDPOINT" s3api head-bucket --bucket "$BACKUP_S3_BUCKET" >/dev/null; then
+		log "ERROR: s3://$BACKUP_S3_BUCKET at $BACKUP_S3_ENDPOINT not accessible (check endpoint, bucket and BACKUP_S3_* keys)"
+		return 1
+	fi
+}
+
+if [ "${1:-}" = --daily ]; then
+	# validate config and target now, so a misconfigured backup container exits (and shows up as
+	# exited/restarting) instead of sleeping until its first nightly run fails
+	probe_bucket
+	sets=$(remote_sets)
+	log "target OK: $REMOTE/ ($(grep -c . <<<"$sets" || true) sets)"
+	at=${BACKUP_TIME_UTC:-19:00}
+	while :; do
+		now=$(date -u +%s)
+		next=$(date -u -d "today $at" +%s)
+		[ "$next" -gt "$now" ] || next=$(date -u -d "tomorrow $at" +%s)
+		log "next run $(date -u -d "@$next" +%FT%TZ)"
+		sleep $((next - now))
+		# a failed run is logged and retried the next day; the container keeps running
+		"$0" || log "FAILED (exit $?)"
+	done
+fi
 
 cd "$BENCH_DIR"
 
@@ -96,6 +121,7 @@ esac
 backup_dir="sites/$SITE_NAME/private/backups"
 
 # --- 1. backup -------------------------------------------------------------------------------
+probe_bucket
 log "bench --site $SITE_NAME backup --with-files"
 marker=$(mktemp)
 bench --site "$SITE_NAME" backup --with-files

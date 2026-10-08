@@ -544,7 +544,7 @@ Expected: all PASS; record measured p95 and bulk time in the commit body.
 
 - [x] **Step 1: Verify build** `pnpm erp:pilot:build` → image tagged `erp-town/erpnext:v16-<git short sha>`
 - [x] **Step 2: Smoke** `SITE_NAME=pilot.localhost pnpm erp:pilot:up` (Caddy on `https://pilot.localhost` with internal TLS) → `curl -k https://pilot.localhost/api/method/ping` returns pong; `bench --site pilot.localhost list-apps` includes erp_town
-- [x] **Step 3: Backup drill** run `pnpm erp:pilot:backup` against a local MinIO started for the drill (document the one-off `docker run minio/minio` command in RESTORE.md); restore into a fresh site following RESTORE.md; confirm seeded SI count matches
+- [x] **Step 3: Backup drill** run `pnpm erp:pilot:backup` against a local SeaweedFS S3 server started for the drill (document the one-off `docker run chrislusf/seaweedfs` command in RESTORE.md; MinIO's public image is no longer published, Ruling AB); restore into a fresh site following RESTORE.md; confirm seeded SI count matches
 - [x] **Step 4: Commit** (`feat(infra): pilot image, TLS, backup and restore drill`, `Task: 16`)
 
 ---

@@ -2,7 +2,12 @@
 *
 !frappe-apps/erp_town
 !infra/docker/pilot
+# tool caches and build leftovers inside the allowed paths
 **/__pycache__
 **/*.py[cod]
 **/*.egg-info
+**/.ruff_cache
+**/.pytest_cache
+**/.mypy_cache
+**/node_modules
 infra/docker/pilot/*.md
