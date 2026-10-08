@@ -1,0 +1,23 @@
+{
+ "color": "#ECAD4B",
+ "creation": "2026-10-08 00:00:00.000000",
+ "docstatus": 0,
+ "doctype": "Number Card",
+ "document_type": "Town Event Outbox",
+ "dynamic_filters_json": "[]",
+ "filters_json": "[[\"Town Event Outbox\", \"status\", \"=\", \"Invalid\"]]",
+ "function": "Count",
+ "idx": 0,
+ "is_public": 1,
+ "is_standard": 1,
+ "label": "Invalid Events",
+ "modified": "2026-10-08 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "ERP Town",
+ "name": "Town Invalid",
+ "owner": "Administrator",
+ "show_full_number": 1,
+ "show_percentage_stats": 0,
+ "stats_time_interval": "Daily",
+ "type": "Document Type"
+}

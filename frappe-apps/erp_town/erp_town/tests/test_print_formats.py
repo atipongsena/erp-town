@@ -374,6 +374,17 @@ class TestThaiTranslations(UnitTestCase):
 		self.assertTrue(labels)
 		self.assertEqual(self._untranslated(labels), [])
 
+	def test_every_desk_record_label_has_a_thai_translation(self):
+		"""Report names, number card labels, workspace labels and workspace link labels."""
+		labels = []
+		for kind in ("report", "number_card", "workspace"):
+			for path in APP.glob(f"*/{kind}/*/*.json"):
+				meta = frappe.parse_json(path.read_text(encoding="utf-8"))
+				labels += [meta.get("label") or meta["name"]]
+				labels += [link["label"] for link in meta.get("links") or []]
+		self.assertIn("Town Outbox Status", labels)
+		self.assertEqual(self._untranslated(labels), [])
+
 	def test_every_app_message_has_a_thai_translation(self):
 		messages = []
 		for path in APP.rglob("*.py"):

@@ -1,0 +1,120 @@
+{
+ "app": "erp_town",
+ "charts": [],
+ "content": "[{\"id\":\"townHeader1\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>กล่องขาออกเหตุการณ์ของเมือง</b></span>\",\"col\":12}},{\"id\":\"townCard00\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Town Pending\",\"col\":3}},{\"id\":\"townCard10\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Town Failed\",\"col\":3}},{\"id\":\"townCard20\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Town Invalid\",\"col\":3}},{\"id\":\"townCard30\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Town Oldest Pending Age\",\"col\":3}},{\"id\":\"townSpacer1\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"townLinks1\",\"type\":\"card\",\"data\":{\"card_name\":\"Town Outbox\",\"col\":4}},{\"id\":\"townLinks2\",\"type\":\"card\",\"data\":{\"card_name\":\"Settings\",\"col\":4}}]",
+ "creation": "2026-10-08 00:00:00.000000",
+ "custom_blocks": [],
+ "docstatus": 0,
+ "doctype": "Workspace",
+ "for_user": "",
+ "hide_custom": 0,
+ "icon": "setting",
+ "idx": 0,
+ "is_hidden": 0,
+ "label": "ERP Town",
+ "links": [
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Town Outbox",
+   "link_count": 2,
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Town Outbox Status",
+   "link_count": 0,
+   "link_to": "Town Outbox Status",
+   "link_type": "Report",
+   "onboard": 0,
+   "only_for": "",
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Town Event Outbox",
+   "link_count": 0,
+   "link_to": "Town Event Outbox",
+   "link_type": "DocType",
+   "onboard": 0,
+   "only_for": "",
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Settings",
+   "link_count": 2,
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Town Settings",
+   "link_count": 0,
+   "link_to": "Town Settings",
+   "link_type": "DocType",
+   "onboard": 0,
+   "only_for": "",
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Town Agent Identity",
+   "link_count": 0,
+   "link_to": "Town Agent Identity",
+   "link_type": "DocType",
+   "onboard": 0,
+   "only_for": "",
+   "type": "Link"
+  }
+ ],
+ "modified": "2026-10-08 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "ERP Town",
+ "name": "ERP Town",
+ "number_cards": [
+  {
+   "label": "Town Pending",
+   "number_card_name": "Town Pending"
+  },
+  {
+   "label": "Town Failed",
+   "number_card_name": "Town Failed"
+  },
+  {
+   "label": "Town Invalid",
+   "number_card_name": "Town Invalid"
+  },
+  {
+   "label": "Town Oldest Pending Age",
+   "number_card_name": "Town Oldest Pending Age"
+  }
+ ],
+ "owner": "Administrator",
+ "parent_page": "",
+ "public": 1,
+ "quick_lists": [],
+ "restrict_to_domain": "",
+ "roles": [
+  {
+   "role": "System Manager"
+  }
+ ],
+ "sequence_id": 90.0,
+ "shortcuts": [],
+ "standard": 1,
+ "title": "ERP Town",
+ "type": "Workspace"
+}

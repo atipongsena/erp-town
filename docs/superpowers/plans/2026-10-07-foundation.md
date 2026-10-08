@@ -481,11 +481,11 @@ def test_dn_and_so_render(self): ...  # contain doc name and be_date
 **Interfaces:**
 - Produces: `@frappe.whitelist() requeue_failed(event_ids: list[str] | str) -> int` (System Manager only; sets `Failed → Pending`, `attempts = 0`, `next_attempt_at = None`, `last_error = None`, enqueues `publish`); `@frappe.whitelist() oldest_pending_age_seconds() -> int` (used by the number card, 0 when none).
 
-- [ ] **Step 1: Write failing tests**: requeue by System Manager resets fields and returns count; non-System-Manager → `frappe.PermissionError`; `oldest_pending_age_seconds()` returns ≥ 60 for a row backdated 60 s; report returns rows grouped by status.
-- [ ] **Step 2: Run** `pnpm erp:test -- --module erp_town.tests.test_town_status` → FAIL
-- [ ] **Step 3: Implement**
-- [ ] **Step 4: Run** → PASS; workspace "ERP Town" visible in Desk sidebar for Administrator
-- [ ] **Step 5: Commit** (`feat(erp_town): town status workspace and failed-event requeue`, `Task: 13`)
+- [x] **Step 1: Write failing tests**: requeue by System Manager resets fields and returns count; non-System-Manager → `frappe.PermissionError`; `oldest_pending_age_seconds()` returns ≥ 60 for a row backdated 60 s; report returns rows grouped by status.
+- [x] **Step 2: Run** `pnpm erp:test -- --module erp_town.tests.test_town_status` → FAIL
+- [x] **Step 3: Implement**
+- [x] **Step 4: Run** → PASS; workspace "ERP Town" visible in Desk sidebar for Administrator
+- [x] **Step 5: Commit** (`feat(erp_town): town status workspace and failed-event requeue`, `Task: 13`)
 
 ---
 

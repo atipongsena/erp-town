@@ -88,7 +88,7 @@ def emit_raw(
 	if stored is not None:
 		status, error = stored
 		if status == PENDING:
-			_enqueue_publish(event_id)
+			enqueue_publish([event_id])
 		elif event_type != SYSTEM_ERROR:
 			_report(EVENT_INVALID, f"event {event_id} ({event_type}) is invalid: {error}", event_id, report)
 
@@ -191,11 +191,12 @@ def _rollback_to(savepoint: str) -> bool:
 	return True
 
 
-def _enqueue_publish(event_id: str) -> None:
+def enqueue_publish(event_ids: list[str]) -> None:
+	"""Register one `publish` job for these outbox rows, run after the current transaction commits."""
 	try:
-		frappe.enqueue(PUBLISH_METHOD, queue="short", event_ids=[event_id], enqueue_after_commit=True)
-	except Exception:  # noqa: BLE001 -- e.g. redis-queue down: the row stays Pending for the sweeper
-		log_failure(f"ERP Town: enqueue publish of {event_id} failed")
+		frappe.enqueue(PUBLISH_METHOD, queue="short", event_ids=list(event_ids), enqueue_after_commit=True)
+	except Exception:  # noqa: BLE001 -- e.g. redis-queue down: the rows stay Pending for the sweeper
+		log_failure(f"ERP Town: enqueue publish of {', '.join(event_ids)[:100]} failed")
 
 
 def _report(code: str, message: str, causation_id: str | None, subject: dict) -> None:
