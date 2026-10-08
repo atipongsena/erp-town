@@ -16,7 +16,7 @@ type Env struct {
 	Port                                              erp.Port
 	Company, Customer, LimitedCustomer, Item, BigItem string
 	ModeOfPayment, PendingState, ApproveAction        string
-	BigQty                                            erp.Decimal
+	ItemRate, BigQty                                  erp.Decimal
 	Sales, Approver, Stock, Accounts                  erp.Principal
 	Today                                             erp.Date
 }

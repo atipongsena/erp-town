@@ -42,6 +42,7 @@ func DefaultEnv() porttest.Env {
 		LimitedCustomer: "CUST-009",
 		Item:            "ITEM-002",
 		BigItem:         "ITEM-018",
+		ItemRate:        erp.MustDecimal("12"),
 		BigQty:          erp.MustDecimal("2"),
 		ModeOfPayment:   "เงินสด",
 		PendingState:    statePending,

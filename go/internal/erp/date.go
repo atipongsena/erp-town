@@ -1,6 +1,7 @@
 package erp
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"time"
@@ -50,12 +51,25 @@ func (d Date) AddDays(n int) Date {
 // Before reports whether d is strictly earlier than o.
 func (d Date) Before(o Date) bool { return d.time().Before(o.time()) }
 
-func (d Date) MarshalJSON() ([]byte, error) { return json.Marshal(d.String()) }
+// MarshalJSON encodes a zero Date as null so unset dates round-trip.
+func (d Date) MarshalJSON() ([]byte, error) {
+	if d.IsZero() {
+		return []byte("null"), nil
+	}
+	return json.Marshal(d.String())
+}
 
 func (d *Date) UnmarshalJSON(b []byte) error {
+	if string(bytes.TrimSpace(b)) == "null" {
+		return nil
+	}
 	var s string
 	if err := json.Unmarshal(b, &s); err != nil {
 		return err
+	}
+	if s == "" {
+		*d = Date{}
+		return nil
 	}
 	p, err := ParseDate(s)
 	if err != nil {

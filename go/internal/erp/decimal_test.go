@@ -29,6 +29,20 @@ func TestParseDecimalExact(t *testing.T) {
 	// ERPNext-style bare JSON numbers decode exactly too.
 	require.NoError(t, json.Unmarshal([]byte(`135.0`), &back))
 	assert.Equal(t, "135.0", back.String())
+	// Python json.dumps writes exponent forms for very small or large floats.
+	for in, want := range map[string]string{"1e-05": "0.00001", "1E+3": "1000", "-2.5e2": "-250", "1e+16": "10000000000000000"} {
+		var e erp.Decimal
+		require.NoError(t, json.Unmarshal([]byte(in), &e), in)
+		assert.Equal(t, want, e.String(), in)
+	}
+	for _, bad := range []string{`1e+999`, `NaN`, `+1`, `.5`, `"1e5"`} {
+		var e erp.Decimal
+		assert.Error(t, json.Unmarshal([]byte(bad), &e), bad)
+	}
+	// null leaves the value untouched.
+	keep := erp.MustDecimal("7")
+	require.NoError(t, json.Unmarshal([]byte(`null`), &keep))
+	assert.Equal(t, "7", keep.String())
 }
 
 func TestParseDecimalRejects(t *testing.T) {

@@ -50,6 +50,7 @@ type SalesOrder struct {
 	TransactionDate, DeliveryDate  Date
 	Lines                          []Line
 	NetTotal, TaxTotal, GrandTotal Decimal
+	RoundedTotal                   Decimal // payable total; equals GrandTotal when rounding is off
 	Status                         DocStatus
 	WorkflowState                  string
 }
@@ -69,6 +70,7 @@ type SalesInvoice struct {
 	PostingDate, DueDate                        Date
 	Lines                                       []Line
 	NetTotal, TaxTotal, GrandTotal, Outstanding Decimal
+	RoundedTotal                                Decimal // payable total; equals GrandTotal when rounding is off
 	Status                                      DocStatus
 	IsReturn                                    bool
 }

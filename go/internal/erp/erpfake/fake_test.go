@@ -28,6 +28,7 @@ func TestFakeSeedNumbers(t *testing.T) {
 	assert.Equal(t, "36", so.NetTotal.String())
 	assert.Equal(t, "2.52", so.TaxTotal.String())
 	assert.Equal(t, "38.52", so.GrandTotal.String())
+	assert.Equal(t, "39", so.RoundedTotal.String())
 	assert.Equal(t, "Draft", so.WorkflowState)
 }
 

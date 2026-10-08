@@ -188,13 +188,13 @@ func (f *Fake) CreateSalesOrder(_ context.Context, as erp.Principal, in erp.Sale
 		}
 		lines = append(lines, erp.Line{ItemCode: li.ItemCode, Qty: li.Qty, Rate: rate, Amount: li.Qty.Mul(rate)})
 	}
-	net, tax, grand := totals(lines)
+	net, tax, grand, rounded := totals(lines)
 	name := f.nextName(erp.DocSalesOrder)
 	ref := erp.DocRef{DocType: erp.DocSalesOrder, Name: name}
 	f.so[name] = &salesOrder{erp.SalesOrder{
 		Ref: ref, Company: in.Company, Customer: in.Customer,
 		TransactionDate: in.TransactionDate, DeliveryDate: in.DeliveryDate,
-		Lines: lines, NetTotal: net, TaxTotal: tax, GrandTotal: grand,
+		Lines: lines, NetTotal: net, TaxTotal: tax, GrandTotal: grand, RoundedTotal: rounded,
 		Status: erp.DocDraft, WorkflowState: stateDraft,
 	}}
 	return ref, nil
@@ -210,12 +210,14 @@ func (c Config) knownCustomer(name string) bool {
 	return err == nil && n >= 1 && n <= 10 && fmt.Sprintf("CUST-%03d", n) == name
 }
 
-func totals(lines []erp.Line) (net, tax, grand erp.Decimal) {
+// totals: VAT 7% exclusive, half-up to 2 places; the payable total rounds the grand total to whole baht.
+func totals(lines []erp.Line) (net, tax, grand, rounded erp.Decimal) {
 	for _, l := range lines {
 		net = net.Add(l.Amount)
 	}
 	tax = net.Mul(vatRate).RoundTo(2)
-	return net, tax, net.Add(tax)
+	grand = net.Add(tax)
+	return net, tax, grand, grand.RoundTo(0)
 }
 
 func (f *Fake) GetSalesOrder(_ context.Context, as erp.Principal, name string) (erp.SalesOrder, error) {
@@ -303,13 +305,13 @@ func (f *Fake) CreateSalesInvoice(_ context.Context, as erp.Principal, dn erp.Do
 		return erp.DocRef{}, erp.NewValidation("delivery_note", "delivery note is not submitted")
 	}
 	posting := f.date(postingDate)
-	net, tax, grand := totals(src.Lines)
+	net, tax, grand, rounded := totals(src.Lines)
 	name := f.nextName(erp.DocSalesInvoice)
 	ref := erp.DocRef{DocType: erp.DocSalesInvoice, Name: name}
 	f.si[name] = &salesInvoice{deliveryNote: dn.Name, SalesInvoice: erp.SalesInvoice{
 		Ref: ref, Company: src.Company, Customer: src.Customer,
 		PostingDate: posting, DueDate: posting.AddDays(30),
-		Lines: cloneLines(src.Lines), NetTotal: net, TaxTotal: tax, GrandTotal: grand, Outstanding: grand,
+		Lines: cloneLines(src.Lines), NetTotal: net, TaxTotal: tax, GrandTotal: grand, RoundedTotal: rounded, Outstanding: rounded,
 		Status: erp.DocDraft,
 	}}
 	return ref, nil
@@ -562,7 +564,7 @@ func (f *Fake) overCredit(so *salesOrder) bool {
 			unpaid = unpaid.Add(si.Outstanding)
 		}
 	}
-	return so.GrandTotal.Add(unpaid).Cmp(limit) > 0
+	return so.RoundedTotal.Add(unpaid).Cmp(limit) > 0
 }
 
 func (f *Fake) apply(so *salesOrder, t transition) erp.SubmitResult {

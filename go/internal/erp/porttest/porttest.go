@@ -73,16 +73,15 @@ func createAndGet(t *testing.T, env Env) {
 	line := so.Lines[0]
 	assert.Equal(t, env.Item, line.ItemCode)
 	assert.Zero(t, line.Qty.Cmp(three))
-	assert.Equal(t, 1, line.Rate.Cmp(erp.Decimal{}), "line rate comes from the price list")
+	assert.Zero(t, line.Rate.Cmp(env.ItemRate), "line rate %s, want %s", line.Rate, env.ItemRate)
 	assert.Zero(t, line.Amount.Cmp(line.Rate.Mul(three)))
 	assert.Zero(t, so.NetTotal.Cmp(line.Amount))
+	assert.Zero(t, so.NetTotal.Cmp(env.ItemRate.Mul(three)), "net total %s", so.NetTotal)
 
 	assert.Zero(t, so.GrandTotal.Cmp(so.NetTotal.Add(so.TaxTotal)), "grand total = net + tax")
+	assert.Less(t, abs(so.RoundedTotal.Sub(so.GrandTotal)).Cmp(erp.MustDecimal("1")), 0, "rounded %s vs grand %s", so.RoundedTotal, so.GrandTotal)
 	// VAT 7 % exclusive, within one satang of net x 0.07.
-	diff := so.TaxTotal.Sub(so.NetTotal.Mul(erp.MustDecimal("0.07")))
-	if diff.Cmp(erp.Decimal{}) < 0 {
-		diff = erp.Decimal{}.Sub(diff)
-	}
+	diff := abs(so.TaxTotal.Sub(so.NetTotal.Mul(erp.MustDecimal("0.07"))))
 	assert.LessOrEqual(t, diff.Cmp(erp.MustDecimal("0.01")), 0, "tax %s vs net %s", so.TaxTotal, so.NetTotal)
 }
 
@@ -154,7 +153,10 @@ func fullSalesFlow(t *testing.T, env Env) {
 	assert.Equal(t, erp.DocSubmitted, si.Status)
 	assert.False(t, si.IsReturn)
 	assert.Equal(t, 1, si.Outstanding.Cmp(erp.Decimal{}), "unpaid invoice has an outstanding amount")
-	assert.Zero(t, si.Outstanding.Cmp(si.GrandTotal))
+	assert.Zero(t, si.GrandTotal.Cmp(si.NetTotal.Add(si.TaxTotal)))
+	assert.Less(t, abs(si.RoundedTotal.Sub(si.GrandTotal)).Cmp(erp.MustDecimal("1")), 0)
+	assert.Zero(t, si.Outstanding.Cmp(si.RoundedTotal), "outstanding %s vs rounded %s", si.Outstanding, si.RoundedTotal)
+	owed := si.Outstanding
 
 	peRef, err := env.Port.CreatePayment(ctx, env.Accounts, erp.PaymentInput{Invoice: siRef.Name, ModeOfPayment: env.ModeOfPayment})
 	require.NoError(t, err)
@@ -170,7 +172,7 @@ func fullSalesFlow(t *testing.T, env Env) {
 	assert.Equal(t, erp.DocSubmitted, pe.Status)
 	assert.Equal(t, env.ModeOfPayment, pe.ModeOfPayment)
 	assert.Contains(t, pe.AgainstInvoices, siRef.Name)
-	assert.Zero(t, pe.Paid.Cmp(si.GrandTotal))
+	assert.Zero(t, pe.Paid.Cmp(owed), "paid %s vs owed %s", pe.Paid, owed)
 }
 
 func forbiddenForStockUser(t *testing.T, env Env) {
@@ -209,4 +211,11 @@ func whoami(t *testing.T, env Env) {
 
 	_, err = env.Port.Whoami(ctx, erp.SessionCredential{SessionID: "no-such-session"})
 	assert.ErrorIs(t, err, erp.ErrUnauthenticated)
+}
+
+func abs(d erp.Decimal) erp.Decimal {
+	if d.Cmp(erp.Decimal{}) < 0 {
+		return erp.Decimal{}.Sub(d)
+	}
+	return d
 }

@@ -3,7 +3,6 @@ package erp
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
 
 	"github.com/cockroachdb/apd/v3"
@@ -114,18 +113,38 @@ func (x Decimal) MarshalJSON() ([]byte, error) { return json.Marshal(x.String())
 func (x *Decimal) UnmarshalJSON(b []byte) error {
 	b = bytes.TrimSpace(b)
 	if bytes.Equal(b, []byte("null")) {
-		return errors.New("erp: decimal cannot be null")
+		return nil
 	}
-	s := string(b)
+	var d Decimal
+	var err error
 	if len(b) > 0 && b[0] == '"' {
-		if err := json.Unmarshal(b, &s); err != nil {
+		var s string
+		if err = json.Unmarshal(b, &s); err != nil {
 			return err
 		}
+		d, err = ParseDecimal(s)
+	} else {
+		d, err = parseJSONNumber(string(b))
 	}
-	d, err := ParseDecimal(s)
 	if err != nil {
 		return err
 	}
 	*x = d
 	return nil
+}
+
+// parseJSONNumber reads a bare JSON number, including exponent forms such as
+// 1e-05 that Python json.dumps writes, and normalises it to plain notation.
+func parseJSONNumber(s string) (Decimal, error) {
+	if s == "" || (s[0] != '-' && (s[0] < '0' || s[0] > '9')) || !json.Valid([]byte(s)) {
+		return Decimal{}, fmt.Errorf("erp: invalid decimal %q", s)
+	}
+	var tmp apd.Decimal
+	if _, _, err := tmp.SetString(s); err != nil || tmp.Form != apd.Finite {
+		return Decimal{}, fmt.Errorf("erp: invalid decimal %q", s)
+	}
+	if tmp.Exponent > maxDecimalDigits || tmp.Exponent < -maxDecimalDigits {
+		return Decimal{}, fmt.Errorf("erp: decimal %q out of range", s)
+	}
+	return ParseDecimal(tmp.Text('f'))
 }
