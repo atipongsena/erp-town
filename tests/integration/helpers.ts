@@ -531,9 +531,13 @@ export async function prepareTestSite({ scheduler = false }: PrepareOptions = {}
 
 /** Disable the scheduler and put test.localhost's database back to the snapshot. */
 export async function restoreTestSite(): Promise<void> {
-  await closeTownRedis()
-  await bench('disable-scheduler')
-  if (await snapshotExists()) await restoreSnapshot()
   delete process.env.TEST_API_KEY
   delete process.env.TEST_API_SECRET
+  try {
+    await closeTownRedis()
+    await bench('disable-scheduler')
+  } finally {
+    // always: a seeded test.localhost would break `pnpm erp:test` (the snapshot also resets the scheduler)
+    if (await snapshotExists()) await restoreSnapshot()
+  }
 }

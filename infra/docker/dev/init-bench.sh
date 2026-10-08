@@ -72,6 +72,14 @@ if ! grep -qxF "$WEB_CMD" Procfile; then
 	sed -i '/^web:/d' Procfile
 	echo "$WEB_CMD" >>Procfile
 fi
+# a worker for the `short` queue only (like the pilot's queue-short service): the town publish job must
+# not wait behind scheduled jobs (every-minute sweepers, hourly ERPNext jobs) on the one general worker
+SHORT_WORKER='worker_short: bench worker --queue short 1>> logs/worker_short.log 2>> logs/worker_short.error.log'
+if ! grep -qxF "$SHORT_WORKER" Procfile; then
+	log "1/6 Procfile worker_short: bench worker --queue short"
+	sed -i '/^worker_short:/d' Procfile
+	echo "$SHORT_WORKER" >>Procfile
+fi
 
 # --- 2. common site config ---------------------------------------------------------------
 log "2/6 common_site_config (db_host, redis, serve_default_site, scheduler tick)"

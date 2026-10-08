@@ -193,46 +193,62 @@ def _rollback_to(savepoint: str) -> bool:
 
 
 class _PublishBatch:
-	"""Event ids of one transaction, published by the single job registered for it."""
+	"""Event ids of one transaction; `open` until its commit flushes it or its rollback discards it."""
 
-	__slots__ = ("db", "ids")
+	__slots__ = ("db", "ids", "open")
 
-	def __init__(self, db, ids: list[str]):
+	def __init__(self, db):
 		self.db = db
-		self.ids = ids
+		self.ids: list[str] = []
+		self.open = True
 
 
 def enqueue_publish(event_ids: list[str]) -> None:
-	"""Publish these outbox rows after the current transaction commits: one `publish` job per transaction.
+	"""Publish these outbox rows once the current transaction commits: one `publish` job per transaction.
 
-	The first call of a transaction registers the job (`enqueue_after_commit`) with a list that later calls
-	extend until the transaction ends, so a bulk run committing every 50 documents queues one job per
-	commit instead of one per event (each job costs a worker fork). The batch closes on commit or rollback.
+	The first call of a transaction opens a batch and registers its flush on `frappe.db.after_commit`
+	(and its discard on `after_rollback`); later calls only add ids. At commit the flush closes the batch
+	and enqueues one job with exactly the ids collected, so a bulk run committing every 50 documents queues
+	one job per commit instead of one per event (each job costs a worker fork). Ids whose rows a savepoint
+	rolled back are harmless: `publish` ignores rows that are not `Pending`. Never raises.
 	"""
-	ids = list(event_ids)
 	try:
 		batch = getattr(frappe.local, _BATCH_ATTR, None)
-		if batch is not None and batch.db is frappe.db:
-			batch.ids.extend(ids)
-			return
-		frappe.enqueue(PUBLISH_METHOD, queue="short", event_ids=ids, enqueue_after_commit=True)
-		batch = _PublishBatch(frappe.db, ids)
-		setattr(frappe.local, _BATCH_ATTR, batch)
+		if batch is None or not batch.open or batch.db is not frappe.db:
+			batch = _PublishBatch(frappe.db)
+			setattr(frappe.local, _BATCH_ATTR, batch)
+			frappe.db.after_commit.add(lambda: _flush(batch))
+			frappe.db.after_rollback.add(lambda: _discard(batch))
+		batch.ids.extend(event_ids)
+	except Exception:  # noqa: BLE001 -- the rows stay Pending for the sweeper
+		log_failure(f"ERP Town: enqueue publish of {', '.join(event_ids)[:100]} failed")
 
-		def close():
-			if getattr(frappe.local, _BATCH_ATTR, None) is batch:
-				setattr(frappe.local, _BATCH_ATTR, None)
 
-		# after the job's own after-commit callback (callbacks run in order of registration)
-		frappe.db.after_commit.add(close)
-		frappe.db.after_rollback.add(close)
+def _discard(batch: _PublishBatch) -> None:
+	batch.open = False
+	if getattr(frappe.local, _BATCH_ATTR, None) is batch:
+		setattr(frappe.local, _BATCH_ATTR, None)
+
+
+def _flush(batch: _PublishBatch) -> None:
+	"""`after_commit`: enqueue the committed transaction's publish job. Never raises out of the commit."""
+	if not batch.open:
+		return
+	_discard(batch)  # events emitted from here on belong to the next transaction
+	ids = list(dict.fromkeys(batch.ids))
+	if not ids:
+		return
+	try:
+		frappe.enqueue(PUBLISH_METHOD, queue="short", event_ids=ids)
 	except Exception:  # noqa: BLE001 -- e.g. redis-queue down: the rows stay Pending for the sweeper
 		log_failure(f"ERP Town: enqueue publish of {', '.join(ids)[:100]} failed")
 
 
 def discard_publish_batch() -> None:
-	"""Forget the open publish batch (tests sharing one transaction through savepoints)."""
-	setattr(frappe.local, _BATCH_ATTR, None)
+	"""Drop the open publish batch without publishing it (tests sharing one transaction via savepoints)."""
+	batch = getattr(frappe.local, _BATCH_ATTR, None)
+	if batch is not None:
+		_discard(batch)
 
 
 def _report(code: str, message: str, causation_id: str | None, subject: dict) -> None:

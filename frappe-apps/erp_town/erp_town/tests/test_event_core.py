@@ -34,6 +34,11 @@ def _emit_item(subject_name: str = "ITEM-T1", **overrides):
 	return emit_raw("erp.stock.below_reorder", **kwargs)
 
 
+def _commit_callbacks():
+	"""Run what `frappe.db.commit()` runs after COMMIT (tests never commit): the publish flush."""
+	frappe.db.after_commit.run()
+
+
 def _rows(**filters):
 	return frappe.get_all(
 		"Town Event Outbox",
@@ -119,16 +124,15 @@ class TestEventCore(IntegrationTestCase):
 
 	def test_emit_raw_enqueues_publish_after_commit(self):
 		eid = _emit_item()
-		self.enqueue.assert_called_once_with(
-			PUBLISH, queue="short", event_ids=[eid], enqueue_after_commit=True
-		)
+		self.enqueue.assert_not_called()  # nothing before the transaction commits
+		_commit_callbacks()
+		self.enqueue.assert_called_once_with(PUBLISH, queue="short", event_ids=[eid])
 
 	def test_one_publish_job_per_transaction(self):
 		# e.g. a bulk import committing every 50 documents: one job per commit, not one per event
 		first, second, third = _emit_item("ITEM-B1"), _emit_item("ITEM-B2"), _emit_item("ITEM-B3")
-		self.enqueue.assert_called_once_with(
-			PUBLISH, queue="short", event_ids=[first, second, third], enqueue_after_commit=True
-		)
+		_commit_callbacks()
+		self.enqueue.assert_called_once_with(PUBLISH, queue="short", event_ids=[first, second, third])
 
 	def test_explicit_lineage_and_visibility_are_kept(self):
 		cause = new_ulid()
@@ -208,9 +212,8 @@ class TestEventCore(IntegrationTestCase):
 		self.assertEqual(err["visibility"], {"level": "roles", "roles": ["System Manager"]})
 		validate_event(err)
 		# only the system.error row is published; the Invalid row never is
-		self.enqueue.assert_called_once_with(
-			PUBLISH, queue="short", event_ids=[err["id"]], enqueue_after_commit=True
-		)
+		_commit_callbacks()
+		self.enqueue.assert_called_once_with(PUBLISH, queue="short", event_ids=[err["id"]])
 
 	def test_invalid_reason_stores_invalid_row_without_validation(self):
 		# e.g. the mapper raised: the event is recorded as Invalid even though its (empty) data is not checked
@@ -225,9 +228,8 @@ class TestEventCore(IntegrationTestCase):
 		self.assertEqual([e["data"]["code"] for e in errors], ["EVENT_INVALID"])
 		self.assertIn("boom", errors[0]["data"]["message"])
 		self.assertEqual(errors[0]["causation_id"], eid)
-		self.enqueue.assert_called_once_with(
-			PUBLISH, queue="short", event_ids=[errors[0]["id"]], enqueue_after_commit=True
-		)
+		_commit_callbacks()
+		self.enqueue.assert_called_once_with(PUBLISH, queue="short", event_ids=[errors[0]["id"]])
 
 	def test_invalid_reason_is_truncated(self):
 		eid = _emit_item("ITEM-REASON-LONG", data={}, invalid_reason="x" * 5000)
@@ -249,6 +251,7 @@ class TestEventCore(IntegrationTestCase):
 		self.assertEqual(_rows(subject_name="ITEM-SYS"), [])
 		self.assertFalse(frappe.db.exists("Town Subject Seq", {"subject_name": "ITEM-SYS"}))
 		self.assertEqual(_error_log_count(), before + 1)
+		_commit_callbacks()
 		self.enqueue.assert_not_called()
 
 	def test_emit_system_error_writes_pending_row(self):
@@ -285,6 +288,7 @@ class TestEventCore(IntegrationTestCase):
 		self.assertFalse(frappe.db.exists("Town Subject Seq", {"subject_name": "X-1"}))
 		self.assertEqual(_error_log_count(), before + 1)
 		self.assertEqual(frappe.local.message_log, [])  # the swallowed link error is not shown to the user
+		_commit_callbacks()
 		self.enqueue.assert_not_called()
 
 	def test_failure_after_seq_rolls_back_only_town_writes(self):
@@ -297,6 +301,7 @@ class TestEventCore(IntegrationTestCase):
 		self.assertEqual(_rows(subject_name="ITEM-BOOM"), [])
 		self.assertFalse(frappe.db.exists("Town Subject Seq", {"subject_name": "ITEM-BOOM"}))
 		self.assertEqual(_error_log_count(), before + 1)
+		_commit_callbacks()
 		self.enqueue.assert_not_called()
 		# the subject is still usable afterwards, starting from seq 1
 		self.assertEqual(frappe.db.get_value("Town Event Outbox", _emit_item("ITEM-BOOM"), "seq"), 1)
@@ -322,6 +327,7 @@ class TestEventCore(IntegrationTestCase):
 		self.enqueue.side_effect = ConnectionError("redis-queue down")
 		before = _error_log_count()
 		eid = _emit_item("ITEM-NOQ")
+		_commit_callbacks()  # the failed enqueue is logged, never raised out of the commit
 		self.assertEqual(frappe.db.get_value("Town Event Outbox", eid, "status"), "Pending")
 		self.assertEqual(_error_log_count(), before + 1)
 
@@ -495,7 +501,7 @@ class TestSeqConcurrency(IntegrationTestCase):
 
 
 class TestPublishBatchPerTransaction(IntegrationTestCase):
-	"""The publish batch ends with its transaction: after a rollback the next event gets a new job."""
+	"""One publish job per committed transaction, carrying exactly that transaction's event ids."""
 
 	def setUp(self):
 		frappe.db.rollback()
@@ -505,16 +511,34 @@ class TestPublishBatchPerTransaction(IntegrationTestCase):
 	def tearDown(self):
 		frappe.db.rollback()
 
-	def test_rollback_closes_the_batch(self):
+	def test_each_commit_enqueues_only_its_own_ids(self):
+		first = _emit_item("ITEM-TX1")
+		_commit_callbacks()
+		second, third = _emit_item("ITEM-TX2"), _emit_item("ITEM-TX3")
+		_commit_callbacks()
+		self.assertEqual(
+			[c.kwargs["event_ids"] for c in self.enqueue.call_args_list], [[first], [second, third]]
+		)
+		for c in self.enqueue.call_args_list:
+			self.assertEqual(c.args, (PUBLISH,))
+			self.assertNotIn("enqueue_after_commit", c.kwargs)  # enqueued now, at commit
+
+	def test_rollback_discards_the_batch(self):
 		_emit_item("ITEM-RB1")
 		frappe.db.rollback()
+		_commit_callbacks()
+		self.enqueue.assert_not_called()
 		second = _emit_item("ITEM-RB2")
-		self.assertEqual(self.enqueue.call_count, 2)
-		self.assertEqual(self.enqueue.call_args.kwargs["event_ids"], [second])
+		_commit_callbacks()
+		self.enqueue.assert_called_once_with(PUBLISH, queue="short", event_ids=[second])
 
-	def test_enqueue_failure_leaves_no_batch_behind(self):
+	def test_enqueue_failure_at_commit_is_logged_and_the_next_transaction_starts_fresh(self):
 		self.enqueue.side_effect = [ConnectionError("redis-queue down"), None]
+		before = _error_log_count()
 		_emit_item("ITEM-EF1")
+		_commit_callbacks()  # must not raise out of the commit
+		self.assertEqual(_error_log_count(), before + 1)
 		second = _emit_item("ITEM-EF2")
+		_commit_callbacks()
 		self.assertEqual(self.enqueue.call_count, 2)
 		self.assertEqual(self.enqueue.call_args.kwargs["event_ids"], [second])

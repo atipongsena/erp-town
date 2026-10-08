@@ -90,12 +90,13 @@ class TestTownStatus(IntegrationTestCase):
 		)
 		self.assertEqual(frappe.db.get_value(OUTBOX, published, "status"), "Published")
 		self.assertEqual(frappe.db.get_value(OUTBOX, invalid, "status"), "Invalid")
+		self.enqueue.assert_not_called()  # published once the requeue commits
+		frappe.db.after_commit.run()
 		self.enqueue.assert_called_once()
 		args, kwargs = self.enqueue.call_args
 		self.assertEqual(args, (PUBLISH_METHOD,))
 		self.assertEqual(sorted(kwargs["event_ids"]), sorted(failed))
 		self.assertEqual(kwargs["queue"], "short")
-		self.assertTrue(kwargs["enqueue_after_commit"])
 
 	def test_requeue_accepts_json_list_and_single_id(self):
 		first, second = self._failed(), self._failed()
