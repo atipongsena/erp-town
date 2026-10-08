@@ -40,6 +40,9 @@ PAY_DELAY_DAYS = (0, 0, 1, 2, 5)
 MAX_DAYS = 366
 BULK_COMMIT_EVERY = 50
 DAY_START = "09:00:00"
+SLOT_MINUTES = 10  # one order's time slot; its steps sit at the offsets below (all < SLOT_MINUTES)
+RESTOCK_OFFSET, DELIVERY_OFFSET, INVOICE_OFFSET = 1, 2, 4
+DAY_SPAN_MINUTES = MAX_ORDERS_PER_DAY * SLOT_MINUTES
 COUNT_KEYS = (
 	"Sales Order",
 	"Delivery Note",
@@ -123,9 +126,9 @@ def run(days: int = 7, bulk: int = 0, rng_seed: int = 42) -> dict:
 	rng = random.Random(rng_seed)
 	for i in range(days):
 		day = getdate(add_days(today, -(days - 1 - i)))
-		start = _day_start(day, today)
+		clock = DayClock(day, today)
 		for n, order in enumerate(plan_day(rng)):
-			sim.order(order, day, start + _minutes(n * 10))
+			sim.order(order, day, clock, n)
 	if bulk:
 		sim.bulk_invoices(rng, bulk)
 	return {key: sim.counts[key] for key in COUNT_KEYS}
@@ -150,17 +153,17 @@ class _Simulation:
 
 	# --- one order through the flow ----------------------------------------------------------------
 
-	def order(self, plan: OrderPlan, day, at) -> None:
-		"""`at`: when the order is entered; delivery and invoice follow minutes later."""
+	def order(self, plan: OrderPlan, day, clock: DayClock, n: int) -> None:
+		"""The day's `n`-th order; restock, delivery and invoice follow it in its time slot."""
 		so = self._sales_order(plan, day)
 		if not self._confirm(so, plan):
 			return
 		if not plan.deliver:
 			return
-		dn = self._delivery_note(so, at + _minutes(2))
+		dn = self._delivery_note(so, clock.at(n, RESTOCK_OFFSET), clock.at(n, DELIVERY_OFFSET))
 		if not plan.invoice:
 			return
-		si = self._sales_invoice(dn, day, at + _minutes(4), plan.due_days)
+		si = self._sales_invoice(dn, day, clock.at(n, INVOICE_OFFSET), plan.due_days)
 		if plan.pay:
 			pay_day = min(getdate(add_days(day, plan.pay_delay_days)), self.today)
 			self._payment(si, pay_day, plan.mode_of_payment)
@@ -211,12 +214,12 @@ class _Simulation:
 		self.counts["approved" if plan.approval == "approve" else "rejected"] += 1
 		return plan.approval == "approve"
 
-	def _delivery_note(self, so, at):
+	def _delivery_note(self, so, restock_at, at):
 		from erpnext.selling.doctype.sales_order.sales_order import make_delivery_note
 
 		with _as(seed.STOCK_USER):
 			for row in so.items:
-				self._restock_if_short(row.item_code, flt(row.qty), at - _minutes(1))
+				self._restock_if_short(row.item_code, flt(row.qty), restock_at)
 			dn = make_delivery_note(so.name)
 			_set_posting(dn, at)
 			dn.insert()
@@ -319,16 +322,32 @@ class _Simulation:
 					frappe.db.commit()  # bulk mode only: keep the transaction (and the outbox batch) bounded
 
 
-def _day_start(day, today):
-	"""09:00 on past days; today, early enough that the day's last posting is not in the future."""
-	start = get_datetime(f"{day} {DAY_START}")
-	if day == today:
-		latest = now_datetime() - _minutes(MAX_ORDERS_PER_DAY * 10 + 10)
-		start = max(min(start, latest), get_datetime(f"{day} 00:00:00"))
-	return start
+class DayClock:
+	"""Posting timestamps of one simulated day: order `n` owns the slot [n, n+1) × `SLOT_MINUTES` from the
+	day's start, and its steps sit at fixed offsets inside it (restock < delivery < invoice).
+
+	Past days start at 09:00. Today starts at 09:00 only when the whole day's span fits before `now`;
+	otherwise it starts at `now - span`, and when even midnight is too late (just after 00:00) the slots
+	are compressed into [00:00, now]. No timestamp of today is ever after `now`, and the order of steps
+	(and of orders) is kept.
+	"""
+
+	def __init__(self, day, today, now=None):
+		day = getdate(day)
+		self.start = get_datetime(f"{day} {DAY_START}")
+		self.scale = 1.0
+		if day == getdate(today):
+			now = get_datetime(now or now_datetime())
+			span = _minutes(DAY_SPAN_MINUTES)
+			midnight = get_datetime(f"{day} 00:00:00")
+			self.start = max(min(self.start, now - span), midnight)
+			self.scale = max(0.0, min(1.0, (now - self.start) / span))
+
+	def at(self, n: int, offset_minutes: int = 0):
+		return self.start + _minutes((n * SLOT_MINUTES + offset_minutes) * self.scale)
 
 
-def _minutes(n: int):
+def _minutes(n: float):
 	from datetime import timedelta
 
 	return timedelta(minutes=n)

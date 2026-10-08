@@ -14,7 +14,7 @@ from unittest.mock import MagicMock, patch
 import frappe
 from frappe.model.workflow import apply_workflow, get_transitions
 from frappe.tests import IntegrationTestCase, UnitTestCase
-from frappe.utils import add_days, getdate, now_datetime, nowdate
+from frappe.utils import add_days, get_datetime, getdate, now_datetime, nowdate
 
 from erp_town.selling import credit_approval
 from erp_town.setup import scenario, seed
@@ -106,6 +106,36 @@ class TestScenarioPlan(UnitTestCase):
 		customers = [o.customer for _ in range(20) for o in scenario.plan_day(rng)]
 		limited = [c for c in customers if c in seed.LIMITED_CUSTOMERS]
 		self.assertTrue(0 < len(limited) < len(customers) / 2)
+
+
+class TestDayClock(UnitTestCase):
+	"""Every posting time of today is at or before `now`, and steps/orders keep their order."""
+
+	DAY = "2026-10-08"
+	STEPS = (0, scenario.RESTOCK_OFFSET, scenario.DELIVERY_OFFSET, scenario.INVOICE_OFFSET)
+
+	def _times(self, clock):
+		return [clock.at(n, offset) for n in range(scenario.MAX_ORDERS_PER_DAY) for offset in self.STEPS]
+
+	def test_today_never_after_now_and_ordered(self):
+		for now in ("00:00:00", "00:05:00", "00:59:00", "01:14:00", "01:30:00", "09:30:00", "15:00:00"):
+			now_dt = get_datetime(f"{self.DAY} {now}")
+			times = self._times(scenario.DayClock(self.DAY, self.DAY, now=now_dt))
+			self.assertLessEqual(max(times), now_dt, now)
+			self.assertGreaterEqual(min(times), get_datetime(f"{self.DAY} 00:00:00"), now)
+			self.assertEqual(times, sorted(times), now)
+			if now != "00:00:00":
+				self.assertEqual(len(set(times)), len(times), now)  # strictly increasing
+
+	def test_full_spacing_from_nine_when_the_day_fits(self):
+		clock = scenario.DayClock(self.DAY, self.DAY, now=get_datetime(f"{self.DAY} 15:00:00"))
+		self.assertEqual(clock.at(0), get_datetime(f"{self.DAY} 09:00:00"))
+		self.assertEqual(clock.at(1, scenario.INVOICE_OFFSET), get_datetime(f"{self.DAY} 09:14:00"))
+
+	def test_past_days_start_at_nine_whatever_the_time(self):
+		clock = scenario.DayClock("2026-10-07", self.DAY, now=get_datetime(f"{self.DAY} 00:05:00"))
+		self.assertEqual(clock.at(0), get_datetime("2026-10-07 09:00:00"))
+		self.assertEqual(clock.at(2, scenario.DELIVERY_OFFSET), get_datetime("2026-10-07 09:22:00"))
 
 
 class TestRequiresApprovalHook(UnitTestCase):
@@ -443,6 +473,42 @@ class TestSeed(IntegrationTestCase):
 		self.assertTrue(
 			frappe.db.exists("Sales Order", {"company": seed.COMPANY, "workflow_state": "อนุมัติแล้ว"})
 		)
+
+	def test_scenario_just_after_midnight_posts_nothing_in_the_future(self):
+		_seed_quietly()
+		now = get_datetime(f"{nowdate()} 00:05:00")  # 00:05 Bangkok: the day's 09:00 slots do not fit
+		with patch.object(scenario, "now_datetime", return_value=now):
+			counts = scenario.run(days=1, rng_seed=1)
+		self.assertGreater(counts["Sales Invoice"], 0)
+		latest = frappe.db.sql(
+			"""select max(timestamp(posting_date, posting_time)) from `tabStock Ledger Entry`
+			where warehouse = %s and is_cancelled = 0""",
+			seed.warehouse(),
+		)[0][0]
+		self.assertLessEqual(latest, now)
+		# per document chain: order date <= delivery <= invoice <= now, payment on or after the invoice
+		chains = frappe.db.sql(
+			"""select so.transaction_date, timestamp(dn.posting_date, dn.posting_time) as dn_at,
+				timestamp(si.posting_date, si.posting_time) as si_at,
+				(select min(pe.posting_date) from `tabPayment Entry Reference` per
+				 join `tabPayment Entry` pe on pe.name = per.parent and pe.docstatus = 1
+				 where per.reference_name = si.name) as paid_on
+			from `tabSales Invoice` si
+			join `tabSales Invoice Item` sii on sii.parent = si.name and sii.idx = 1
+			join `tabDelivery Note` dn on dn.name = sii.delivery_note
+			join `tabDelivery Note Item` dni on dni.parent = dn.name and dni.idx = 1
+			join `tabSales Order` so on so.name = dni.against_sales_order
+			where si.company = %s and si.docstatus = 1""",
+			seed.COMPANY,
+			as_dict=True,
+		)
+		self.assertEqual(len(chains), counts["Sales Invoice"])
+		for c in chains:
+			self.assertLessEqual(get_datetime(c.transaction_date), c.dn_at)
+			self.assertLess(c.dn_at, c.si_at)
+			self.assertLessEqual(c.si_at, now)
+			if c.paid_on:
+				self.assertGreaterEqual(getdate(c.paid_on), getdate(c.si_at))
 
 	def test_scenario_bulk_commits_every_batch(self):
 		_seed_quietly()
