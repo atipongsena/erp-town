@@ -1,0 +1,24 @@
+{
+  "message": [
+    {
+      "state": "รออนุมัติ",
+      "action": "อนุมัติ",
+      "next_state": "อนุมัติแล้ว",
+      "allowed": "Sales Manager",
+      "allow_self_approval": 1,
+      "condition": null,
+      "parent": "อนุมัติ SO เกินวงเงิน",
+      "doctype": "Workflow Transition"
+    },
+    {
+      "state": "รออนุมัติ",
+      "action": "ปฏิเสธ",
+      "next_state": "ปฏิเสธ",
+      "allowed": "Sales Manager",
+      "allow_self_approval": 1,
+      "condition": null,
+      "parent": "อนุมัติ SO เกินวงเงิน",
+      "doctype": "Workflow Transition"
+    }
+  ]
+}

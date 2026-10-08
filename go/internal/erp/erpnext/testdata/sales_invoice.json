@@ -1,0 +1,49 @@
+{
+  "data": {
+    "name": "IV6910-0001",
+    "docstatus": 1,
+    "company": "บริษัท ตัวอย่างเทรดดิ้ง จำกัด",
+    "customer": "CUST-001",
+    "customer_name": "บริษัท สยามวัสดุก่อสร้าง จำกัด",
+    "posting_date": "2026-10-09",
+    "due_date": "2026-10-09",
+    "is_return": 0,
+    "is_pos": 0,
+    "net_total": 36.0,
+    "taxes_and_charges": "ภาษีขาย 7% - ACME-TH",
+    "total_taxes_and_charges": 2.52,
+    "grand_total": 38.52,
+    "disable_rounded_total": 0,
+    "rounding_adjustment": 0.48,
+    "rounded_total": 39.0,
+    "outstanding_amount": 0.0,
+    "status": "Paid",
+    "doctype": "Sales Invoice",
+    "items": [
+      {
+        "item_code": "ITEM-002",
+        "item_name": "ปากกาลูกลื่น สีน้ำเงิน",
+        "qty": 3.0,
+        "uom": "ชิ้น",
+        "price_list_rate": 12.0,
+        "rate": 12.0,
+        "amount": 36.0,
+        "warehouse": "คลังหลัก - ACME-TH",
+        "doctype": "Sales Invoice Item",
+        "delivery_note": "DN6910-0001",
+        "sales_order": "SO6910-0001"
+      }
+    ],
+    "taxes": [
+      {
+        "charge_type": "On Net Total",
+        "account_head": "2120 - ภาษีขาย - ACME-TH",
+        "description": "ภาษีขาย 7%",
+        "rate": 7.0,
+        "tax_amount": 2.52,
+        "total": 38.52,
+        "doctype": "Sales Taxes and Charges"
+      }
+    ]
+  }
+}

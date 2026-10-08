@@ -1,0 +1,14 @@
+{
+  "message": [
+    {
+      "state": "Draft",
+      "action": "ขออนุมัติ",
+      "next_state": "รออนุมัติ",
+      "allowed": "Sales User",
+      "allow_self_approval": 1,
+      "condition": "doc.th_requires_approval",
+      "parent": "อนุมัติ SO เกินวงเงิน",
+      "doctype": "Workflow Transition"
+    }
+  ]
+}

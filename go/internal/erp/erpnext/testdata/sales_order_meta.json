@@ -1,0 +1,102 @@
+{
+  "docs": [
+    {
+      "doctype": "DocType",
+      "name": "Sales Order",
+      "module": "Selling",
+      "is_submittable": 1,
+      "__workflow_docs": [
+        {
+          "name": "อนุมัติ SO เกินวงเงิน",
+          "workflow_name": "อนุมัติ SO เกินวงเงิน",
+          "document_type": "Sales Order",
+          "is_active": 1,
+          "workflow_state_field": "workflow_state",
+          "doctype": "Workflow",
+          "states": [
+            {
+              "state": "Draft",
+              "doc_status": "0",
+              "allow_edit": "Sales User",
+              "doctype": "Workflow Document State"
+            },
+            {
+              "state": "รออนุมัติ",
+              "doc_status": "0",
+              "allow_edit": "Sales Manager",
+              "doctype": "Workflow Document State"
+            },
+            {
+              "state": "อนุมัติแล้ว",
+              "doc_status": "1",
+              "allow_edit": "Sales Manager",
+              "doctype": "Workflow Document State"
+            },
+            {
+              "state": "ปฏิเสธ",
+              "doc_status": "0",
+              "allow_edit": "Sales Manager",
+              "doctype": "Workflow Document State"
+            }
+          ],
+          "transitions": [
+            {
+              "state": "Draft",
+              "action": "ขออนุมัติ",
+              "next_state": "รออนุมัติ",
+              "allowed": "Sales User",
+              "condition": "doc.th_requires_approval",
+              "doctype": "Workflow Transition"
+            },
+            {
+              "state": "Draft",
+              "action": "ยืนยัน",
+              "next_state": "อนุมัติแล้ว",
+              "allowed": "Sales User",
+              "condition": "not doc.th_requires_approval",
+              "doctype": "Workflow Transition"
+            },
+            {
+              "state": "รออนุมัติ",
+              "action": "อนุมัติ",
+              "next_state": "อนุมัติแล้ว",
+              "allowed": "Sales Manager",
+              "doctype": "Workflow Transition"
+            },
+            {
+              "state": "รออนุมัติ",
+              "action": "ปฏิเสธ",
+              "next_state": "ปฏิเสธ",
+              "allowed": "Sales Manager",
+              "doctype": "Workflow Transition"
+            }
+          ]
+        },
+        {
+          "name": "Draft",
+          "workflow_state_name": "Draft",
+          "style": "",
+          "doctype": "Workflow State"
+        },
+        {
+          "name": "รออนุมัติ",
+          "workflow_state_name": "รออนุมัติ",
+          "style": "",
+          "doctype": "Workflow State"
+        },
+        {
+          "name": "อนุมัติแล้ว",
+          "workflow_state_name": "อนุมัติแล้ว",
+          "style": "",
+          "doctype": "Workflow State"
+        },
+        {
+          "name": "ปฏิเสธ",
+          "workflow_state_name": "ปฏิเสธ",
+          "style": "",
+          "doctype": "Workflow State"
+        }
+      ]
+    }
+  ]
+}

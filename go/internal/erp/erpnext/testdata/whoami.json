@@ -1,0 +1,8 @@
+{
+  "message": {
+    "user": "sales@acme-th.test",
+    "roles": ["Sales User", "All", "Guest", "Desk User"],
+    "companies": ["ACME-TH", "ETT"],
+    "csrf_token": "csrf-token-of-the-session"
+  }
+}

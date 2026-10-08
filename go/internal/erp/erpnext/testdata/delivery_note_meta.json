@@ -1,0 +1,11 @@
+{
+  "docs": [
+    {
+      "doctype": "DocType",
+      "name": "Delivery Note",
+      "module": "Stock",
+      "is_submittable": 1,
+      "__workflow_docs": []
+    }
+  ]
+}

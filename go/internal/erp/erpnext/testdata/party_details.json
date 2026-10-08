@@ -1,0 +1,15 @@
+{
+  "message": {
+    "customer": "CUST-001",
+    "customer_name": "บริษัท สยามวัสดุก่อสร้าง จำกัด",
+    "customer_group": "ลูกค้านิติบุคคล",
+    "territory": "ประเทศไทย",
+    "tax_category": "",
+    "language": "th",
+    "price_list_currency": "THB",
+    "selling_price_list": "ขายมาตรฐาน",
+    "payment_terms_template": null,
+    "currency": "THB",
+    "sales_team": []
+  }
+}

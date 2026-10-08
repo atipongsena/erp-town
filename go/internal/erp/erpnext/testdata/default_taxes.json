@@ -1,0 +1,30 @@
+{
+  "message": {
+    "taxes_and_charges": "ภาษีขาย 7% - ACME-TH",
+    "taxes": [
+      {
+        "charge_type": "On Net Total",
+        "row_id": null,
+        "account_head": "2120 - ภาษีขาย - ACME-TH",
+        "description": "ภาษีขาย 7%",
+        "included_in_print_rate": 0,
+        "included_in_paid_amount": 0,
+        "set_by_item_tax_template": 0,
+        "is_tax_withholding_account": 0,
+        "cost_center": "หลัก - ACME-TH",
+        "project": null,
+        "rate": 7.0,
+        "account_currency": "THB",
+        "net_amount": 0.0,
+        "tax_amount": 0.0,
+        "total": 0.0,
+        "tax_amount_after_discount_amount": 0.0,
+        "base_net_amount": 0.0,
+        "base_tax_amount": 0.0,
+        "base_total": 0.0,
+        "base_tax_amount_after_discount_amount": 0.0,
+        "dont_recompute_tax": 0
+      }
+    ]
+  }
+}

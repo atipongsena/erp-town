@@ -263,3 +263,46 @@ func FuzzMapError(f *testing.F) {
 		}
 	})
 }
+
+func TestInsertPostsResource(t *testing.T) {
+	rec := &recorder{reply: func(int, *http.Request) (*http.Response, error) {
+		return resp(200, `{"data":{"name":"SO-1","grand_total":12.50}}`), nil
+	}}
+	var out map[string]any
+	err := newTestClient(rec).Insert(context.Background(), keyPrincipal, "Sales Order", map[string]any{"customer": "C"}, &out)
+	require.NoError(t, err)
+	assert.Equal(t, json.Number("12.50"), out["grand_total"])
+	require.Len(t, rec.reqs, 1)
+	r := rec.reqs[0]
+	assert.Equal(t, http.MethodPost, r.Method)
+	assert.Equal(t, "/api/resource/Sales Order", r.URL.Path)
+	assert.Equal(t, "/api/resource/Sales%20Order", r.URL.EscapedPath())
+	body, _ := io.ReadAll(r.Body)
+	assert.JSONEq(t, `{"customer":"C"}`, string(body))
+}
+
+func TestInsertIsNotRetried(t *testing.T) {
+	rec := &recorder{reply: func(int, *http.Request) (*http.Response, error) { return resp(503, `{}`), nil }}
+	err := newTestClient(rec).Insert(context.Background(), keyPrincipal, "Sales Order", map[string]any{}, nil)
+	require.ErrorIs(t, err, erp.ErrUnavailable)
+	assert.Len(t, rec.reqs, 1)
+}
+
+func TestResourcePathEscapes(t *testing.T) {
+	assert.Equal(t, "/api/resource/Sales%20Order/SO%2F1%3Fx", ResourcePath("Sales Order", "SO/1?x"))
+}
+
+func TestGetBodyDecodesTheWholeResponse(t *testing.T) {
+	rec := &recorder{reply: func(int, *http.Request) (*http.Response, error) {
+		return resp(200, `{"docs":[{"name":"Sales Order","n":1.50}],"user_settings":"{}"}`), nil
+	}}
+	var out struct {
+		Docs []map[string]any `json:"docs"`
+	}
+	q := url.Values{"doctype": {"Sales Order"}}
+	require.NoError(t, newTestClient(rec).GetBody(context.Background(), keyPrincipal, "/api/method/frappe.desk.form.load.getdoctype", q, &out))
+	require.Len(t, out.Docs, 1)
+	assert.Equal(t, json.Number("1.50"), out.Docs[0]["n"])
+	assert.Equal(t, http.MethodGet, rec.reqs[0].Method)
+	assert.Equal(t, "doctype=Sales+Order", rec.reqs[0].URL.RawQuery)
+}

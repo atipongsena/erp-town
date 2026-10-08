@@ -125,11 +125,12 @@ export function localEnv(key: string): string | undefined {
 export type Doc = Record<string, unknown> & { doctype: string; name: string }
 
 export class ErpError extends Error {
-  constructor(
-    readonly status: number,
-    message: string,
-  ) {
+  // a declared field, not a parameter property: Node's type stripping (test-site.ts) cannot load those
+  readonly status: number
+
+  constructor(status: number, message: string) {
     super(message)
+    this.status = status
   }
 }
 

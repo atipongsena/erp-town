@@ -1,0 +1,63 @@
+{
+  "data": {
+    "name": "SO6910-0001",
+    "docstatus": 0,
+    "workflow_state": "Draft",
+    "company": "บริษัท ตัวอย่างเทรดดิ้ง จำกัด",
+    "customer": "CUST-001",
+    "customer_name": "บริษัท สยามวัสดุก่อสร้าง จำกัด",
+    "order_type": "Sales",
+    "transaction_date": "2026-10-09",
+    "delivery_date": "2026-10-09",
+    "currency": "THB",
+    "selling_price_list": "ขายมาตรฐาน",
+    "total_qty": 138.0,
+    "total": 1153801.77,
+    "net_total": 1153801.77,
+    "taxes_and_charges": "ภาษีขาย 7% - ACME-TH",
+    "total_taxes_and_charges": 80766.12,
+    "grand_total": 1234567.89,
+    "disable_rounded_total": 0,
+    "rounding_adjustment": 0.11,
+    "rounded_total": 1234568.0,
+    "status": "Draft",
+    "doctype": "Sales Order",
+    "items": [
+      {
+        "item_code": "ITEM-002",
+        "item_name": "ปากกาลูกลื่น สีน้ำเงิน",
+        "qty": 135.0,
+        "uom": "ชิ้น",
+        "price_list_rate": 0.1,
+        "rate": 0.1,
+        "amount": 13.5,
+        "warehouse": "คลังหลัก - ACME-TH",
+        "doctype": "Sales Order Item",
+        "delivery_date": "2026-10-09"
+      },
+      {
+        "item_code": "ITEM-018",
+        "item_name": "ตู้เก็บเอกสาร 4 ลิ้นชัก",
+        "qty": 3.0,
+        "uom": "ชิ้น",
+        "price_list_rate": 4500.0,
+        "rate": 384596.09,
+        "amount": 1153788.27,
+        "warehouse": "คลังหลัก - ACME-TH",
+        "doctype": "Sales Order Item",
+        "delivery_date": "2026-10-09"
+      }
+    ],
+    "taxes": [
+      {
+        "charge_type": "On Net Total",
+        "account_head": "2120 - ภาษีขาย - ACME-TH",
+        "description": "ภาษีขาย 7%",
+        "rate": 7.0,
+        "tax_amount": 80766.12,
+        "total": 1234567.89,
+        "doctype": "Sales Taxes and Charges"
+      }
+    ]
+  }
+}

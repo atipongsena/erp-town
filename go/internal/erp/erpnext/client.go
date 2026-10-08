@@ -71,30 +71,69 @@ func (c *Client) CallCred(ctx context.Context, cred erp.Credential, method strin
 }
 
 func (c *Client) post(ctx context.Context, cred erp.Credential, onBehalfOf, method string, args, out any) error {
-	var body []byte
-	if args == nil {
-		body = []byte("{}")
-	} else {
-		b, err := json.Marshal(args)
-		if err != nil {
-			return fmt.Errorf("erpnext: encode %s args: %w", method, err)
-		}
-		body = b
+	body, err := encodeBody(method, args)
+	if err != nil {
+		return err
 	}
-	return c.do(ctx, http.MethodPost, c.base+"/api/method/"+method, body, cred, onBehalfOf, out)
+	return c.do(ctx, http.MethodPost, c.base+"/api/method/"+method, body, cred, onBehalfOf, unwrapped(out))
+}
+
+// Insert POSTs doc as JSON to /api/resource/<doctype> and decodes the created
+// document ("data") into out (nil out discards it). Writes are never retried.
+func (c *Client) Insert(ctx context.Context, as erp.Principal, doctype string, doc, out any) error {
+	body, err := encodeBody(doctype, doc)
+	if err != nil {
+		return err
+	}
+	return c.do(ctx, http.MethodPost, c.base+ResourcePath(doctype, ""), body, as.Credential, as.OnBehalfOf, unwrapped(out))
+}
+
+// ResourcePath is /api/resource/<doctype>[/<name>] with both segments escaped.
+func ResourcePath(doctype, name string) string {
+	p := "/api/resource/" + url.PathEscape(doctype)
+	if name != "" {
+		p += "/" + url.PathEscape(name)
+	}
+	return p
+}
+
+func encodeBody(what string, v any) ([]byte, error) {
+	if v == nil {
+		return []byte("{}"), nil
+	}
+	b, err := json.Marshal(v)
+	if err != nil {
+		return nil, fmt.Errorf("erpnext: encode %s body: %w", what, err)
+	}
+	return b, nil
 }
 
 // Get issues GET path?query (path starts with /api/) and decodes the
 // unwrapped "data" (or "message") into out. ErrUnavailable is retried twice
 // (200 ms, then 800 ms).
 func (c *Client) Get(ctx context.Context, as erp.Principal, path string, query url.Values, out any) error {
+	return c.get(ctx, as, path, query, unwrapped(out))
+}
+
+// GetBody is Get for answers outside the data/message envelope (such as
+// frappe.desk.form.load.getdoctype): the whole body is decoded into out.
+func (c *Client) GetBody(ctx context.Context, as erp.Principal, path string, query url.Values, out any) error {
+	return c.get(ctx, as, path, query, func(payload []byte) error {
+		if out == nil {
+			return nil
+		}
+		return decodeJSON(payload, out)
+	})
+}
+
+func (c *Client) get(ctx context.Context, as erp.Principal, path string, query url.Values, decode func([]byte) error) error {
 	target := c.base + path
 	if len(query) > 0 {
 		target += "?" + query.Encode()
 	}
 	var err error
 	for attempt := 0; ; attempt++ {
-		err = c.do(ctx, http.MethodGet, target, nil, as.Credential, as.OnBehalfOf, out)
+		err = c.do(ctx, http.MethodGet, target, nil, as.Credential, as.OnBehalfOf, decode)
 		if err == nil || !errors.Is(err, erp.ErrUnavailable) || attempt >= len(getRetryDelays) {
 			return err
 		}
@@ -108,7 +147,7 @@ func (c *Client) Get(ctx context.Context, as erp.Principal, path string, query u
 	}
 }
 
-func (c *Client) do(ctx context.Context, method, target string, body []byte, cred erp.Credential, onBehalfOf string, out any) error {
+func (c *Client) do(ctx context.Context, method, target string, body []byte, cred erp.Credential, onBehalfOf string, decode func([]byte) error) error {
 	if cred == nil {
 		return fmt.Errorf("%w: no credential on principal", erp.ErrUnauthenticated)
 	}
@@ -153,7 +192,11 @@ func (c *Client) do(ctx context.Context, method, target string, body []byte, cre
 	if res.StatusCode < 200 || res.StatusCode > 299 {
 		return mapError(res.StatusCode, payload)
 	}
-	return decodeSuccess(payload, out)
+	return decode(payload)
+}
+
+func unwrapped(out any) func([]byte) error {
+	return func(payload []byte) error { return decodeSuccess(payload, out) }
 }
 
 // transportError separates the caller's own cancellation from a backend that
@@ -188,6 +231,11 @@ func decodeSuccess(payload []byte, out any) error {
 	if raw == nil {
 		return errors.New("erpnext: response has neither data nor message")
 	}
+	return decodeJSON(raw, out)
+}
+
+// decodeJSON decodes raw into out keeping numbers exact (json.Number).
+func decodeJSON(raw []byte, out any) error {
 	dec := json.NewDecoder(bytes.NewReader(raw))
 	dec.UseNumber()
 	if err := dec.Decode(out); err != nil {
