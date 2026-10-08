@@ -76,6 +76,9 @@ type EmitInput struct {
 // id; the publisher sends it to the stream once tx has committed. It allocates the
 // subject's next seq (rolled back with tx), a new ULID and the envelope time
 // FormatBangkok(now), validates exactly the bytes it stores and stores them Pending.
+// now feeds only the envelope time and the ULID: the row's publish order is taken from
+// the database at insert time, after the seq lock is held, so a subject's events are
+// published in seq order even when emitters' clocks disagree.
 //
 // erp.* and workflow.* types fail with ErrERPOwnedType. An event that does not match
 // the contract still takes its seq and is stored Invalid with the reason in last_error,
@@ -132,7 +135,7 @@ func store(ctx context.Context, tx pgx.Tx, v *Validator, now time.Time, in EmitI
 	}
 	if err := q.InsertOutbox(ctx, sqlc.InsertOutboxParams{
 		ID: id, Type: in.Type, SubjectDoctype: in.Subject.DocType, SubjectName: in.Subject.Name,
-		Payload: string(payload), Status: status, LastError: lastError, CreatedAt: timestamptz(now),
+		Payload: string(payload), Status: status, LastError: lastError,
 	}); err != nil {
 		return "", "", fmt.Errorf("outbox: insert event %s: %w", id, err)
 	}

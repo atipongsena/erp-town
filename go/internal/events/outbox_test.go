@@ -69,7 +69,7 @@ func loadRows(t *testing.T, pool *pgxpool.Pool) []outboxRow {
 	t.Helper()
 	rows, err := pool.Query(t.Context(), `
 		SELECT id, type, status, payload, attempts, last_error, stream_id, next_attempt_at, published_at
-		FROM town_outbox ORDER BY created_at, id`)
+		FROM town_outbox ORDER BY insert_order`)
 	require.NoError(t, err)
 	out, err := pgx.CollectRows(rows, func(r pgx.CollectableRow) (outboxRow, error) {
 		var o outboxRow

@@ -34,6 +34,7 @@ type TownOutbox struct {
 	StreamID       pgtype.Text
 	CreatedAt      pgtype.Timestamptz
 	PublishedAt    pgtype.Timestamptz
+	InsertOrder    pgtype.Int8
 }
 
 type TownSubjectSeq struct {

@@ -74,10 +74,10 @@ func NewPublisher(pool *pgxpool.Pool, rdb *redis.Client, v *Validator, m *platfo
 
 // PublishDue publishes due Pending rows and returns how many were published. In one
 // transaction it locks up to BatchSize rows that are Pending and due (next_attempt_at
-// unset or not after now), oldest first, skipping rows another publisher holds
-// (FOR UPDATE SKIP LOCKED); XADDs each payload as field "event" while the rows are
-// locked, trimming the stream to RetentionDays (MINID ~); records each result and
-// commits.
+// unset or not after now) in insertion order, so each subject's events go out in seq
+// order, skipping rows another publisher holds (FOR UPDATE SKIP LOCKED); XADDs each
+// payload as field "event" while the rows are locked, trimming the stream to
+// RetentionDays (MINID ~); records each result and commits.
 //
 // A successful XADD marks the row Published with its stream id. A failed one
 // increments attempts, stores the error and retries after min(2^attempts, 300) s,

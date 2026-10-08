@@ -8,17 +8,20 @@ ON CONFLICT (subject_doctype, subject_name) DO UPDATE SET last_seq = town_subjec
 RETURNING last_seq;
 
 -- name: InsertOutbox :exec
+-- created_at and insert_order come from the database at insert time (after the subject's
+-- seq lock is held), never from the caller's clock.
 INSERT INTO town_outbox (id, type, subject_doctype, subject_name, payload, status, last_error, created_at)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8);
+VALUES ($1, $2, $3, $4, $5, $6, $7, clock_timestamp());
 
 -- name: LockDueOutbox :many
--- Locks up to batch_size due Pending rows, oldest first; rows another publisher holds
--- are skipped, so no row is published by two publishers at once.
+-- Locks up to batch_size due Pending rows in insertion order (so each subject's events
+-- go out in seq order); rows another publisher holds are skipped, so no row is
+-- published by two publishers at once.
 SELECT id, type, payload, attempts
 FROM town_outbox
 WHERE status = 'Pending'
   AND (next_attempt_at IS NULL OR next_attempt_at <= sqlc.arg(now))
-ORDER BY created_at, id
+ORDER BY insert_order
 LIMIT sqlc.arg(batch_size)
 FOR UPDATE SKIP LOCKED;
 

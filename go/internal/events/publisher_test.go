@@ -231,6 +231,38 @@ func TestPublishHonoursBatchSizeAndOrder(t *testing.T) {
 	assert.Equal(t, ids[1], decodeStored(t, h.v, msgs[1].Values["event"].(string)).ID)
 }
 
+// The publish order follows the order rows were stored after the subject's seq lock was
+// taken, not the caller's now: an emitter whose now is earlier but that takes the seq
+// lock later must not overtake (the consumer would drop the lower seq as stale).
+func TestPublishOrderFollowsSeqNotCallerNow(t *testing.T) {
+	h := newPubHarness(t)
+	in := systemErrorInput("SUBJ", gen.SystemErrorData{Code: "TEST", Message: "m"})
+
+	early, err := h.pool.Begin(t.Context()) // took its now first...
+	require.NoError(t, err)
+	defer func() { _ = early.Rollback(context.Background()) }()
+
+	// ...but a later emitter takes seq 1 and commits first.
+	emitCommitted(t, h.pool, h.v, testNow.Add(time.Minute), in)
+
+	_, err = Emit(t.Context(), early, h.v, testNow, in)
+	require.NoError(t, err)
+	require.NoError(t, early.Commit(t.Context()))
+
+	n, err := h.publisher(h.rdb, testNow.Add(time.Hour)).PublishDue(t.Context())
+	require.NoError(t, err)
+	require.Equal(t, 2, n)
+
+	msgs, err := h.rdb.XRange(t.Context(), h.stream, "-", "+").Result()
+	require.NoError(t, err)
+	require.Len(t, msgs, 2)
+	var seqs []int64
+	for _, m := range msgs {
+		seqs = append(seqs, decodeStored(t, h.v, m.Values["event"].(string)).Seq)
+	}
+	assert.Equal(t, []int64{1, 2}, seqs)
+}
+
 func TestPublishTrimsByRetention(t *testing.T) {
 	h := newPubHarness(t)
 	// 100 entries older than the 7-day retention fill one stream node (stream-node-max-entries

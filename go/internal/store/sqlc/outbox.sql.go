@@ -13,7 +13,7 @@ import (
 
 const insertOutbox = `-- name: InsertOutbox :exec
 INSERT INTO town_outbox (id, type, subject_doctype, subject_name, payload, status, last_error, created_at)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+VALUES ($1, $2, $3, $4, $5, $6, $7, clock_timestamp())
 `
 
 type InsertOutboxParams struct {
@@ -24,9 +24,10 @@ type InsertOutboxParams struct {
 	Payload        string
 	Status         string
 	LastError      pgtype.Text
-	CreatedAt      pgtype.Timestamptz
 }
 
+// created_at and insert_order come from the database at insert time (after the subject's
+// seq lock is held), never from the caller's clock.
 func (q *Queries) InsertOutbox(ctx context.Context, arg InsertOutboxParams) error {
 	_, err := q.db.Exec(ctx, insertOutbox,
 		arg.ID,
@@ -36,7 +37,6 @@ func (q *Queries) InsertOutbox(ctx context.Context, arg InsertOutboxParams) erro
 		arg.Payload,
 		arg.Status,
 		arg.LastError,
-		arg.CreatedAt,
 	)
 	return err
 }
@@ -46,7 +46,7 @@ SELECT id, type, payload, attempts
 FROM town_outbox
 WHERE status = 'Pending'
   AND (next_attempt_at IS NULL OR next_attempt_at <= $1)
-ORDER BY created_at, id
+ORDER BY insert_order
 LIMIT $2
 FOR UPDATE SKIP LOCKED
 `
@@ -63,8 +63,9 @@ type LockDueOutboxRow struct {
 	Attempts int32
 }
 
-// Locks up to batch_size due Pending rows, oldest first; rows another publisher holds
-// are skipped, so no row is published by two publishers at once.
+// Locks up to batch_size due Pending rows in insertion order (so each subject's events
+// go out in seq order); rows another publisher holds are skipped, so no row is
+// published by two publishers at once.
 func (q *Queries) LockDueOutbox(ctx context.Context, arg LockDueOutboxParams) ([]LockDueOutboxRow, error) {
 	rows, err := q.db.Query(ctx, lockDueOutbox, arg.Now, arg.BatchSize)
 	if err != nil {
