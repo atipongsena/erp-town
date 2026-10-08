@@ -64,14 +64,25 @@ if grep -qE '^redis_' Procfile; then
 	log "1/6 removing redis entries from Procfile"
 	sed -i '/^redis_/d' Procfile
 fi
+# `bench serve` pins every request to default_site, so test.localhost would be unreachable over HTTP;
+# erp_town.devserver routes by X-Frappe-Site-Name / Host and falls back to default_site (town.localhost).
+WEB_CMD='web: env/bin/python -m erp_town.devserver --port 8000'
+if ! grep -qxF "$WEB_CMD" Procfile; then
+	log "1/6 Procfile web: erp_town.devserver"
+	sed -i '/^web:/d' Procfile
+	echo "$WEB_CMD" >>Procfile
+fi
 
 # --- 2. common site config ---------------------------------------------------------------
-log "2/6 common_site_config (db_host, redis, serve_default_site)"
+log "2/6 common_site_config (db_host, redis, serve_default_site, scheduler tick)"
 bench set-config -g db_host mariadb
 bench set-config -g redis_cache redis://redis-cache:6379
 bench set-config -g redis_queue redis://redis-queue:6379
 bench set-config -g redis_socketio redis://redis-queue:6379
 bench set-config -g -p serve_default_site True
+# Frappe's scheduler wakes every 240 s by default, so a `* * * * *` job (the town publish sweeper,
+# spec §4.3) would run every 4 minutes; wake every 60 s instead
+bench set-config -g -p scheduler_tick_interval 60
 
 # --- 3. erpnext + hrms ---------------------------------------------------------------------
 # A checkout alone is not enough: if step 1 rebuilt the venv (e.g. its python symlink into the
@@ -137,6 +148,9 @@ done
 bench --site "$TEST_SITE" set-config -p allow_tests True
 bench --site "$DEV_SITE" set-config -p developer_mode 1
 bench use "$DEV_SITE"
+# the town layer's publish sweeper / overdue job run from the scheduler (spec §4.3) on the dev site; the
+# test site keeps it off (`pnpm test:integration` turns it on for its run only)
+bench --site "$DEV_SITE" enable-scheduler
 log "5/6 sites ready: ${SITES[*]} (default: $DEV_SITE)"
 
 # --- 6. migrate (every start) --------------------------------------------------------------

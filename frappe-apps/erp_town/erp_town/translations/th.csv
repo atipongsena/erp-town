@@ -50,3 +50,4 @@ Town Subject Seq,ลำดับเหตุการณ์ของเอกส
 days must be between 0 and {0},จำนวนวันต้องอยู่ระหว่าง 0 ถึง {0}
 bulk must not be negative,จำนวนใบแจ้งหนี้ bulk ต้องไม่ติดลบ
 Company {0} not found: run `pnpm erp:seed` first,ไม่พบบริษัท {0}: รัน `pnpm erp:seed` ก่อน
+{0} is only allowed on a site with allow_tests,{0} ใช้ได้เฉพาะไซต์ที่เปิด allow_tests

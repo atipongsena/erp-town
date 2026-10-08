@@ -11,7 +11,7 @@ from werkzeug.test import EnvironBuilder
 from werkzeug.wrappers import Request
 
 from erp_town.events.actor import resolve_actor
-from erp_town.events.emit import emit_raw
+from erp_town.events.emit import discard_publish_batch, emit_raw
 from erp_town.events.schema import SCHEMA_DIR, EventSchemaError, validate_event
 from erp_town.events.seq import next_seq
 from erp_town.events.system import emit_system_error
@@ -75,6 +75,8 @@ def _request_headers(headers: dict):
 class TestEventCore(IntegrationTestCase):
 	def setUp(self):
 		frappe.db.savepoint("town_event_core")
+		# the tests share one transaction (savepoint rollback only): start each with no open publish batch
+		discard_publish_batch()
 		self.enqueue = patch("frappe.enqueue").start()
 		self.addCleanup(patch.stopall)
 
@@ -119,6 +121,13 @@ class TestEventCore(IntegrationTestCase):
 		eid = _emit_item()
 		self.enqueue.assert_called_once_with(
 			PUBLISH, queue="short", event_ids=[eid], enqueue_after_commit=True
+		)
+
+	def test_one_publish_job_per_transaction(self):
+		# e.g. a bulk import committing every 50 documents: one job per commit, not one per event
+		first, second, third = _emit_item("ITEM-B1"), _emit_item("ITEM-B2"), _emit_item("ITEM-B3")
+		self.enqueue.assert_called_once_with(
+			PUBLISH, queue="short", event_ids=[first, second, third], enqueue_after_commit=True
 		)
 
 	def test_explicit_lineage_and_visibility_are_kept(self):
@@ -483,3 +492,29 @@ class TestSeqConcurrency(IntegrationTestCase):
 			with self.assertRaises(frappe.QueryTimeoutError):
 				next_seq("Sales Order", "SO-CONC-0002")
 		self.assertEqual(next_seq("Sales Order", "SO-CONC-0002"), 3)
+
+
+class TestPublishBatchPerTransaction(IntegrationTestCase):
+	"""The publish batch ends with its transaction: after a rollback the next event gets a new job."""
+
+	def setUp(self):
+		frappe.db.rollback()
+		self.enqueue = patch("frappe.enqueue").start()
+		self.addCleanup(patch.stopall)
+
+	def tearDown(self):
+		frappe.db.rollback()
+
+	def test_rollback_closes_the_batch(self):
+		_emit_item("ITEM-RB1")
+		frappe.db.rollback()
+		second = _emit_item("ITEM-RB2")
+		self.assertEqual(self.enqueue.call_count, 2)
+		self.assertEqual(self.enqueue.call_args.kwargs["event_ids"], [second])
+
+	def test_enqueue_failure_leaves_no_batch_behind(self):
+		self.enqueue.side_effect = [ConnectionError("redis-queue down"), None]
+		_emit_item("ITEM-EF1")
+		second = _emit_item("ITEM-EF2")
+		self.assertEqual(self.enqueue.call_count, 2)
+		self.assertEqual(self.enqueue.call_args.kwargs["event_ids"], [second])

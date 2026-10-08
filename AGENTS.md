@@ -24,8 +24,8 @@ Requires Node >= 24, pnpm 10, Docker Desktop. Run from the repo root.
 | `pnpm install` | install workspace dependencies |
 | `pnpm lint` / `pnpm format` | Biome check / Biome check with fixes |
 | `pnpm test` | `pnpm -r test && pnpm erp:test` (package unit tests + Python tests) |
-| `pnpm test:integration` | Vitest integration tests against the dev stack |
-| `pnpm test:e2e` | Playwright e2e (`tests/e2e`, base URL `http://localhost:8080`) |
+| `pnpm test:integration` | Vitest integration tests against the dev stack: seeds `test.localhost`, runs its scheduler, uses stream `town:test:events`, then restores the site's DB snapshot |
+| `pnpm test:e2e` | Playwright e2e (`tests/e2e`, base URL `http://localhost:8080`; print formats on `http://test.localhost:8080`, same seed/restore); `--update-snapshots` re-records screenshot baselines |
 | `pnpm schema:gen` | regenerate TS types and copy event schema into the Frappe app |
 | `pnpm erp:up` | `docker compose -f infra/docker/compose.yaml --profile dev up -d`, then wait for `/api/method/ping` (first boot 15–30 min) |
 | `pnpm erp:down` | stop the dev stack |

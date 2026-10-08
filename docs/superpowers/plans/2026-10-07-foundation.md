@@ -518,16 +518,16 @@ def test_dn_and_so_render(self): ...  # contain doc name and be_date
 - Consumes: seed users and agent API keys (Task 14) on `test.localhost`; ioredis to `127.0.0.1:6380`; `@erp-town/event-schema` `validateEvent`.
 - `helpers.ts`: `erp(path, init)` — fetch `http://127.0.0.1:8080` with header `X-Frappe-Site-Name: test.localhost` and `Authorization: token <key>:<secret>` from env `TEST_API_KEY`/`TEST_API_SECRET` (created in `setup.ts` via `node scripts/erp.mjs bench --site test.localhost execute erp_town.setup.seed.run` + a helper method that returns Administrator keys for the test site); `readStream(fromId)`; `compose(...args)` running `docker compose -f infra/docker/compose.yaml --profile dev ...`.
 
-- [ ] **Step 1: Write the tests**
+- [x] **Step 1: Write the tests**
   - `sales-flow.test.ts`: create SO → submit → make DN/SI/PE via `erpnext.selling.doctype.sales_order.sales_order.make_delivery_note` etc. over REST → within 5 s the stream contains the 4 events for that `correlation_id`, ordered, valid per `validateEvent`, causation chain correct; measure submit→stream latency for 20 SO submits and assert p95 < 1000 ms.
   - `redis-outage.test.ts`: `compose('stop','redis-town')` → submit 3 SOs (all succeed) → outbox rows `Pending` → `compose('start','redis-town')` → within 150 s (2 sweeps + backoff) exactly 3 new events for those subjects, no duplicate ids.
   - `bulk-load.test.ts` (timeout 180 s): `scenario.run(days=0, bulk=400)` → all 400 SI events `Published` within 60 s of the call returning.
   - `print-formats.spec.ts`: log in as Administrator to `http://test.localhost:8080`, open print view for a seeded SO, DN, SI, PE with the Thai formats, `expect(page).toHaveScreenshot()` per format (baseline committed).
-- [ ] **Step 2: Run** `pnpm test:integration && pnpm test:e2e -- --update-snapshots` (first run creates baselines) then `pnpm test:e2e`
+- [x] **Step 2: Run** `pnpm test:integration && pnpm test:e2e -- --update-snapshots` (first run creates baselines) then `pnpm test:e2e`
 Expected: all PASS; record measured p95 and bulk time in the commit body.
-- [ ] **Step 3: Fix** any product defect found by these tests in its owning module (with a unit test there first), not in the test.
-- [ ] **Step 4: Run** `pnpm test && pnpm test:integration && pnpm test:e2e` → PASS
-- [ ] **Step 5: Commit** (`test: integration, outage, load and print-format e2e`, `Task: 15`)
+- [x] **Step 3: Fix** any product defect found by these tests in its owning module (with a unit test there first), not in the test.
+- [x] **Step 4: Run** `pnpm test && pnpm test:integration && pnpm test:e2e` → PASS
+- [x] **Step 5: Commit** (`test: integration, outage, load and print-format e2e`, `Task: 15`)
 
 ---
 
