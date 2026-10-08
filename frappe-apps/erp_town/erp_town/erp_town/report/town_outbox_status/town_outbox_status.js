@@ -2,6 +2,7 @@
 // License: GNU General Public License v3. See LICENSE
 
 // Town Outbox Status (spec §4.4, §8): outbox rows by status; "ส่งใหม่" requeues the Failed rows shown.
+// No default date window: every Failed row counted by the Town Failed card must be listed for resending.
 
 const REQUEUE_LABEL = "ส่งใหม่";
 
@@ -12,10 +13,10 @@ function failed_event_ids(report) {
 function requeue_failed(report) {
 	const event_ids = failed_event_ids(report);
 	if (!event_ids.length) {
-		frappe.msgprint("ไม่มีเหตุการณ์ที่ส่งไม่สำเร็จในรายการนี้");
+		frappe.msgprint(__("There are no failed events in this list"));
 		return;
 	}
-	frappe.confirm(`ส่งเหตุการณ์ที่ส่งไม่สำเร็จ ${event_ids.length} รายการใหม่หรือไม่?`, () => {
+	frappe.confirm(__("Resend {0} failed events?", [event_ids.length]), () => {
 		frappe
 			.call({
 				method: "erp_town.events.api.requeue_failed",
@@ -23,7 +24,10 @@ function requeue_failed(report) {
 				freeze: true,
 			})
 			.then((r) => {
-				frappe.show_alert({ message: `ตั้งให้ส่งใหม่แล้ว ${r.message || 0} รายการ`, indicator: "green" });
+				frappe.show_alert({
+					message: __("{0} events queued for resending", [r.message || 0]),
+					indicator: "green",
+				});
 				report.refresh();
 			});
 	});
@@ -41,13 +45,11 @@ frappe.query_reports["Town Outbox Status"] = {
 			fieldname: "from_date",
 			label: __("From Date"),
 			fieldtype: "Date",
-			default: frappe.datetime.add_days(frappe.datetime.get_today(), -7),
 		},
 		{
 			fieldname: "to_date",
 			label: __("To Date"),
 			fieldtype: "Date",
-			default: frappe.datetime.get_today(),
 		},
 	],
 	onload: (report) => {

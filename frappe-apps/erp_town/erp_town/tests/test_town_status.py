@@ -9,6 +9,7 @@ Runs on `test.localhost` only. Nothing here commits (`requeue_failed` enqueues a
 
 import json
 from datetime import timedelta
+from pathlib import Path
 from unittest.mock import patch
 
 import frappe
@@ -181,6 +182,19 @@ class TestTownStatus(IntegrationTestCase):
 		today = now_datetime().date()
 		_c, data, *_ = execute({"from_date": str(today - timedelta(days=1)), "to_date": str(today)})
 		self.assertEqual([r["event_id"] for r in data], [recent])
+
+	def test_report_has_no_default_date_window(self):
+		"""Every Failed row the Town Failed card counts must be listed for "ส่งใหม่" by default."""
+		js = (
+			Path(frappe.get_app_path("erp_town"))
+			/ "erp_town"
+			/ "report"
+			/ "town_outbox_status"
+			/ "town_outbox_status.js"
+		).read_text(encoding="utf-8")
+		filters = js.split("filters: [", 1)[1].split("],\n\tonload", 1)[0]
+		self.assertIn('fieldname: "from_date"', filters)
+		self.assertNotIn("default:", filters)
 
 	# --- desk records -------------------------------------------------------------------------
 

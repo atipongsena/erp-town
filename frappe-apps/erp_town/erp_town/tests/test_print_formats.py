@@ -40,6 +40,7 @@ CUSTOMER_TAX_ID = "0994000165889"  # checksum-valid
 OTHER_CHARGE_ACCOUNT = "Freight and Forwarding Charges - ETT"  # ERPNext standard chart, test company
 THAI = re.compile("[ก-๛]")  # Thai block: strings already written in Thai need no entry
 MESSAGE = re.compile(r'(?<![\w.])_\(\s*"([^"]*)"')  # _("literal") in the app's Python
+JS_MESSAGE = re.compile(r'(?<![\w.$])__\(\s*"([^"]*)"')  # __("literal") in the app's JS
 FONT_URLS = ("/assets/erp_town/fonts/Sarabun-Regular.ttf", "/assets/erp_town/fonts/Sarabun-Bold.ttf")
 
 
@@ -381,9 +382,20 @@ class TestThaiTranslations(UnitTestCase):
 			for path in APP.glob(f"*/{kind}/*/*.json"):
 				meta = frappe.parse_json(path.read_text(encoding="utf-8"))
 				labels += [meta.get("label") or meta["name"]]
-				labels += [link["label"] for link in meta.get("links") or []]
+				# workspace child rows: the desk titles a number card / chart / shortcut by the row's label
+				for table in ("links", "number_cards", "charts", "shortcuts", "quick_lists"):
+					labels += [row["label"] for row in meta.get(table) or [] if row.get("label")]
 		self.assertIn("Town Outbox Status", labels)
+		self.assertIn("Town Oldest Pending Age", labels)
 		self.assertEqual(self._untranslated(labels), [])
+
+	def test_every_app_js_message_has_a_thai_translation(self):
+		messages = []
+		for path in APP.rglob("*.js"):
+			if "dist" not in path.parts and "node_modules" not in path.parts:
+				messages += JS_MESSAGE.findall(path.read_text(encoding="utf-8"))
+		self.assertIn("Resend {0} failed events?", messages)
+		self.assertEqual(self._untranslated(messages), [])
 
 	def test_every_app_message_has_a_thai_translation(self):
 		messages = []
