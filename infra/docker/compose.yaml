@@ -5,7 +5,24 @@
 # frappe/bench container running `bench start` (web, socketio, workers, scheduler, watch)
 # against a bench that lives in the `bench-data` volume, with only the erp_town app
 # bind-mounted from the repo.
+#
+# Profile `pilot` (`pnpm erp:pilot:build`, `pnpm erp:pilot:up`): the built image
+# erp-town/erpnext:v16-<sha> (infra/docker/pilot/Containerfile, no bind mounts) as frappe_docker-style
+# services behind Caddy TLS, plus a daily S3 backup. It shares mariadb and the redis containers with
+# dev but has its own site (SITE_NAME), database, volumes (pilot-*) and redis DB index 1, so both
+# profiles can run side by side. Restore drill and pre-pilot checklist: infra/docker/pilot/RESTORE.md.
 name: erp-town
+
+x-pilot-service: &pilot-service
+  image: ${PILOT_IMAGE:-erp-town/erpnext:v16-unset}
+  profiles: ["pilot"]
+  restart: unless-stopped
+  volumes:
+    - pilot-sites:/home/frappe/frappe-bench/sites
+    - pilot-logs:/home/frappe/frappe-bench/logs
+  depends_on:
+    create-site:
+      condition: service_completed_successfully
 
 services:
   mariadb:
@@ -87,8 +104,112 @@ services:
       - ../../frappe-apps/erp_town:/home/frappe/frappe-bench/apps/erp_town
       - ../..:/workspace:ro
 
+  # --- pilot profile -----------------------------------------------------------------------------
+  # One-shot: bench config, new-site (or install missing apps + migrate), town_redis_url, scheduler.
+  # Every other pilot service starts only after it exited 0 (`pnpm erp:logs create-site`).
+  create-site:
+    <<: *pilot-service
+    restart: "no"
+    command: ["erp-town-create-site"]
+    environment:
+      SITE_NAME: ${SITE_NAME:-}
+      DB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-}
+      ADMIN_PASSWORD: ${PILOT_ADMIN_PASSWORD:-}
+      # DB index 1: the pilot's queues/cache/stream never mix with the dev bench's (DB 0) on the
+      # shared redis containers
+      REDIS_CACHE_URL: redis://redis-cache:6379/1
+      REDIS_QUEUE_URL: redis://redis-queue:6379/1
+      TOWN_REDIS_URL: ${PILOT_REDIS_TOWN_URL:-redis://redis-town:6379/1}
+    depends_on:
+      mariadb:
+        condition: service_healthy
+      redis-cache:
+        condition: service_started
+      redis-queue:
+        condition: service_started
+      redis-town:
+        condition: service_started
+
+  backend:
+    <<: *pilot-service
+    # image CMD start.sh: gunicorn frappe.app:application on :8000 (site from Host / X-Frappe-Site-Name)
+
+  websocket:
+    <<: *pilot-service
+    command: ["node", "/home/frappe/frappe-bench/apps/frappe/socketio.js"]
+
+  # nginx: static assets + proxy to backend/websocket on :8080 (reached only through caddy)
+  frontend:
+    <<: *pilot-service
+    command: ["nginx-entrypoint.sh"]
+    environment:
+      BACKEND: backend:8000
+      SOCKETIO: websocket:9000
+      FRAPPE_SITE_NAME_HEADER: $$host
+      # only caddy can reach the frontend (not published), so trust its X-Forwarded-For
+      UPSTREAM_REAL_IP_ADDRESS: 0.0.0.0/0
+      UPSTREAM_REAL_IP_HEADER: X-Forwarded-For
+      UPSTREAM_REAL_IP_RECURSIVE: "off"
+      PROXY_READ_TIMEOUT: 120
+      CLIENT_MAX_BODY_SIZE: 50m
+    depends_on:
+      backend:
+        condition: service_started
+      websocket:
+        condition: service_started
+
+  # `short` only: the town publish job (spec §4.2 step 6) must not wait behind long/default jobs
+  queue-short:
+    <<: *pilot-service
+    command: ["bench", "worker", "--queue", "short"]
+
+  queue-long:
+    <<: *pilot-service
+    command: ["bench", "worker", "--queue", "long,default"]
+
+  # cron-like scheduler (tick 60 s): town publish sweeper every minute, overdue/purge daily (spec §4.3)
+  scheduler:
+    <<: *pilot-service
+    command: ["bench", "schedule"]
+
+  caddy:
+    image: caddy:2.11.7-alpine
+    profiles: ["pilot"]
+    restart: unless-stopped
+    environment:
+      SITE_NAME: ${SITE_NAME:-}
+      LETSENCRYPT_EMAIL: ${LETSENCRYPT_EMAIL:-}
+    ports:
+      # 127.0.0.1 for a pilot rehearsal on a dev machine; PILOT_BIND_ADDRESS=0.0.0.0 on the pilot host
+      - "${PILOT_BIND_ADDRESS:-127.0.0.1}:80:80"
+      - "${PILOT_BIND_ADDRESS:-127.0.0.1}:443:443"
+    volumes:
+      - ./pilot/Caddyfile:/etc/caddy/Caddyfile:ro
+      - pilot-caddy-data:/data
+      - pilot-caddy-config:/config
+    depends_on:
+      - frontend
+
+  # daily `bench backup --with-files` -> S3-compatible storage at BACKUP_TIME_UTC, 14 days kept remotely
+  # (infra/docker/pilot/backup.sh); on demand: `pnpm erp:pilot:backup`
+  backup:
+    <<: *pilot-service
+    command: ["erp-town-backup", "--daily"]
+    environment:
+      SITE_NAME: ${SITE_NAME:-}
+      BACKUP_S3_ENDPOINT: ${BACKUP_S3_ENDPOINT:-}
+      BACKUP_S3_BUCKET: ${BACKUP_S3_BUCKET:-}
+      BACKUP_S3_ACCESS_KEY: ${BACKUP_S3_ACCESS_KEY:-}
+      BACKUP_S3_SECRET_KEY: ${BACKUP_S3_SECRET_KEY:-}
+      BACKUP_S3_REGION: ${BACKUP_S3_REGION:-us-east-1}
+      BACKUP_TIME_UTC: ${BACKUP_TIME_UTC:-19:00}
+
 volumes:
   mariadb-data:
   redis-queue-data:
   redis-town-data:
   bench-data:
+  pilot-sites:
+  pilot-logs:
+  pilot-caddy-data:
+  pilot-caddy-config:

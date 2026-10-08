@@ -1,0 +1,8 @@
+# Build context of infra/docker/pilot/Containerfile is the repo root; send only what the image uses.
+*
+!frappe-apps/erp_town
+!infra/docker/pilot
+**/__pycache__
+**/*.py[cod]
+**/*.egg-info
+infra/docker/pilot/*.md

@@ -22,7 +22,12 @@
     "erp:bench": "node scripts/erp.mjs bench",
     "erp:test": "node scripts/erp.mjs test",
     "erp:seed": "node scripts/erp.mjs seed",
-    "erp:scenario": "node scripts/erp.mjs scenario"
+    "erp:scenario": "node scripts/erp.mjs scenario",
+    "erp:pilot:build": "node scripts/erp.mjs pilot:build",
+    "erp:pilot:up": "node scripts/erp.mjs pilot:up",
+    "erp:pilot:down": "node scripts/erp.mjs pilot:down",
+    "erp:pilot:bench": "node scripts/erp.mjs pilot:bench",
+    "erp:pilot:backup": "node scripts/erp.mjs pilot:backup"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.15",

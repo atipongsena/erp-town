@@ -1,0 +1,92 @@
+# ERP Town pilot image: ERPNext v16 + HRMS + erp_town, production layout of frappe_docker.
+#
+# Build (context = repo root):  pnpm erp:pilot:build
+#   = docker build -f infra/docker/pilot/Containerfile -t erp-town/erpnext:v16-<git short sha> .
+#
+# Stages mirror frappe_docker images/layered/Containerfile (upstream commit e08b50ca, 2026-10-06):
+# `builder` (frappe/build: compilers, node, yarn) runs `bench init` with the apps of apps.json, adds
+# erp_town from this repo and builds production assets; `backend` (frappe/base: runtime only, nginx,
+# wkhtmltopdf, chromium-headless-shell) gets the finished bench. One image serves every pilot
+# service (gunicorn backend, socketio, workers, scheduler, nginx frontend, create-site, backup).
+ARG FRAPPE_BRANCH=version-16
+ARG FRAPPE_IMAGE_PREFIX=frappe
+
+FROM ${FRAPPE_IMAGE_PREFIX}/build:${FRAPPE_BRANCH} AS builder
+
+ARG FRAPPE_BRANCH=version-16
+ARG FRAPPE_PATH=https://github.com/frappe/frappe
+
+USER frappe
+
+# apps.json only lists public repositories (no tokens), so it is a plain COPY rather than the build
+# secret frappe_docker uses. --skip-assets: assets are built once below, after erp_town is added.
+COPY --chown=frappe:0 infra/docker/pilot/apps.json /opt/frappe/apps.json
+RUN bench init --apps_path=/opt/frappe/apps.json \
+    --frappe-branch=${FRAPPE_BRANCH} \
+    --frappe-path=${FRAPPE_PATH} \
+    --no-procfile \
+    --no-backups \
+    --skip-redis-config-generation \
+    --skip-assets \
+    /home/frappe/frappe-bench
+
+WORKDIR /home/frappe/frappe-bench
+
+# erp_town from this repo (no git checkout). Editable install like every app `bench get-app`
+# installs, so frappe.get_app_path("erp_town") is apps/erp_town/erp_town in the image too.
+COPY --chown=frappe:0 frappe-apps/erp_town apps/erp_town
+RUN ./env/bin/pip install --no-cache-dir -e apps/erp_town && \
+    { [ -z "$(tail -c1 sites/apps.txt)" ] || echo >>sites/apps.txt; } && \
+    echo erp_town >>sites/apps.txt && \
+    bench build --production && \
+    echo "{}" > sites/common_site_config.json && \
+    find apps -mindepth 1 -path "*/.git" | xargs rm -fr && \
+    find apps -name __pycache__ -type d -prune -exec rm -rf {} +
+
+FROM ${FRAPPE_IMAGE_PREFIX}/base:${FRAPPE_BRANCH} AS backend
+
+# AWS CLI for backup.sh (`aws s3 cp/ls/rm --endpoint-url`), in its own venv so it cannot clash with
+# the bench's Python packages.
+USER root
+RUN python3 -m venv /opt/awscli && \
+    /opt/awscli/bin/pip install --no-cache-dir "awscli>=1.40,<2" && \
+    ln -s /opt/awscli/bin/aws /usr/local/bin/aws && \
+    aws --version
+
+USER frappe
+
+COPY --from=builder --chown=frappe:0 /home/frappe/frappe-bench /home/frappe/frappe-bench
+RUN chmod -R g=u /home/frappe/frappe-bench
+
+WORKDIR /home/frappe/frappe-bench
+
+# Move assets to image-layer storage (the entrypoint links them into the sites volume), and keep the
+# image's apps.txt outside the volume: create-site.sh copies it into sites/ on every start, so an
+# upgraded image never runs with a stale app list.
+RUN cp -r /home/frappe/frappe-bench/sites/assets /home/frappe/frappe-bench/assets && \
+  rm -rf /home/frappe/frappe-bench/sites/assets && \
+  cp /home/frappe/frappe-bench/sites/apps.txt /home/frappe/frappe-bench/apps.txt
+
+VOLUME [ \
+  "/home/frappe/frappe-bench/sites", \
+  "/home/frappe/frappe-bench/logs" \
+]
+
+USER root
+# Vendored from frappe_docker resources/core (MIT, header in each file).
+# This entrypoint script link build assets of the image to the mounted sites volume at container initialization
+COPY infra/docker/pilot/vendor/frappe_docker/main-entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod 755 /usr/local/bin/entrypoint.sh
+
+COPY infra/docker/pilot/vendor/frappe_docker/start.sh /usr/local/bin/start.sh
+RUN chmod 755 /usr/local/bin/start.sh
+
+# ERP Town pilot jobs: one-shot site bootstrap/migrate and the S3 backup.
+COPY infra/docker/pilot/create-site.sh /usr/local/bin/erp-town-create-site
+COPY infra/docker/pilot/backup.sh /usr/local/bin/erp-town-backup
+RUN chmod 755 /usr/local/bin/erp-town-create-site /usr/local/bin/erp-town-backup
+
+USER frappe
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+
+CMD ["start.sh"]

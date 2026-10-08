@@ -1,16 +1,18 @@
 #!/usr/bin/env node
-// Cross-platform wrapper around `docker compose` and `bench` for the ERP Town dev stack.
+// Cross-platform wrapper around `docker compose` and `bench` for the ERP Town dev stack and the
+// pilot profile (`pilot:*` commands, infra/docker/pilot).
 // Spawns `docker` directly (no shell), so it behaves the same in PowerShell, cmd and Git Bash.
 // Exit code = exit code of the docker child process.
 
-import { spawn } from 'node:child_process'
-import { copyFileSync, existsSync } from 'node:fs'
+import { execFileSync, spawn } from 'node:child_process'
+import { copyFileSync, existsSync, readFileSync } from 'node:fs'
+import https from 'node:https'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parseArgs } from 'node:util'
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
-const COMPOSE = ['compose', '-f', 'infra/docker/compose.yaml', '--profile', 'dev']
+const COMPOSE = ['compose', '-f', 'infra/docker/compose.yaml']
 const ENV_FILE = 'infra/docker/.env'
 const ENV_EXAMPLE = 'infra/docker/.env.example'
 const BENCH_SERVICE = 'bench'
@@ -20,6 +22,29 @@ const TEST_SITE = 'test.localhost'
 const PING_URL = 'http://localhost:8080/api/method/ping'
 const PING_INTERVAL_MS = 5_000
 const PING_TIMEOUT_MS = 45 * 60_000
+const PILOT_CONTAINERFILE = 'infra/docker/pilot/Containerfile'
+const PILOT_IMAGE_REPO = 'erp-town/erpnext'
+// inputs of the pilot image (build context allowlist, Containerfile.dockerignore): a tag is "-dirty"
+// when they differ from HEAD
+const PILOT_INPUTS = ['frappe-apps/erp_town', 'infra/docker/pilot']
+const PILOT_SERVICES = [
+  'create-site',
+  'backend',
+  'websocket',
+  'frontend',
+  'queue-short',
+  'queue-long',
+  'scheduler',
+  'caddy',
+  'backup',
+]
+// keys `pilot:up` needs (infra/docker/.env or the environment); see .env.example
+const PILOT_REQUIRED = [
+  'SITE_NAME',
+  'DB_ROOT_PASSWORD',
+  'PILOT_ADMIN_PASSWORD',
+  'LETSENCRYPT_EMAIL',
+]
 
 const HELP = `Usage: node scripts/erp.mjs <command> [args...]   (or: pnpm erp:<command> -- [args...])
 
@@ -33,9 +58,18 @@ Commands:
   seed                       bench --site ${DEV_SITE} execute erp_town.setup.seed.run
   scenario [--days N] [--bulk N]
                              bench --site ${DEV_SITE} execute erp_town.setup.scenario.run --kwargs '{"days":N,"bulk":N}'
+
+Pilot (profile pilot, image ${PILOT_IMAGE_REPO}:v16-<git short sha>; drill: infra/docker/pilot/RESTORE.md):
+  pilot:build [args...]      docker build -f ${PILOT_CONTAINERFILE} -t ${PILOT_IMAGE_REPO}:v16-<sha>[-dirty] .
+  pilot:up [args...]         docker compose --profile pilot up -d, then wait for https://$SITE_NAME/api/method/ping
+  pilot:down                 stop and remove the pilot containers only (volumes and dev stack stay)
+  pilot:bench <args...>      run \`bench <args>\` in the pilot "backend" container
+  pilot:backup               one backup now: bench backup --with-files -> S3 (BACKUP_S3_* in .env)
+  The image is PILOT_IMAGE if set, else the tag of the current HEAD (build it first).
+
   help, --help, -h           show this help
 
-Compose file: infra/docker/compose.yaml (profile dev). Desk: http://localhost:8080
+Compose file: infra/docker/compose.yaml (profiles dev, pilot). Desk: http://localhost:8080
 `
 
 /** Quote one argument for bash (single quotes, embedded ' escaped). */
@@ -45,9 +79,9 @@ function shQuote(arg) {
 }
 
 /** Run `docker <args>` with inherited stdio; resolves with the child's exit code. */
-function docker(args) {
+function docker(args, env = process.env) {
   return new Promise((resolve) => {
-    const child = spawn('docker', args, { cwd: ROOT, stdio: 'inherit' })
+    const child = spawn('docker', args, { cwd: ROOT, stdio: 'inherit', env })
     // Ctrl+C reaches the child through the shared console; wait for it to exit instead of dying first.
     const ignore = () => {}
     process.on('SIGINT', ignore)
@@ -67,9 +101,63 @@ function docker(args) {
   })
 }
 
-function compose(...args) {
+function composeIn(profile, args, env) {
   const envFile = existsSync(path.join(ROOT, ENV_FILE)) ? ['--env-file', ENV_FILE] : []
-  return docker([...COMPOSE, ...envFile, ...args])
+  return docker([...COMPOSE, '--profile', profile, ...envFile, ...args], env)
+}
+
+const compose = (...args) => composeIn('dev', args)
+
+/** Run a command and capture stdout; never throws. */
+function capture(cmd, args) {
+  try {
+    const out = execFileSync(cmd, args, {
+      cwd: ROOT,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    })
+    return { ok: true, out: out.trim() }
+  } catch {
+    return { ok: false, out: '' }
+  }
+}
+
+function git(...args) {
+  const res = capture('git', args)
+  if (!res.ok) throw new Error(`git ${args.join(' ')} failed (is this a git checkout?)`)
+  return res.out
+}
+
+/** v16-<short sha of HEAD>, with -dirty when the image inputs have uncommitted changes. */
+function pilotTag() {
+  const sha = git('rev-parse', '--short', 'HEAD')
+  const dirty = git('status', '--porcelain', '--', ...PILOT_INPUTS) !== ''
+  return `v16-${sha}${dirty ? '-dirty' : ''}`
+}
+
+/** Pilot compose call with PILOT_IMAGE set (explicit env var, else the HEAD tag, which must exist). */
+function pilotCompose(...args) {
+  const image = process.env.PILOT_IMAGE || `${PILOT_IMAGE_REPO}:${pilotTag()}`
+  if (!capture('docker', ['image', 'inspect', '--format', '{{.Id}}', image]).ok)
+    throw new Error(`image ${image} not found: run \`pnpm erp:pilot:build\` (or set PILOT_IMAGE)`)
+  console.log(`erp: pilot image ${image}`)
+  return composeIn('pilot', args, { ...process.env, PILOT_IMAGE: image })
+}
+
+/** KEY=VALUE pairs of infra/docker/.env (no interpolation), overridden by the process environment. */
+function envSettings() {
+  const settings = {}
+  const file = path.join(ROOT, ENV_FILE)
+  if (existsSync(file)) {
+    for (const line of readFileSync(file, 'utf8').split(/\r?\n/)) {
+      const m = /^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*?)\s*$/.exec(line)
+      if (m) settings[m[1]] = m[2].replace(/^(['"])(.*)\1$/, '$2')
+    }
+  }
+  for (const key of [...Object.keys(settings), ...PILOT_REQUIRED]) {
+    if (process.env[key] !== undefined) settings[key] = process.env[key]
+  }
+  return settings
 }
 
 /** Create infra/docker/.env from .env.example (dev-only defaults) when it is missing. */
@@ -87,6 +175,60 @@ function execFlags() {
 function bench(args) {
   const cmd = `cd ${BENCH_DIR} && bench ${args.map(shQuote).join(' ')}`.trimEnd()
   return compose('exec', ...execFlags(), BENCH_SERVICE, 'bash', '-lc', cmd)
+}
+
+/** GET https://<site>/api/method/ping through caddy; a *.localhost site is reached at 127.0.0.1. */
+function pilotPing(site) {
+  const host = site === 'localhost' || site.endsWith('.localhost') ? '127.0.0.1' : site
+  return new Promise((resolve) => {
+    const req = https.request(
+      {
+        host,
+        servername: site,
+        path: '/api/method/ping',
+        headers: { Host: site },
+        // readiness probe only: the smoke site's certificate comes from caddy's internal CA
+        rejectUnauthorized: false,
+        timeout: PING_INTERVAL_MS,
+      },
+      (res) => {
+        let body = ''
+        res.on('data', (chunk) => {
+          body += chunk
+        })
+        res.on('end', () => {
+          try {
+            resolve(res.statusCode === 200 && JSON.parse(body)?.message === 'pong')
+          } catch {
+            resolve(false)
+          }
+        })
+      },
+    )
+    req.on('timeout', () => req.destroy())
+    req.on('error', () => resolve(false))
+    req.end()
+  })
+}
+
+async function waitForPilot(site) {
+  const started = Date.now()
+  const deadline = started + PING_TIMEOUT_MS
+  console.log(`erp: waiting for https://${site}/api/method/ping (first create-site: 5-15 min)...`)
+  while (Date.now() < deadline) {
+    if (await pilotPing(site)) {
+      const secs = Math.round((Date.now() - started) / 1000)
+      console.log(`\nerp: pilot is up at https://${site} (${secs}s)`)
+      return 0
+    }
+    const mins = Math.floor((Date.now() - started) / 60_000)
+    process.stdout.write(`\rerp: still waiting... ${mins} min elapsed`)
+    await new Promise((r) => setTimeout(r, PING_INTERVAL_MS))
+  }
+  console.error(
+    '\nerp: timed out waiting for the pilot. Check `pnpm erp:logs create-site` / caddy.',
+  )
+  return 1
 }
 
 async function waitForPing() {
@@ -157,6 +299,44 @@ const commands = {
       '--kwargs',
       JSON.stringify(kwargs),
     ])
+  },
+  'pilot:build'(args) {
+    const tag = `${PILOT_IMAGE_REPO}:${pilotTag()}`
+    console.log(`erp: building ${tag}`)
+    return docker([
+      'build',
+      '-f',
+      PILOT_CONTAINERFILE,
+      '-t',
+      tag,
+      '--label',
+      `org.opencontainers.image.revision=${git('rev-parse', 'HEAD')}`,
+      ...args,
+      '.',
+    ])
+  },
+  async 'pilot:up'(args) {
+    ensureEnvFile()
+    const settings = envSettings()
+    const missing = PILOT_REQUIRED.filter((key) => !settings[key])
+    if (missing.length > 0)
+      throw new Error(`pilot:up: set ${missing.join(', ')} in ${ENV_FILE} (see ${ENV_EXAMPLE})`)
+    const code = await pilotCompose('up', '-d', ...args)
+    return code === 0 ? waitForPilot(settings.SITE_NAME) : code
+  },
+  'pilot:down'(args) {
+    if (args.length > 0) throw new Error(`pilot:down: unexpected arguments: ${args.join(' ')}`)
+    // not `compose down`: that would also stop mariadb/redis, which the dev stack shares
+    return composeIn('pilot', ['rm', '--stop', '--force', ...PILOT_SERVICES])
+  },
+  'pilot:bench'(args) {
+    if (args.length === 0)
+      throw new Error('pilot:bench: missing arguments (e.g. `--site pilot.localhost list-apps`)')
+    return pilotCompose('exec', ...execFlags(), 'backend', 'bench', ...args)
+  },
+  'pilot:backup'(args) {
+    if (args.length > 0) throw new Error(`pilot:backup: unexpected arguments: ${args.join(' ')}`)
+    return pilotCompose('run', '--rm', '--no-deps', '-T', 'backup', 'erp-town-backup')
   },
 }
 

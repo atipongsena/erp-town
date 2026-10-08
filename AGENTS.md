@@ -35,6 +35,9 @@ Requires Node >= 24, pnpm 10, Docker Desktop. Run from the repo root.
 | `pnpm erp:test [--module m]` | `bench --site test.localhost run-tests --app erp_town [--module m]` |
 | `pnpm erp:seed` | `bench --site town.localhost execute erp_town.setup.seed.run` |
 | `pnpm erp:scenario [--days N] [--bulk N]` | `bench --site town.localhost execute erp_town.setup.scenario.run --kwargs '{"days":N,"bulk":N}'` |
+| `pnpm erp:pilot:build` | build `erp-town/erpnext:v16-<git short sha>[-dirty]` from `infra/docker/pilot/Containerfile` |
+| `pnpm erp:pilot:up` / `erp:pilot:down` | profile `pilot` (Caddy TLS on `https://$SITE_NAME`, shares mariadb/redis with dev) / remove only the pilot containers |
+| `pnpm erp:pilot:bench <args...>` / `erp:pilot:backup` | `bench` in the pilot `backend` / one S3 backup now (drill: `infra/docker/pilot/RESTORE.md`) |
 
 Pass options after `--` with pnpm (e.g. `pnpm erp:test -- --module erp_town.tests.test_smoke`), or call
 `node scripts/erp.mjs <command> [args...]` directly; `node scripts/erp.mjs --help` lists everything.

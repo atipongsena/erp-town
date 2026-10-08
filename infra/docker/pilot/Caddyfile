@@ -1,0 +1,19 @@
+# ERP Town pilot TLS front (compose service `caddy`, profile pilot), proxying to the nginx `frontend`.
+#
+# Certificates are automatic: a public DNS name (e.g. erp.example.co.th) gets a Let's Encrypt
+# certificate registered with $LETSENCRYPT_EMAIL (ports 80 and 443 must be reachable from the
+# internet); `localhost`, `*.localhost` and other internal names (the smoke uses pilot.localhost) get
+# one from Caddy's internal CA instead. Certificates live in the `pilot-caddy-data` volume.
+{
+	email {$LETSENCRYPT_EMAIL}
+	# the internal CA cannot be installed into a container's trust store; clients use `curl -k`
+	skip_install_trust
+}
+
+{$SITE_NAME} {
+	encode zstd gzip
+	reverse_proxy frontend:8080 {
+		# Frappe resolves the site from the Host header (nginx FRAPPE_SITE_NAME_HEADER=$host)
+		header_up Host {host}
+	}
+}
