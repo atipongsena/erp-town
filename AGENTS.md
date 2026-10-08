@@ -12,20 +12,27 @@ instructions for both (`CLAUDE.md` imports it).
 
 - `packages/*` — TS workspace packages (e.g. `@erp-town/event-schema`)
 - `frappe-apps/erp_town` — Frappe app (Python, GPLv3)
+- `go/` — Go platform (modular monolith `town`, proprietary; module `github.com/atipongsena/erp-town/go`)
 - `infra/docker` — dev/pilot compose stack; `scripts/erp.mjs` — wrapper for it
 - `tests/integration`, `tests/e2e` — Vitest integration and Playwright e2e against the running stack
 
 ## Commands
 
-Requires Node >= 24, pnpm 10, Docker Desktop. Run from the repo root.
+Requires Node >= 24, pnpm 10, Docker Desktop, Go 1.27, and gcc on PATH for `-race` (Windows: MSYS2 ucrt64).
+Docker must be running for `pnpm go:test` (testcontainers). Run from the repo root.
 
 | Command | What it does |
 | --- | --- |
 | `pnpm install` | install workspace dependencies |
-| `pnpm lint` / `pnpm format` | Biome check / Biome check with fixes |
-| `pnpm test` | `pnpm -r test && pnpm erp:test` (package unit tests + Python tests) |
+| `pnpm lint` / `pnpm format` | Biome check plus `pnpm go:lint` / Biome check with fixes |
+| `pnpm test` | `pnpm -r test && pnpm go:test && pnpm erp:test` (package unit tests + Go tests + Python tests) |
 | `pnpm test:integration` | Vitest integration tests against the dev stack: seeds `test.localhost`, runs its scheduler, uses stream `town:test:events`, then restores the site's DB snapshot |
 | `pnpm test:e2e` | Playwright e2e (`tests/e2e`, base URL `http://localhost:8080`; print formats on `http://test.localhost:8080`, same seed/restore); `--update-snapshots` re-records screenshot baselines |
+| `pnpm go:test` | Go unit tests: `gotestsum -- -race ./...` in `go/` (needs gcc and Docker) |
+| `pnpm go:test:integration` | Go integration tests (`-tags integration`) via `tests/integration/test-site.ts`: seeds and restores `test.localhost` |
+| `pnpm go:lint` | golangci-lint (govet, staticcheck, errcheck, depguard, gofumpt) |
+| `pnpm go:gen` | `pnpm schema:gen`, then `go generate ./...` |
+| `pnpm dev:town` | run `town serve` with live reload (air) |
 | `pnpm schema:gen` | regenerate TS types and copy event schema into the Frappe app |
 | `pnpm erp:up` | `docker compose -f infra/docker/compose.yaml --profile dev up -d`, then wait for `/api/method/ping` (first boot 15–30 min) |
 | `pnpm erp:down` | stop the dev stack |
@@ -55,6 +62,10 @@ Pass options after `--` with pnpm (e.g. `pnpm erp:test -- --module erp_town.test
   `test.localhost` = tests only (`allow_tests: true`). Never run tests against `town.localhost`.
 - Do not hand-edit generated files (`packages/event-schema/src/generated.ts`,
   `frappe-apps/erp_town/erp_town/events/schema/`); run `pnpm schema:gen`.
+- Generated Go paths, never hand-edited: `go/internal/events/gen/`, `go/internal/events/schema/`,
+  `go/internal/store/sqlc/` (run `pnpm go:gen`).
+- Clean-room: never open Frappe/ERPNext source as a model for `go/` code; `go/` is proprietary
+  (`go/LICENSE`), no GPL headers there.
 - `pnpm lint` must pass before committing.
 
 ## Progress convention (git is the cross-agent record)

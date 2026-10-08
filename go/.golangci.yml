@@ -1,0 +1,36 @@
+version: "2"
+linters:
+  default: none
+  enable:
+    - govet
+    - staticcheck
+    - errcheck
+    - depguard
+  settings:
+    depguard:
+      rules:
+        erp-adapter:
+          files:
+            - "**/internal/**"
+            - "!**/internal/erp/erpnext/**"
+            - "!**/internal/e2e/**"
+          deny:
+            - pkg: github.com/atipongsena/erp-town/go/internal/erp/erpnext
+              desc: adapters are chosen in cmd/town
+        devbridge-no-erp:
+          files:
+            - "**/internal/devbridge/**"
+          deny:
+            - pkg: github.com/atipongsena/erp-town/go/internal/erp
+              desc: devbridge must not depend on erp
+  exclusions:
+    paths:
+      - internal/events/gen
+      - internal/store/sqlc
+formatters:
+  enable:
+    - gofumpt
+  exclusions:
+    paths:
+      - internal/events/gen
+      - internal/store/sqlc

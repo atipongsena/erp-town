@@ -16,3 +16,7 @@ infra/docker/.env
 __pycache__/
 *.py[cod]
 *.egg-info/
+
+# Go
+go/bin/
+go/tmp/

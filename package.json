@@ -9,9 +9,9 @@
     "node": ">=24"
   },
   "scripts": {
-    "lint": "biome check .",
+    "lint": "biome check . && pnpm go:lint",
     "format": "biome check --write .",
-    "test": "pnpm -r test && pnpm erp:test",
+    "test": "pnpm -r test && pnpm go:test && pnpm erp:test",
     "test:integration": "vitest run -c tests/integration/vitest.config.ts",
     "test:e2e": "playwright test",
     "schema:gen": "node packages/event-schema/scripts/gen.mjs",
@@ -27,7 +27,12 @@
     "erp:pilot:up": "node scripts/erp.mjs pilot:up",
     "erp:pilot:down": "node scripts/erp.mjs pilot:down",
     "erp:pilot:bench": "node scripts/erp.mjs pilot:bench",
-    "erp:pilot:backup": "node scripts/erp.mjs pilot:backup"
+    "erp:pilot:backup": "node scripts/erp.mjs pilot:backup",
+    "go:test": "go -C go tool gotestsum --format pkgname -- -race ./...",
+    "go:test:integration": "node tests/integration/test-site.ts run --scheduler -- go -C go tool gotestsum --format pkgname -- -race -p 1 -tags integration -count=1 ./...",
+    "go:lint": "go -C go tool golangci-lint run ./...",
+    "go:gen": "pnpm schema:gen && go -C go generate ./...",
+    "dev:town": "go -C go tool air"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.15",
