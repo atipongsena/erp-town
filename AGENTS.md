@@ -13,7 +13,7 @@ instructions for both (`CLAUDE.md` imports it).
 - `packages/*` — TS workspace packages (e.g. `@erp-town/event-schema`)
 - `frappe-apps/erp_town` — Frappe app (Python, GPLv3)
 - `go/` — Go platform (modular monolith `town`, proprietary; module `github.com/atipongsena/erp-town/go`)
-- `infra/docker` — dev/pilot compose stack; `scripts/erp.mjs` — wrapper for it
+- `infra/docker` — dev/pilot compose stack (incl. `postgres`: PostgreSQL 18 for the Go layer, `127.0.0.1:5433`, user `town`, dbs `town`/`town_pilot`); `scripts/erp.mjs` — wrapper for it
 - `tests/integration`, `tests/e2e` — Vitest integration and Playwright e2e against the running stack
 
 ## Commands
@@ -60,6 +60,7 @@ Pass options after `--` with pnpm (e.g. `pnpm erp:test -- --module erp_town.test
   API keys/secrets printed by seed go only into your local `.env`.
 - Sites: `town.localhost` = dev (default site, Desk at `http://localhost:8080`);
   `test.localhost` = tests only (`allow_tests: true`). Never run tests against `town.localhost`.
+- Go keeps its own (non-ERP) data in PostgreSQL 18; Go tests start their own container via testcontainers (Docker must be running, the dev stack is not needed) and never connect to MariaDB.
 - Do not hand-edit generated files (`packages/event-schema/src/generated.ts`,
   `frappe-apps/erp_town/erp_town/events/schema/`); run `pnpm schema:gen`.
 - Generated Go paths, never hand-edited: `go/internal/events/gen/`, `go/internal/events/schema/`,
