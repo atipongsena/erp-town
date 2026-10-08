@@ -6,6 +6,8 @@
 Idempotent: on a site set up through the wizard everything already exists and nothing is written.
 """
 
+from collections.abc import Iterable
+
 import frappe
 from frappe.utils import getdate, nowdate
 
@@ -38,10 +40,13 @@ def ensure_tree_roots() -> None:
 		frappe.get_doc({"doctype": "Warehouse Type", "name": "Transit"}).insert(ignore_permissions=True)
 
 
-def ensure_fiscal_years(name_format: str = "{year}") -> None:
-	"""Calendar fiscal years for last, this and next year, unless one already covers that year."""
-	year = getdate(nowdate()).year
-	for y in (year - 1, year, year + 1):
+def ensure_fiscal_years(name_format: str = "{year}", years: Iterable[int] | None = None) -> None:
+	"""Calendar fiscal years for `years` (default: last, this and next year), unless one already covers
+	that year."""
+	if years is None:
+		year = getdate(nowdate()).year
+		years = (year - 1, year, year + 1)
+	for y in years:
 		start, end = f"{y}-01-01", f"{y}-12-31"
 		covered = frappe.db.exists(
 			"Fiscal Year", {"year_start_date": ["<=", start], "year_end_date": [">=", end]}

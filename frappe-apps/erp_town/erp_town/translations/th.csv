@@ -47,3 +47,6 @@ Town Subject Seq,ลำดับเหตุการณ์ของเอกส
 "Workflow states that count as awaiting approval, one per line or comma-separated",สถานะเวิร์กโฟลว์ที่นับว่ารออนุมัติ หนึ่งสถานะต่อบรรทัดหรือคั่นด้วยจุลภาค
 {0} does not use a naming series,{0} ไม่ได้ใช้ชุดเลขที่เอกสาร
 {0} events queued for resending,ตั้งให้ส่งใหม่แล้ว {0} รายการ
+days must be between 0 and {0},จำนวนวันต้องอยู่ระหว่าง 0 ถึง {0}
+bulk must not be negative,จำนวนใบแจ้งหนี้ bulk ต้องไม่ติดลบ
+Company {0} not found: run `pnpm erp:seed` first,ไม่พบบริษัท {0}: รัน `pnpm erp:seed` ก่อน

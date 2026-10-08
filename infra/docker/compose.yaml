@@ -63,6 +63,8 @@ services:
       DB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?set DB_ROOT_PASSWORD in infra/docker/.env}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:?set ADMIN_PASSWORD in infra/docker/.env}
       REDIS_TOWN_URL: ${REDIS_TOWN_URL:-redis://redis-town:6379/0}
+      # password of the users `pnpm erp:seed` creates (empty = the dev default town-dev-123)
+      SEED_USER_PASSWORD: ${SEED_USER_PASSWORD:-}
       # Windows bind mounts do not deliver inotify events: poll for Python/JS reloads.
       WATCHFILES_FORCE_POLLING: "true"
       CHOKIDAR_USEPOLLING: "true"

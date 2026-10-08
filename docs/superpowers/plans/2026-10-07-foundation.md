@@ -500,11 +500,11 @@ def test_dn_and_so_render(self): ...  # contain doc name and be_date
   - `seed.run() -> dict` — idempotent; returns counts. Sets System Settings `language = "th"`, `time_zone = "Asia/Bangkok"`, `country = "Thailand"`, `currency = "THB"`. Creates exactly: company `บริษัท ตัวอย่างเทรดดิ้ง จำกัด` abbr `ACME-TH`; fiscal year covering today; warehouse `คลังหลัก`; 20 items `ITEM-001..020` (stock items, UOM `ชิ้น`, `Item Reorder` for คลังหลัก) with opening stock via Stock Reconciliation (once); 10 customers `CUST-001..010` with tax ids valid by checksum (generated deterministically, document the generator) — CUST-009 and CUST-010 have `credit_limit` 5,000; users `sales@acme-th.test` (Sales User), `stock@acme-th.test` (Stock User), `accounts@acme-th.test` (Accounts User), `approver@acme-th.test` (Sales Manager) with password from env `SEED_USER_PASSWORD` (default `town-dev-123`, dev only); custom Check field `th_requires_approval` on Sales Order computed in `validate` (`grand_total + customer outstanding > credit_limit` when a limit exists); Workflow `อนุมัติ SO เกินวงเงิน` (states as Task 9; transitions: Draft→รออนุมัติ when `doc.th_requires_approval`, Draft→อนุมัติแล้ว when not, รออนุมัติ→อนุมัติแล้ว/ปฏิเสธ by Sales Manager); agent users `agent.sales_assistant@acme-th.test` and `agent.ar_collector@acme-th.test` with roles Sales User / Accounts User and `Town Agent Identity` keys `agent.sales_assistant`, `agent.ar_collector`; API key/secret generated only when absent and printed once.
   - `scenario.run(days: int = 7, bulk: int = 0, rng_seed: int = 42) -> dict` — for each simulated day: 3–8 SOs (random customers/items), ~80% get DN, ~70% of DNs get SI, ~60% of SIs paid; some SI due dates in the past so overdue fires; occasional SO to CUST-009/010 to trigger approval; `bulk > 0` additionally creates `bulk` SIs in one transaction batch (commit every 50). Returns counts per doctype.
 
-- [ ] **Step 1: Write failing tests** on `test.localhost`: `run()` twice → identical counts and no duplicates; every seeded customer tax id passes `is_valid_tax_id`; workflow exists and an SO for CUST-009 above limit enters `รออนุมัติ`; `scenario.run(days=1, rng_seed=1)` twice with the same seed produces the same number of SOs.
-- [ ] **Step 2: Run** `pnpm erp:test -- --module erp_town.tests.test_seed` → FAIL
-- [ ] **Step 3: Implement**
-- [ ] **Step 4: Run** → PASS; then `pnpm erp:seed && pnpm erp:seed && pnpm erp:scenario -- --days 3` on `town.localhost` succeed
-- [ ] **Step 5: Commit** (`feat(setup): idempotent seed and scenario generator`, `Task: 14`)
+- [x] **Step 1: Write failing tests** on `test.localhost`: `run()` twice → identical counts and no duplicates; every seeded customer tax id passes `is_valid_tax_id`; workflow exists and an SO for CUST-009 above limit enters `รออนุมัติ`; `scenario.run(days=1, rng_seed=1)` twice with the same seed produces the same number of SOs.
+- [x] **Step 2: Run** `pnpm erp:test -- --module erp_town.tests.test_seed` → FAIL
+- [x] **Step 3: Implement**
+- [x] **Step 4: Run** → PASS; then `pnpm erp:seed && pnpm erp:seed && pnpm erp:scenario -- --days 3` on `town.localhost` succeed
+- [x] **Step 5: Commit** (`feat(setup): idempotent seed and scenario generator`, `Task: 14`)
 
 ---
 

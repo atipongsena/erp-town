@@ -41,6 +41,8 @@ doc_events = {
 	"Company": {"validate": "erp_town.thai.setup.validate_tax_id"},
 	"Customer": {"validate": "erp_town.thai.setup.validate_tax_id"},
 	"Sales Order": {
+		# credit-limit approval flag read by the `อนุมัติ SO เกินวงเงิน` workflow (an ERP rule, may block)
+		"validate": "erp_town.selling.credit_approval.set_requires_approval",
 		"on_submit": "erp_town.events.doc_hooks.on_doc_event",
 		"on_cancel": "erp_town.events.doc_hooks.on_doc_event",
 		"on_change": "erp_town.events.workflow.on_change",  # workflow.approval.*
