@@ -1,5 +1,6 @@
 // Package events implements the ERP Town event contract in Go: envelope types,
-// JSON Schema validation and (de)serialization. The schemas and the per-type
+// JSON Schema validation and (de)serialization, the Redis Streams consumer, and the
+// Postgres outbox (Emit) with its stream publisher. The schemas and the per-type
 // data structs are generated from packages/event-schema by `pnpm schema:gen`.
 package events
 
