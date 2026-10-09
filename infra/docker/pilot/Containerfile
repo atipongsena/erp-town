@@ -65,10 +65,11 @@ RUN python3 -m venv /opt/awscli && \
 # pg_dump / pg_restore of the town layer's PostgreSQL 18 (backup.sh, RESTORE.md): the Debian archive
 # only has older majors, and a dump from a newer server needs a client at least as new, so install
 # postgresql-client-18 from the PGDG apt repo.
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends ca-certificates curl gnupg && \
-    install -d /usr/share/postgresql-common/pgdg && \
+# curl and gpg already ship in frappe/base, so nothing is installed for (or left behind by) the key
+# download. The key must have the published PGDG fingerprint or the build fails.
+RUN install -d /usr/share/postgresql-common/pgdg && \
     curl -fsSL -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc && \
+    test "$(gpg --show-keys --with-colons /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc | awk -F: '/^fpr:/ {print $10; exit}')" = B97B0AFCAA1A47F044F244A07FCC7D46ACCC4CF8 && \
     . /etc/os-release && \
     echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt ${VERSION_CODENAME}-pgdg main" >/etc/apt/sources.list.d/pgdg.list && \
     apt-get update && \

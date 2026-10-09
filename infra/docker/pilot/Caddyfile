@@ -12,7 +12,11 @@
 
 {$SITE_NAME} {
 	encode zstd gzip
-	# Go town layer (gateway API, metrics) on the same origin; matched before the Frappe proxy
+	# Go town layer gateway API on the same origin; matched before the Frappe proxy. /town/metrics is
+	# unauthenticated, so it is not public: Prometheus scrapes town:8090 on the compose network.
+	handle /town/metrics {
+		respond 404
+	}
 	handle /town/* {
 		reverse_proxy town:8090
 	}

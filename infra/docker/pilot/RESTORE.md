@@ -197,6 +197,9 @@ Tick each item (date, initials) before the pilot starts; keep the filled copy wi
       mode 600, copy in the password manager; never committed
 - [ ] DNS A/AAAA record of `SITE_NAME` points at the host; ports 80 and 443 open; `pnpm erp:pilot:up`
       ends with `pilot is up at https://<SITE_NAME>`; browser shows a valid Let's Encrypt certificate
+- [ ] strong unique `TOWN_PG_PASSWORD` (the compose default `town` is dev-only). `POSTGRES_PASSWORD` only
+      applies on a fresh volume: on an existing postgres volume also run
+      `dc exec postgres psql -U town -d town -c "ALTER ROLE town PASSWORD '<new>'"`
 - [ ] `PILOT_TOWN_JWT_PRIVATE_KEY` set (own value, not the dev key); `town` container up and
       `curl -k https://<SITE_NAME>/town/api/healthz` → `{"status":"ok"}`, `/town/api/me` → 401
       (the distroless image has no healthcheck, so this external check is the probe)
