@@ -55,7 +55,13 @@ func NewClient(cfg ClientConfig) *Client {
 		base:    strings.TrimRight(cfg.BaseURL, "/"),
 		site:    cfg.Site,
 		timeout: timeout,
-		http:    &http.Client{Transport: rt},
+		http: &http.Client{
+			Transport: rt,
+			// /api/* never redirects; following one would forward the CSRF
+			// and on-behalf-of headers or replay a write body. A 3xx maps to
+			// the unexpected-response error instead.
+			CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse },
+		},
 	}
 }
 
@@ -164,6 +170,11 @@ func (c *Client) do(ctx context.Context, method, target string, body []byte, cre
 	}
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("X-Frappe-Site-Name", c.site)
+	if c.site != "" {
+		// Proxies in front of Frappe (the pilot nginx) derive the site from
+		// Host and overwrite X-Frappe-Site-Name, so send the site as Host too.
+		req.Host = c.site
+	}
 	if body != nil {
 		req.Header.Set("Content-Type", "application/json")
 	}

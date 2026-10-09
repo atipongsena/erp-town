@@ -6,6 +6,7 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"strings"
 	"sync"
@@ -314,4 +315,72 @@ func TestLinkExistsIsAConflictNotValidation(t *testing.T) {
 	require.ErrorIs(t, err, erp.ErrConflict)
 	assert.NotErrorIs(t, err, erp.ErrValidation)
 	assert.Contains(t, err.Error(), "SO-1 is linked with DN-1")
+}
+
+// TestSiteIsSentAsHost: proxies such as the pilot nginx rewrite
+// X-Frappe-Site-Name from Host, so the site must also be the Host header.
+func TestSiteIsSentAsHost(t *testing.T) {
+	var mu sync.Mutex
+	var hosts, siteHeaders []string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		hosts = append(hosts, r.Host)
+		siteHeaders = append(siteHeaders, r.Header.Get("X-Frappe-Site-Name"))
+		mu.Unlock()
+		_, _ = io.WriteString(w, `{"message":"ok","data":"ok"}`)
+	}))
+	t.Cleanup(srv.Close)
+	c := NewClient(ClientConfig{BaseURL: srv.URL, Site: "pilot.localhost"})
+
+	require.NoError(t, c.Call(context.Background(), keyPrincipal, "ping", nil, nil))
+	require.NoError(t, c.Get(context.Background(), keyPrincipal, "/api/resource/Customer/X", nil, nil))
+	assert.Equal(t, []string{"pilot.localhost", "pilot.localhost"}, hosts)
+	assert.Equal(t, []string{"pilot.localhost", "pilot.localhost"}, siteHeaders)
+
+	// Without a site the URL's own host is kept.
+	hosts = nil
+	bare := NewClient(ClientConfig{BaseURL: srv.URL})
+	require.NoError(t, bare.Call(context.Background(), keyPrincipal, "ping", nil, nil))
+	u, err := url.Parse(srv.URL)
+	require.NoError(t, err)
+	assert.Equal(t, []string{u.Host}, hosts)
+}
+
+// TestRedirectsAreNotFollowed: a 3xx from /api/* is never expected; following
+// it would forward the CSRF and on-behalf-of headers or replay a write body.
+func TestRedirectsAreNotFollowed(t *testing.T) {
+	var mu sync.Mutex
+	var followed int
+	mux := http.NewServeMux()
+	mux.HandleFunc("/elsewhere", func(w http.ResponseWriter, _ *http.Request) {
+		mu.Lock()
+		followed++
+		mu.Unlock()
+		_, _ = io.WriteString(w, `{"message":"ok","data":"ok"}`)
+	})
+	mux.HandleFunc("/api/", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/elsewhere", http.StatusFound)
+	})
+	srv := httptest.NewServer(mux)
+	t.Cleanup(srv.Close)
+	c := NewClient(ClientConfig{BaseURL: srv.URL, Site: "test.localhost"})
+
+	tests := []struct {
+		name string
+		call func() error
+	}{
+		{"POST", func() error { return c.Call(context.Background(), keyPrincipal, "ping", map[string]any{"a": 1}, nil) }},
+		{"GET", func() error { return c.Get(context.Background(), keyPrincipal, "/api/resource/Customer/X", nil, nil) }},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.call()
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), "unexpected response HTTP 302")
+			for _, s := range []error{erp.ErrNotFound, erp.ErrForbidden, erp.ErrUnauthenticated, erp.ErrConflict, erp.ErrValidation, erp.ErrUnavailable} {
+				assert.NotErrorIs(t, err, s)
+			}
+		})
+	}
+	assert.Zero(t, followed)
 }
