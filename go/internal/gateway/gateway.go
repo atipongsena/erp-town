@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"sync"
+	"time"
 
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/danielgtaylor/huma/v2/adapters/humago"
@@ -28,6 +29,10 @@ const (
 	RequestIDHeader = "X-Request-Id"
 
 	sessionScheme = "frappeSession"
+
+	// requestTimeout bounds one operation, ERP calls included (a create can
+	// chain several of them); hitting it answers 503 UNAVAILABLE.
+	requestTimeout = 45 * time.Second
 )
 
 var humaOnce sync.Once
@@ -70,7 +75,7 @@ func New(mux *http.ServeMux, port erp.Port, authn *auth.Authenticator, jwt *auth
 	mux.HandleFunc("/town/api/", notFound)
 
 	api := humago.New(mux, cfg)
-	api.UseMiddleware(withRequestID, requireTownHeader, authenticate(authn))
+	api.UseMiddleware(withRequestID, withDeadline, requireTownHeader, authenticate(authn))
 
 	g := &gateway{port: port, jwt: jwt}
 	g.registerIdentity(api)
@@ -82,6 +87,12 @@ func withRequestID(ctx huma.Context, next func(huma.Context)) {
 	id := ulid.Make().String()
 	ctx.SetHeader(RequestIDHeader, id)
 	next(huma.WithValue(ctx, requestIDKey, id))
+}
+
+func withDeadline(ctx huma.Context, next func(huma.Context)) {
+	dctx, cancel := context.WithTimeout(ctx.Context(), requestTimeout)
+	defer cancel()
+	next(huma.WithContext(ctx, dctx))
 }
 
 func requireTownHeader(ctx huma.Context, next func(huma.Context)) {

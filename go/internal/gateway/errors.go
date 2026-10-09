@@ -25,7 +25,14 @@ const (
 	CodeCSRFHeaderMissing = "CSRF_HEADER_MISSING"
 )
 
-const internalMessage = "internal error"
+const (
+	internalMessage    = "internal error"
+	unavailableMessage = "ERP is unavailable, try again later"
+
+	// statusClientClosed answers a request whose client went away (nginx's
+	// 499); nobody reads it, it only keeps such requests out of the 5xx logs.
+	statusClientClosed = 499
+)
 
 // APIError is the body of every gateway error response:
 // {"code","message","fields"?}. Status is the HTTP status and is not encoded.
@@ -70,8 +77,9 @@ func toAPIError(err error) *APIError {
 		return &APIError{Status: http.StatusNotFound, Code: CodeNotFound, Message: domainMessage(err, erp.ErrNotFound)}
 	case errors.Is(err, erp.ErrConflict):
 		return &APIError{Status: http.StatusConflict, Code: CodeConflict, Message: domainMessage(err, erp.ErrConflict)}
-	case errors.Is(err, erp.ErrUnavailable):
-		return &APIError{Status: http.StatusServiceUnavailable, Code: CodeUnavailable, Message: "ERP is unavailable, try again later"}
+	case errors.Is(err, erp.ErrUnavailable), errors.Is(err, context.DeadlineExceeded):
+		// DeadlineExceeded: the operation ran past the gateway's request deadline.
+		return &APIError{Status: http.StatusServiceUnavailable, Code: CodeUnavailable, Message: unavailableMessage}
 	}
 	return &APIError{Status: http.StatusInternalServerError, Code: CodeInternal, Message: internalMessage}
 }
@@ -87,8 +95,13 @@ func domainMessage(err, sentinel error) string {
 }
 
 // fail maps err for a handler or middleware, logging server-side failures
-// with the request id.
+// with the request id. A request cancelled because its client went away is
+// not a server failure: it is logged at Info and answered 499.
 func fail(ctx context.Context, err error) *APIError {
+	if errors.Is(err, context.Canceled) && errors.Is(ctx.Err(), context.Canceled) {
+		slog.InfoContext(ctx, "gateway: client closed request", "request_id", requestID(ctx), "err", err)
+		return &APIError{Status: statusClientClosed, Code: CodeUnavailable, Message: "request cancelled"}
+	}
 	ae := toAPIError(err)
 	logServerError(ctx, ae, err)
 	return ae
@@ -141,7 +154,7 @@ func humaError(status int, msg string, errs ...error) *APIError {
 	case status == http.StatusConflict:
 		return &APIError{Status: status, Code: CodeConflict, Message: msg}
 	case status == http.StatusServiceUnavailable:
-		return &APIError{Status: status, Code: CodeUnavailable, Message: "ERP is unavailable, try again later"}
+		return &APIError{Status: status, Code: CodeUnavailable, Message: unavailableMessage}
 	case status >= http.StatusInternalServerError || status < http.StatusBadRequest:
 		// Status 0 is Huma probing the error type for the OpenAPI schema.
 		return &APIError{Status: http.StatusInternalServerError, Code: CodeInternal, Message: internalMessage}

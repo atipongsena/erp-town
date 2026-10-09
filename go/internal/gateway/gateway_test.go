@@ -8,11 +8,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"sync/atomic"
 	"testing"
+	"testing/synctest"
 	"time"
 
 	"github.com/stretchr/testify/assert"
@@ -397,4 +399,49 @@ func TestAPIDescriptionMentionsValidationScope(t *testing.T) {
 	for _, s := range []string{"too large", "content type", "timeout"} {
 		assert.Contains(t, doc.Info.Description, s)
 	}
+}
+
+// blockingPort blocks CreateSalesOrder until its context ends and returns the
+// context error the way the ERPNext client wraps it. onCall, when set, runs
+// first (e.g. to simulate the client going away).
+type blockingPort struct {
+	erp.Port
+	onCall func()
+}
+
+func (b *blockingPort) CreateSalesOrder(ctx context.Context, _ erp.Principal, _ erp.SalesOrderInput) (erp.DocRef, error) {
+	if b.onCall != nil {
+		b.onCall()
+	}
+	<-ctx.Done()
+	return erp.DocRef{}, fmt.Errorf("erpnext: request aborted: %w", ctx.Err())
+}
+
+func TestRequestDeadlineIs503(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		h := newHarness(t, &blockingPort{Port: erpfake.DefaultEnv().Port})
+		start := time.Now()
+		w := h.do(http.MethodPost, "/town/api/sales-orders", orderBody, withSession(salesSession), withTownHeader())
+		assert.Equal(t, 45*time.Second, time.Since(start))
+		require.Equal(t, http.StatusServiceUnavailable, w.Code, w.Body.String())
+		assert.Equal(t, "UNAVAILABLE", decode[errBody](t, w).Code)
+	})
+}
+
+func TestClientDisconnectIsNotAnError(t *testing.T) {
+	var logs bytes.Buffer
+	prev := slog.Default()
+	slog.SetDefault(slog.New(slog.NewJSONHandler(&logs, &slog.HandlerOptions{Level: slog.LevelDebug})))
+	t.Cleanup(func() { slog.SetDefault(prev) })
+
+	ctx, cancel := context.WithCancel(t.Context())
+	defer cancel()
+	h := newHarness(t, &blockingPort{Port: erpfake.DefaultEnv().Port, onCall: cancel})
+	w := h.do(http.MethodPost, "/town/api/sales-orders", orderBody, withSession(salesSession), withTownHeader(),
+		func(r *http.Request) { *r = *r.WithContext(ctx) })
+
+	assert.NotEqual(t, http.StatusInternalServerError, w.Code, w.Body.String())
+	assert.NotContains(t, w.Body.String(), "INTERNAL")
+	assert.NotContains(t, logs.String(), `"level":"ERROR"`)
+	assert.Contains(t, logs.String(), "client closed")
 }
