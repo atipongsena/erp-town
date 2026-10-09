@@ -61,6 +61,16 @@ func start() (string, error) {
 // when the test ends.
 func NewPool(t *testing.T) *pgxpool.Pool {
 	t.Helper()
+	pool := NewEmptyPool(t)
+	if err := store.Migrate(t.Context(), pool); err != nil {
+		t.Fatal(err)
+	}
+	return pool
+}
+
+// NewEmptyPool is NewPool without running the migrations.
+func NewEmptyPool(t *testing.T) *pgxpool.Pool {
+	t.Helper()
 	once.Do(func() { baseURL, errBase = start() })
 	if errBase != nil {
 		t.Fatalf("docker unavailable: start Docker Desktop (%v)", errBase)
@@ -103,9 +113,5 @@ func NewPool(t *testing.T) *pgxpool.Pool {
 		}
 		admin.Close()
 	})
-
-	if err := store.Migrate(ctx, pool); err != nil {
-		t.Fatal(err)
-	}
 	return pool
 }

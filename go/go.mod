@@ -5,6 +5,7 @@ go 1.27
 require (
 	github.com/atombender/go-jsonschema v0.24.1
 	github.com/cockroachdb/apd/v3 v3.2.3
+	github.com/danielgtaylor/huma/v2 v2.39.1
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/jackc/pgx/v5 v5.11.0
 	github.com/oklog/ulid/v2 v2.1.2

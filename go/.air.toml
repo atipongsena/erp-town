@@ -1,5 +1,7 @@
 root = "."
 tmp_dir = "tmp"
+# Local dev settings (TOWN_JWT_PRIVATE_KEY, ...); a missing file is skipped. Never committed.
+env_files = ["../infra/docker/.env"]
 
 [build]
   cmd = "go build -o ./tmp/town.exe ./cmd/town"

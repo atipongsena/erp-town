@@ -39,3 +39,27 @@ func TestSchemasAreIsolated(t *testing.T) {
 	require.NoError(t, b.QueryRow(t.Context(), "SELECT count(*) FROM town_subject_seq").Scan(&n))
 	require.Equal(t, 0, n)
 }
+
+func TestConcurrentMigrateIsSafe(t *testing.T) {
+	// Several town processes (e.g. outbox replicas) may start at once on an
+	// empty database; the advisory lock serialises them.
+	const migrators = 4
+	for range 3 {
+		pool := storetest.NewEmptyPool(t)
+		start := make(chan struct{})
+		errs := make(chan error, migrators)
+		for range migrators {
+			go func() {
+				<-start
+				errs <- store.Migrate(t.Context(), pool)
+			}()
+		}
+		close(start)
+		for range migrators {
+			require.NoError(t, <-errs)
+		}
+		var reg *string
+		require.NoError(t, pool.QueryRow(t.Context(), "SELECT to_regclass('town_outbox')::text").Scan(&reg))
+		require.NotNil(t, reg)
+	}
+}

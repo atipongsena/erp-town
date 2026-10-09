@@ -1,0 +1,129 @@
+// Package gateway is the town's authenticated HTTP API over erp.Port (Huma v2
+// on the platform ServeMux). Every operation acts as the caller: the
+// Principal resolved from the Frappe session is passed to each Port call.
+package gateway
+
+import (
+	"context"
+	"encoding/json"
+	"net/http"
+	"sync"
+
+	"github.com/danielgtaylor/huma/v2"
+	"github.com/danielgtaylor/huma/v2/adapters/humago"
+	"github.com/oklog/ulid/v2"
+
+	"github.com/atipongsena/erp-town/go/internal/auth"
+	"github.com/atipongsena/erp-town/go/internal/erp"
+)
+
+const (
+	apiTitle   = "ERP Town API"
+	apiVersion = "0.1.0"
+
+	// TownRequestHeader must be "1" on every state-changing request (CSRF
+	// defence: a cross-site form cannot set it).
+	TownRequestHeader = "X-Town-Request"
+	// RequestIDHeader carries the per-request id that server logs use.
+	RequestIDHeader = "X-Request-Id"
+
+	sessionScheme = "frappeSession"
+)
+
+var humaOnce sync.Once
+
+type ctxKey int
+
+const (
+	principalKey ctxKey = iota
+	requestIDKey
+)
+
+type gateway struct {
+	port erp.Port
+	jwt  *auth.JWTIssuer
+}
+
+// New registers the API on mux: the operations under /town/api/, the OpenAPI
+// 3.1 document at GET /town/api/openapi.json and the reference page at GET
+// /town/api/docs. Every operation needs a Frappe session (cookie sid);
+// POST/PUT/PATCH/DELETE also need header X-Town-Request: 1.
+func New(mux *http.ServeMux, port erp.Port, authn *auth.Authenticator, jwt *auth.JWTIssuer) huma.API {
+	humaOnce.Do(configureHuma)
+
+	cfg := huma.DefaultConfig(apiTitle, apiVersion)
+	cfg.OpenAPIPath = "/town/api/openapi"
+	cfg.DocsPath = "/town/api/docs"
+	cfg.SchemasPath = ""
+	cfg.CreateHooks = nil // no $schema links in response bodies
+	cfg.Info.Description = "Authenticated API of ERP Town. Sign in to the ERP first: every operation " +
+		"uses the Frappe session cookie `sid`. State-changing requests must send header `" +
+		TownRequestHeader + ": 1`. Amounts and quantities are decimal strings."
+	cfg.Components.SecuritySchemes = map[string]*huma.SecurityScheme{
+		sessionScheme: {Type: "apiKey", In: "cookie", Name: "sid", Description: "Frappe session cookie"},
+	}
+	cfg.Security = []map[string][]string{{sessionScheme: {}}}
+
+	api := humago.New(mux, cfg)
+	api.UseMiddleware(withRequestID, requireTownHeader, authenticate(authn))
+
+	g := &gateway{port: port, jwt: jwt}
+	g.registerIdentity(api)
+	g.registerSales(api)
+	return api
+}
+
+func withRequestID(ctx huma.Context, next func(huma.Context)) {
+	id := ulid.Make().String()
+	ctx.SetHeader(RequestIDHeader, id)
+	next(huma.WithValue(ctx, requestIDKey, id))
+}
+
+func requireTownHeader(ctx huma.Context, next func(huma.Context)) {
+	switch ctx.Method() {
+	case http.MethodPost, http.MethodPut, http.MethodPatch, http.MethodDelete:
+		if ctx.Header(TownRequestHeader) != "1" {
+			writeError(ctx, &APIError{
+				Status: http.StatusForbidden, Code: CodeCSRFHeaderMissing,
+				Message: "state-changing requests need header " + TownRequestHeader + ": 1",
+			})
+			return
+		}
+	}
+	next(ctx)
+}
+
+func authenticate(authn *auth.Authenticator) func(huma.Context, func(huma.Context)) {
+	return func(ctx huma.Context, next func(huma.Context)) {
+		r, _ := humago.Unwrap(ctx)
+		p, err := authn.FromRequest(r.WithContext(ctx.Context()))
+		if err != nil {
+			writeError(ctx, fail(ctx.Context(), err))
+			return
+		}
+		next(huma.WithValue(ctx, principalKey, p))
+	}
+}
+
+// writeError writes e as JSON from middleware, outside Huma's handler path.
+func writeError(ctx huma.Context, e *APIError) {
+	ctx.SetHeader("Content-Type", "application/json")
+	ctx.SetStatus(e.Status)
+	enc := json.NewEncoder(ctx.BodyWriter())
+	enc.SetEscapeHTML(false)
+	_ = enc.Encode(e) // the client went away; nothing else to do
+}
+
+func requestID(ctx context.Context) string {
+	id, _ := ctx.Value(requestIDKey).(string)
+	return id
+}
+
+// principal returns the caller set by the authenticate middleware.
+func principal(ctx context.Context) (erp.Principal, error) {
+	p, ok := ctx.Value(principalKey).(erp.Principal)
+	if !ok {
+		return erp.Principal{}, erp.ErrUnauthenticated
+	}
+	return p, nil
+}

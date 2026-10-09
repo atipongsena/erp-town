@@ -2,6 +2,9 @@
 package platform
 
 import (
+	"crypto/ed25519"
+	"encoding/base64"
+	"errors"
 	"fmt"
 	"strings"
 )
@@ -73,7 +76,7 @@ func LoadConfig(getenv func(string) string) (Config, error) {
 	if err != nil {
 		return Config{}, fmt.Errorf("TOWN_ROLES: %w", err)
 	}
-	return Config{
+	cfg := Config{
 		HTTPAddr:      get("TOWN_HTTP_ADDR", "127.0.0.1:8090"),
 		DatabaseURL:   get("TOWN_DATABASE_URL", "postgres://town:town@127.0.0.1:5433/town?sslmode=disable"),
 		RedisURL:      get("TOWN_REDIS_URL", "redis://127.0.0.1:6380/0"),
@@ -82,5 +85,28 @@ func LoadConfig(getenv func(string) string) (Config, error) {
 		ERPSite:       get("TOWN_ERP_SITE", "town.localhost"),
 		JWTPrivateKey: getenv("TOWN_JWT_PRIVATE_KEY"),
 		Roles:         roles,
-	}, nil
+	}
+	if roles.Has(RoleGateway) {
+		if err := checkJWTKey(cfg.JWTPrivateKey); err != nil {
+			return Config{}, err
+		}
+	}
+	return cfg, nil
+}
+
+// checkJWTKey requires the standard base64 of a 32-byte Ed25519 seed. Errors
+// never include the key itself.
+func checkJWTKey(key string) error {
+	if key == "" {
+		return errors.New("TOWN_JWT_PRIVATE_KEY is required by the gateway role " +
+			"(standard base64 of a 32-byte Ed25519 seed)")
+	}
+	seed, err := base64.StdEncoding.DecodeString(key)
+	if err != nil {
+		return errors.New("TOWN_JWT_PRIVATE_KEY is not valid standard base64")
+	}
+	if len(seed) != ed25519.SeedSize {
+		return fmt.Errorf("TOWN_JWT_PRIVATE_KEY must decode to %d bytes, got %d", ed25519.SeedSize, len(seed))
+	}
+	return nil
 }

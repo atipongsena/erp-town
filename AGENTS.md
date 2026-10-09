@@ -32,7 +32,7 @@ Docker must be running for `pnpm go:test` (testcontainers). Run from the repo ro
 | `pnpm go:test:integration` | Go integration tests (`-tags integration`) via `tests/integration/test-site.ts`: seeds and restores `test.localhost` |
 | `pnpm go:lint` | golangci-lint (govet, staticcheck, errcheck, depguard, gofumpt) |
 | `pnpm go:gen` | `pnpm schema:gen`, then `go generate ./...` |
-| `pnpm dev:town` | run `town serve` with live reload (air) |
+| `pnpm dev:town` | run `town serve` with live reload (air) on `127.0.0.1:8090`; loads `infra/docker/.env`, whose `TOWN_JWT_PRIVATE_KEY` the `gateway` role requires (generate once: `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"`, paste into `.env`, never commit); API reference at `/town/api/docs` |
 | `pnpm schema:gen` | regenerate TS types and copy event schema into the Frappe app |
 | `pnpm erp:up` | `docker compose -f infra/docker/compose.yaml --profile dev up -d`, then wait for `/api/method/ping` (first boot 15–30 min) |
 | `pnpm erp:down` | stop the dev stack |
