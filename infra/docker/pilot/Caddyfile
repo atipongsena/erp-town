@@ -12,8 +12,14 @@
 
 {$SITE_NAME} {
 	encode zstd gzip
-	reverse_proxy frontend:8080 {
-		# Frappe resolves the site from the Host header (nginx FRAPPE_SITE_NAME_HEADER=$host)
-		header_up Host {host}
+	# Go town layer (gateway API, metrics) on the same origin; matched before the Frappe proxy
+	handle /town/* {
+		reverse_proxy town:8090
+	}
+	handle {
+		reverse_proxy frontend:8080 {
+			# Frappe resolves the site from the Host header (nginx FRAPPE_SITE_NAME_HEADER=$host)
+			header_up Host {host}
+		}
 	}
 }

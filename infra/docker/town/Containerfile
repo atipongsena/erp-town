@@ -1,0 +1,23 @@
+# ERP Town Go platform image (`town serve`), static binary on distroless.
+#
+# Build (context = repo root):  pnpm erp:pilot:build   (also builds the pilot ERPNext image)
+#   = docker build -f infra/docker/town/Containerfile -t erp-town/town:v16-<git short sha> .
+#
+# Distroless has no shell or curl, so the image carries no HEALTHCHECK: probe it from outside
+# (`curl -k https://$SITE_NAME/town/api/healthz` through caddy; see RESTORE.md).
+
+# golang:1.27 = Go 1.27.1 (digest pulled 2026-10-09). Bump deliberately:
+#   docker pull golang:1.27 && docker image inspect golang:1.27 --format '{{index .RepoDigests 0}}'
+FROM golang:1.27@sha256:3680233e3204827fbdc66088528ae6d4b3d034f51d03a99d454f6de034888244 AS build
+WORKDIR /src/go
+COPY go/go.mod go/go.sum ./
+RUN go mod download
+COPY go/ ./
+RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags "-s -w" -o /out/town ./cmd/town
+
+FROM gcr.io/distroless/static-debian12:nonroot
+COPY --from=build /out/town /usr/local/bin/town
+USER nonroot:nonroot
+EXPOSE 8090
+ENTRYPOINT ["/usr/local/bin/town"]
+CMD ["serve"]

@@ -24,14 +24,19 @@ const PING_INTERVAL_MS = 5_000
 const PING_TIMEOUT_MS = 45 * 60_000
 const PILOT_CONTAINERFILE = 'infra/docker/pilot/Containerfile'
 const PILOT_IMAGE_REPO = 'erp-town/erpnext'
-// inputs of the pilot image (build context allowlist, Containerfile.dockerignore): a tag is "-dirty"
+const TOWN_CONTAINERFILE = 'infra/docker/town/Containerfile'
+const TOWN_IMAGE_REPO = 'erp-town/town'
+// inputs of the pilot images (build context allowlists, Containerfile.dockerignore): a tag is "-dirty"
 // when they differ from HEAD
-const PILOT_INPUTS = ['frappe-apps/erp_town', 'infra/docker/pilot']
+const PILOT_INPUTS = ['frappe-apps/erp_town', 'infra/docker/pilot', 'infra/docker/town', 'go']
+const PG_SERVICE = 'postgres'
+const PILOT_PG_DATABASE = 'town_pilot'
 const PILOT_SERVICES = [
   'create-site',
   'backend',
   'websocket',
   'frontend',
+  'town',
   'queue-short',
   'queue-long',
   'scheduler',
@@ -44,6 +49,7 @@ const PILOT_REQUIRED = [
   'DB_ROOT_PASSWORD',
   'PILOT_ADMIN_PASSWORD',
   'LETSENCRYPT_EMAIL',
+  'PILOT_TOWN_JWT_PRIVATE_KEY',
 ]
 
 const HELP = `Usage: node scripts/erp.mjs <command> [args...]   (or: pnpm erp:<command> -- [args...])
@@ -61,10 +67,12 @@ Commands:
 
 Pilot (profile pilot, image ${PILOT_IMAGE_REPO}:v16-<git short sha>; drill: infra/docker/pilot/RESTORE.md):
   pilot:build [args...]      docker build -f ${PILOT_CONTAINERFILE} -t ${PILOT_IMAGE_REPO}:v16-<sha>[-dirty] .
-  pilot:up [args...]         docker compose --profile pilot up -d, then wait for https://$SITE_NAME/api/method/ping
+                             and ${TOWN_CONTAINERFILE} -t ${TOWN_IMAGE_REPO}:<same tag> .
+  pilot:up [args...]         create database ${PILOT_PG_DATABASE} if missing, docker compose --profile pilot up -d,
+                             then wait for https://$SITE_NAME/api/method/ping
   pilot:down                 stop and remove the pilot containers only (volumes and dev stack stay)
   pilot:bench <args...>      run \`bench <args>\` in the pilot "backend" container
-  pilot:backup               one backup now: bench backup --with-files -> S3 (BACKUP_S3_* in .env)
+  pilot:backup               one backup now: bench backup --with-files + pg_dump ${PILOT_PG_DATABASE} -> S3 (BACKUP_S3_* in .env)
   The image is PILOT_IMAGE if set, else the tag of the current HEAD (build it first).
 
   help, --help, -h           show this help
@@ -135,13 +143,53 @@ function pilotTag() {
   return `v16-${sha}${dirty ? '-dirty' : ''}`
 }
 
-/** Pilot compose call with PILOT_IMAGE set (explicit env var, else the HEAD tag, which must exist). */
+/**
+ * Pilot compose call with PILOT_IMAGE and PILOT_TOWN_IMAGE set (explicit env vars, else the HEAD tag,
+ * which must exist for both images).
+ */
 function pilotCompose(...args) {
-  const image = process.env.PILOT_IMAGE || `${PILOT_IMAGE_REPO}:${pilotTag()}`
-  if (!capture('docker', ['image', 'inspect', '--format', '{{.Id}}', image]).ok)
-    throw new Error(`image ${image} not found: run \`pnpm erp:pilot:build\` (or set PILOT_IMAGE)`)
-  console.log(`erp: pilot image ${image}`)
-  return composeIn('pilot', args, { ...process.env, PILOT_IMAGE: image })
+  const tag = process.env.PILOT_IMAGE && process.env.PILOT_TOWN_IMAGE ? '' : pilotTag()
+  const image = process.env.PILOT_IMAGE || `${PILOT_IMAGE_REPO}:${tag}`
+  const townImage = process.env.PILOT_TOWN_IMAGE || `${TOWN_IMAGE_REPO}:${tag}`
+  for (const img of [image, townImage]) {
+    if (!capture('docker', ['image', 'inspect', '--format', '{{.Id}}', img]).ok)
+      throw new Error(
+        `image ${img} not found: run \`pnpm erp:pilot:build\` (or set PILOT_IMAGE / PILOT_TOWN_IMAGE)`,
+      )
+  }
+  console.log(`erp: pilot images ${image}, ${townImage}`)
+  return composeIn('pilot', args, {
+    ...process.env,
+    PILOT_IMAGE: image,
+    PILOT_TOWN_IMAGE: townImage,
+  })
+}
+
+/**
+ * Create database ${PILOT_PG_DATABASE} when it is missing. The postgres init script only runs on a
+ * fresh volume, so an existing dev volume needs this before `town` starts. Idempotent.
+ */
+async function ensurePilotDatabase() {
+  const envFile = existsSync(path.join(ROOT, ENV_FILE)) ? ['--env-file', ENV_FILE] : []
+  const exec = [...COMPOSE, ...envFile, 'exec', '-T', PG_SERVICE]
+  const probe = `SELECT 1 FROM pg_database WHERE datname='${PILOT_PG_DATABASE}'`
+  const found = capture('docker', [...exec, 'psql', '-U', 'town', '-d', 'town', '-tAc', probe])
+  if (!found.ok)
+    throw new Error(`cannot query the ${PG_SERVICE} service (is it running? \`pnpm erp:up\`)`)
+  if (found.out === '1') return 0
+  console.log(`erp: creating database ${PILOT_PG_DATABASE}`)
+  return docker([
+    ...exec,
+    'psql',
+    '-U',
+    'town',
+    '-d',
+    'town',
+    '-v',
+    'ON_ERROR_STOP=1',
+    '-c',
+    `CREATE DATABASE ${PILOT_PG_DATABASE}`,
+  ])
 }
 
 /** KEY=VALUE pairs of infra/docker/.env (no interpolation), overridden by the process environment. */
@@ -300,20 +348,28 @@ const commands = {
       JSON.stringify(kwargs),
     ])
   },
-  'pilot:build'(args) {
-    const tag = `${PILOT_IMAGE_REPO}:${pilotTag()}`
-    console.log(`erp: building ${tag}`)
-    return docker([
-      'build',
-      '-f',
-      PILOT_CONTAINERFILE,
-      '-t',
-      tag,
-      '--label',
-      `org.opencontainers.image.revision=${git('rev-parse', 'HEAD')}`,
-      ...args,
-      '.',
-    ])
+  async 'pilot:build'(args) {
+    const tag = pilotTag()
+    const revision = `org.opencontainers.image.revision=${git('rev-parse', 'HEAD')}`
+    for (const [file, repo] of [
+      [PILOT_CONTAINERFILE, PILOT_IMAGE_REPO],
+      [TOWN_CONTAINERFILE, TOWN_IMAGE_REPO],
+    ]) {
+      console.log(`erp: building ${repo}:${tag}`)
+      const code = await docker([
+        'build',
+        '-f',
+        file,
+        '-t',
+        `${repo}:${tag}`,
+        '--label',
+        revision,
+        ...args,
+        '.',
+      ])
+      if (code !== 0) return code
+    }
+    return 0
   },
   async 'pilot:up'(args) {
     ensureEnvFile()
@@ -321,7 +377,10 @@ const commands = {
     const missing = PILOT_REQUIRED.filter((key) => !settings[key])
     if (missing.length > 0)
       throw new Error(`pilot:up: set ${missing.join(', ')} in ${ENV_FILE} (see ${ENV_EXAMPLE})`)
-    const code = await pilotCompose('up', '-d', ...args)
+    // shared services (postgres) must be up and town_pilot must exist before `town` starts
+    let code = await pilotCompose('up', '-d', '--wait', PG_SERVICE)
+    if (code === 0) code = await ensurePilotDatabase()
+    if (code === 0) code = await pilotCompose('up', '-d', ...args)
     return code === 0 ? waitForPilot(settings.SITE_NAME) : code
   },
   'pilot:down'(args) {

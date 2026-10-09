@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # ERP Town pilot backup (spec §6.3), baked into the pilot image as /usr/local/bin/erp-town-backup.
 #
-#   erp-town-backup                  `bench --site $SITE_NAME backup --with-files`, upload of the new set
+#   erp-town-backup                  `bench --site $SITE_NAME backup --with-files` plus `pg_dump -Fc` of the
+#                                    town database (PGHOST/PGUSER/PGPASSWORD/PGDATABASE), upload of the new set
 #                                    to S3-compatible storage, removal of remote sets older than
 #                                    BACKUP_RETENTION_DAYS (14). `pnpm erp:pilot:backup` runs this.
 #   erp-town-backup --daily          checks the env and the bucket (exits non-zero if either is wrong),
@@ -15,7 +16,9 @@
 # Remote layout (one "directory" per backup set, named by the bench backup timestamp):
 #   s3://$BACKUP_S3_BUCKET/$SITE_NAME/<YYYYmmdd_HHMMSS>/<YYYYmmdd_HHMMSS>-<site_slug>-database.sql.gz
 #                                                     .../<...>-files.tar, <...>-private-files.tar,
-#                                                     .../<...>-site_config_backup.json
+#                                                     .../<...>-site_config_backup.json,
+#                                                     .../<...>-town_pilot.dump (pg_dump -Fc of the Go
+#                                                     layer's PostgreSQL database)
 set -euo pipefail
 
 : "${SITE_NAME:?SITE_NAME is not set (infra/docker/.env)}"
@@ -23,6 +26,8 @@ set -euo pipefail
 : "${BACKUP_S3_BUCKET:?BACKUP_S3_BUCKET is not set (infra/docker/.env)}"
 : "${BACKUP_S3_ACCESS_KEY:?BACKUP_S3_ACCESS_KEY is not set (infra/docker/.env)}"
 : "${BACKUP_S3_SECRET_KEY:?BACKUP_S3_SECRET_KEY is not set (infra/docker/.env)}"
+: "${PGHOST:?PGHOST is not set (the town PostgreSQL service; compose service backup sets PG*)}"
+: "${PGDATABASE:?PGDATABASE is not set (town_pilot)}"
 RETENTION_DAYS=${BACKUP_RETENTION_DAYS:-14}
 BENCH_DIR=/home/frappe/frappe-bench
 REMOTE="s3://$BACKUP_S3_BUCKET/$SITE_NAME"
@@ -144,6 +149,14 @@ for kind in database files private-files site_config_backup; do
 		exit 1
 	fi
 done
+
+# PostgreSQL (Go town layer): custom-format dump (pg_restore-able, compressed) into the same set.
+# Written to a temp name and renamed, so an interrupted dump never leaves a partial .dump behind.
+pg_file="$backup_dir/$prefix-$PGDATABASE.dump"
+log "pg_dump -Fc $PGDATABASE@$PGHOST"
+pg_dump -Fc --no-owner --file "$pg_file.part"
+mv "$pg_file.part" "$pg_file"
+set_files+=("$pg_file")
 
 # --- 2. upload -------------------------------------------------------------------------------
 dest="$REMOTE/$stamp"

@@ -62,6 +62,20 @@ RUN python3 -m venv /opt/awscli && \
     ln -s /opt/awscli/bin/aws /usr/local/bin/aws && \
     aws --version
 
+# pg_dump / pg_restore of the town layer's PostgreSQL 18 (backup.sh, RESTORE.md): the Debian archive
+# only has older majors, and a dump from a newer server needs a client at least as new, so install
+# postgresql-client-18 from the PGDG apt repo.
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends ca-certificates curl gnupg && \
+    install -d /usr/share/postgresql-common/pgdg && \
+    curl -fsSL -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc && \
+    . /etc/os-release && \
+    echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt ${VERSION_CODENAME}-pgdg main" >/etc/apt/sources.list.d/pgdg.list && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends postgresql-client-18 && \
+    pg_dump --version && \
+    rm -rf /var/lib/apt/lists/*
+
 USER frappe
 
 # group-writable modes (chmod -R g=u) and assets/ were prepared in the builder; COPY keeps the modes

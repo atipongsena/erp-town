@@ -19,9 +19,12 @@ dc() { docker compose -f infra/docker/compose.yaml --env-file infra/docker/.env 
 
 1. `bench --site $SITE_NAME backup --with-files` → `sites/$SITE_NAME/private/backups/`
    `<YYYYmmdd_HHMMSS>-<site_slug>-{database.sql.gz,files.tar,private-files.tar,site_config_backup.json}`
-2. uploads that set to `s3://$BACKUP_S3_BUCKET/$SITE_NAME/<YYYYmmdd_HHMMSS>/` (`aws s3 cp --endpoint-url
+2. `pg_dump -Fc town_pilot` of the Go town layer's PostgreSQL 18 database (service `postgres`, user
+   `town`, connection from the `PG*` variables of the `backup` service) →
+   `<YYYYmmdd_HHMMSS>-<site_slug>-town_pilot.dump` in the same set
+3. uploads that set to `s3://$BACKUP_S3_BUCKET/$SITE_NAME/<YYYYmmdd_HHMMSS>/` (`aws s3 cp --endpoint-url
    $BACKUP_S3_ENDPOINT`, path-style addressing) and checks every object arrived
-3. deletes remote sets older than 14 days (`BACKUP_RETENTION_DAYS`)
+4. deletes remote sets older than 14 days (`BACKUP_RETENTION_DAYS`)
 
 `site_config_backup.json` holds the site's `encryption_key`: without it, passwords stored in the
 database (email accounts, integration secrets) cannot be decrypted after a restore. Treat the bucket
@@ -126,7 +129,30 @@ bench --site "$NEW" execute frappe.db.count --args '["Sales Invoice"]'
 exit
 ```
 
-### 5. Compare
+### 5. Restore the town database
+
+The set also holds `<set>-town_pilot.dump`. Restore it into a **fresh database** on the postgres
+service (never over `town_pilot`) and compare the outbox row count. The postgres client in the pilot
+image is `postgresql-client-18`; `PGHOST`/`PGUSER`/`PGPASSWORD` of the `backup` service reach the server.
+
+```bash
+# before the backup (step 2), note the source count:
+dc exec postgres psql -U town -d town_pilot -tAc 'SELECT count(*) FROM town_outbox'
+# after step 3, in a one-off backup-service shell: restore into town_restore_drill and count
+dc run --rm --no-deps --entrypoint bash backup -c '
+  F=$(ls /home/frappe/frappe-bench/sites/.restore/<set>/*-town_pilot.dump)
+  createdb town_restore_drill &&
+  pg_restore --no-owner -d town_restore_drill "$F" &&
+  psql -d town_restore_drill -tAc "SELECT count(*) FROM town_outbox"'
+dc exec postgres psql -U town -d town -c 'DROP DATABASE town_restore_drill'   # clean up
+```
+
+The two counts must be equal (also compare `consumed_events` if the consumer role ran). On an
+existing postgres volume `town_pilot` itself is created by `pnpm erp:pilot:up` (the init script
+`infra/docker/postgres/init.sql` only runs on a fresh volume); by hand:
+`dc exec postgres psql -U town -d town -c 'CREATE DATABASE town_pilot'`.
+
+### 6. Compare the ERPNext counts
 
 ```bash
 dc exec backend bench --site pilot.localhost execute frappe.db.count --args '["Sales Invoice"]'
@@ -137,7 +163,7 @@ compare with the count printed in the backup's time window). Also open
 `https://<site>/app/sales-invoice` on the original and check a few documents, attachments (public and
 private files) and a print of a Sales Invoice on the restored site if you route a host name to it.
 
-### 6. Clean up
+### 7. Clean up
 
 ```bash
 dc run --rm --no-deps create-site bash -c \
@@ -147,11 +173,12 @@ dc run --rm --no-deps create-site bash -c \
 
 ## Disaster recovery (real restore of the pilot site)
 
-Same commands as the drill, with `NEW=$SITE_NAME` on a fresh host:
+Same commands as the drill, with `NEW=$SITE_NAME` on a fresh host (the town database is restored the
+same way with `pg_restore --clean --if-exists --no-owner -d town_pilot` while `town` is stopped):
 
 1. Fresh host, same `infra/docker/.env` (from the password manager), `pnpm erp:pilot:build` of the
    commit that made the backup (or newer), `pnpm erp:pilot:up` → empty `$SITE_NAME`.
-2. Stop writers: `dc stop backend queue-short queue-long scheduler backup`.
+2. Stop writers: `dc stop backend town queue-short queue-long scheduler backup`.
 3. Steps 3–4 above with `NEW=$SITE_NAME`, skipping `new-site` (the site exists) and
    `disable-scheduler` (the pilot site runs its scheduler). `town_redis_url` and `host_name` are site
    config, not database, so create-site's values survive the restore.
@@ -170,6 +197,9 @@ Tick each item (date, initials) before the pilot starts; keep the filled copy wi
       mode 600, copy in the password manager; never committed
 - [ ] DNS A/AAAA record of `SITE_NAME` points at the host; ports 80 and 443 open; `pnpm erp:pilot:up`
       ends with `pilot is up at https://<SITE_NAME>`; browser shows a valid Let's Encrypt certificate
+- [ ] `PILOT_TOWN_JWT_PRIVATE_KEY` set (own value, not the dev key); `town` container up and
+      `curl -k https://<SITE_NAME>/town/api/healthz` → `{"status":"ok"}`, `/town/api/me` → 401
+      (the distroless image has no healthcheck, so this external check is the probe)
 - [ ] `dc exec backend bench --site <SITE_NAME> list-apps` lists frappe, erpnext, hrms, erp_town
 - [ ] Thai company bootstrapped on the pilot site (once; idempotent, no demo data or users — never
       run `erp_town.setup.seed.run` on the pilot): System Settings th / Asia/Bangkok / Thailand / THB,
@@ -189,7 +219,7 @@ Tick each item (date, initials) before the pilot starts; keep the filled copy wi
       (`test_tax_invoice_pdf_through_chrome_embeds_sarabun`) is skipped there
 - [ ] Bucket for backups exists outside the pilot host, versioning or object lock on if the provider
       has it; `BACKUP_S3_*` keys are scoped to that bucket only
-- [ ] `pnpm erp:pilot:backup` succeeds; the `backup` service log shows the next daily run
+- [ ] `pnpm erp:pilot:backup` succeeds (the set includes `*-town_pilot.dump`); the `backup` service log shows the next daily run
 - [ ] Re-run this drill against the real pilot bucket before pilot start (steps 2–6 with the
       production `BACKUP_S3_*`, on the pilot host): counts equal, files present
 - [ ] Desk check on the restored site: Sales Invoice print (Thai tax invoice) renders

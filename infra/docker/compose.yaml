@@ -10,7 +10,8 @@
 # erp-town/erpnext:v16-<sha> (infra/docker/pilot/Containerfile, no bind mounts) as frappe_docker-style
 # services behind Caddy TLS, plus a daily S3 backup. It shares mariadb and the redis containers with
 # dev but has its own site (SITE_NAME), database, volumes (pilot-*) and redis DB index 1, so both
-# profiles can run side by side. Restore drill and pre-pilot checklist: infra/docker/pilot/RESTORE.md.
+# profiles can run side by side. The `town` service (Go layer, image erp-town/town:v16-<sha>) joins the
+# pilot with database town_pilot on the shared postgres service; caddy routes /town/* to it. Restore drill and pre-pilot checklist: infra/docker/pilot/RESTORE.md.
 name: erp-town
 
 x-pilot-service: &pilot-service
@@ -84,6 +85,8 @@ services:
       start_period: 10s
     volumes:
       - postgres-data:/var/lib/postgresql
+      # fresh volumes only (creates town_pilot); `pnpm erp:pilot:up` also creates it on existing ones
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
 
   bench:
     # Pinned digest of frappe/bench:latest (pulled 2026-10-07: Python 3.14.8, Node 24.21.0).
@@ -180,6 +183,29 @@ services:
       websocket:
         condition: service_started
 
+  # Go town layer (gateway + outbox roles) on the pilot site's Postgres database. No healthcheck: the
+  # distroless image has no shell or curl; check https://$SITE_NAME/town/api/healthz through caddy.
+  town:
+    image: ${PILOT_TOWN_IMAGE:-erp-town/town:v16-unset}
+    profiles: ["pilot"]
+    restart: unless-stopped
+    environment:
+      TOWN_HTTP_ADDR: 0.0.0.0:8090
+      TOWN_DATABASE_URL: postgres://town:${TOWN_PG_PASSWORD:-town}@postgres:5432/town_pilot?sslmode=disable
+      TOWN_REDIS_URL: ${PILOT_REDIS_TOWN_URL:-redis://redis-town:6379/1}
+      TOWN_STREAM: town:events
+      TOWN_ERP_URL: http://frontend:8080
+      TOWN_ERP_SITE: ${SITE_NAME:-}
+      TOWN_JWT_PRIVATE_KEY: ${PILOT_TOWN_JWT_PRIVATE_KEY:-}
+      TOWN_ROLES: gateway,outbox
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis-town:
+        condition: service_started
+      frontend:
+        condition: service_started
+
   # `short` only: the town publish job (spec §4.2 step 6) must not wait behind long/default jobs
   queue-short:
     <<: *pilot-service
@@ -211,6 +237,7 @@ services:
       - pilot-caddy-config:/config
     depends_on:
       - frontend
+      - town
 
   # daily `bench backup --with-files` -> S3-compatible storage at BACKUP_TIME_UTC, 14 days kept remotely
   # (infra/docker/pilot/backup.sh); on demand: `pnpm erp:pilot:backup`
@@ -225,6 +252,11 @@ services:
       BACKUP_S3_SECRET_KEY: ${BACKUP_S3_SECRET_KEY:-}
       BACKUP_S3_REGION: ${BACKUP_S3_REGION:-us-east-1}
       BACKUP_TIME_UTC: ${BACKUP_TIME_UTC:-19:00}
+      # pg_dump -Fc town_pilot of the shared postgres service (user `town`)
+      PGHOST: postgres
+      PGUSER: town
+      PGPASSWORD: ${TOWN_PG_PASSWORD:-town}
+      PGDATABASE: town_pilot
 
 volumes:
   mariadb-data:

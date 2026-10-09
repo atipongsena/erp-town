@@ -1,0 +1,6 @@
+# Build context of infra/docker/town/Containerfile is the repo root; send only the Go module.
+*
+!go
+go/tmp
+go/bin
+**/*_test.go

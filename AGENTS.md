@@ -42,9 +42,9 @@ Docker must be running for `pnpm go:test` (testcontainers). Run from the repo ro
 | `pnpm erp:test [--module m]` | `bench --site test.localhost run-tests --app erp_town [--module m]` |
 | `pnpm erp:seed` | `bench --site town.localhost execute erp_town.setup.seed.run` |
 | `pnpm erp:scenario [--days N] [--bulk N]` | `bench --site town.localhost execute erp_town.setup.scenario.run --kwargs '{"days":N,"bulk":N}'` |
-| `pnpm erp:pilot:build` | build `erp-town/erpnext:v16-<git short sha>[-dirty]` from `infra/docker/pilot/Containerfile` |
-| `pnpm erp:pilot:up` / `erp:pilot:down` | profile `pilot` (Caddy TLS on `https://$SITE_NAME`, shares mariadb/redis with dev) / remove only the pilot containers |
-| `pnpm erp:pilot:bench <args...>` / `erp:pilot:backup` | `bench` in the pilot `backend` / one S3 backup now (drill: `infra/docker/pilot/RESTORE.md`) |
+| `pnpm erp:pilot:build` | build `erp-town/erpnext:v16-<git short sha>[-dirty]` (`infra/docker/pilot/Containerfile`) and `erp-town/town:<same tag>` (`infra/docker/town/Containerfile`, distroless Go image) |
+| `pnpm erp:pilot:up` / `erp:pilot:down` | profile `pilot` (Caddy TLS on `https://$SITE_NAME`, `/town/*` routed to the Go `town` service, shares mariadb/redis/postgres with dev; creates database `town_pilot` if missing; needs `PILOT_TOWN_JWT_PRIVATE_KEY`) / remove only the pilot containers |
+| `pnpm erp:pilot:bench <args...>` / `erp:pilot:backup` | `bench` in the pilot `backend` / one S3 backup now: site backup plus `pg_dump -Fc town_pilot` (drill: `infra/docker/pilot/RESTORE.md`) |
 | `pnpm erp:pilot:bench -- --site <site> execute erp_town.setup.pilot.bootstrap --kwargs '{"company_name":…,"abbr":…,"tax_id":…}'` | once per pilot site: Thai settings + the real company (no demo data); `erp:seed` refuses outside `developer_mode`/`allow_tests` sites |
 
 Pass options after `--` with pnpm (e.g. `pnpm erp:test -- --module erp_town.tests.test_smoke`), or call
