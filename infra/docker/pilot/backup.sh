@@ -152,11 +152,18 @@ done
 
 # PostgreSQL (Go town layer): custom-format dump (pg_restore-able, compressed) into the same set.
 # Written to a temp name and renamed, so an interrupted dump never leaves a partial .dump behind.
+# A pg_dump failure never blocks the ERP set's upload: it is logged, the ERP files still go off-site,
+# and the run exits non-zero at the end (remote retention is skipped so older sets keep their dumps).
 pg_file="$backup_dir/$prefix-$PGDATABASE.dump"
+pg_failed=0
 log "pg_dump -Fc $PGDATABASE@$PGHOST"
-pg_dump -Fc --no-owner --file "$pg_file.part"
-mv "$pg_file.part" "$pg_file"
-set_files+=("$pg_file")
+if pg_dump -Fc --no-owner --file "$pg_file.part" && mv "$pg_file.part" "$pg_file"; then
+	set_files+=("$pg_file")
+else
+	pg_failed=1
+	rm -f "$pg_file.part"
+	log "ERROR: pg_dump of $PGDATABASE@$PGHOST failed; uploading the ERP set without it"
+fi
 
 # --- 2. upload -------------------------------------------------------------------------------
 dest="$REMOTE/$stamp"
@@ -167,6 +174,12 @@ done
 uploaded=$(s3 ls "$dest/" | wc -l)
 if [ "$uploaded" -lt "${#set_files[@]}" ]; then
 	log "ERROR: $dest/ lists $uploaded objects, expected ${#set_files[@]}"
+	exit 1
+fi
+
+# set_files holds only what was written, so a missing town dump lowers the expected count too.
+if [ "$pg_failed" -ne 0 ]; then
+	log "FAILED: $dest/ holds the ERP set (${#set_files[@]} files) but no $PGDATABASE dump; retention skipped"
 	exit 1
 fi
 

@@ -197,12 +197,24 @@ Tick each item (date, initials) before the pilot starts; keep the filled copy wi
       mode 600, copy in the password manager; never committed
 - [ ] DNS A/AAAA record of `SITE_NAME` points at the host; ports 80 and 443 open; `pnpm erp:pilot:up`
       ends with `pilot is up at https://<SITE_NAME>`; browser shows a valid Let's Encrypt certificate
-- [ ] strong unique `TOWN_PG_PASSWORD` (the compose default `town` is dev-only). `POSTGRES_PASSWORD` only
+- [ ] strong unique `TOWN_PG_PASSWORD` (the compose default `town` is dev-only; `pilot:up` refuses it and
+      an empty value). `POSTGRES_PASSWORD` only
       applies on a fresh volume: on an existing postgres volume also run
       `dc exec postgres psql -U town -d town -c "ALTER ROLE town PASSWORD '<new>'"`
 - [ ] `PILOT_TOWN_JWT_PRIVATE_KEY` set (own value, not the dev key); `town` container up and
       `curl -k https://<SITE_NAME>/town/api/healthz` → `{"status":"ok"}`, `/town/api/me` → 401
       (the distroless image has no healthcheck, so this external check is the probe)
+- [ ] Authenticated gateway call through nginx: sign in as Administrator and call `/town/api/me` with
+      the session cookie → 200 with `"user":"Administrator"` (catches a `town` → ERPNext site mix-up
+      that the unauthenticated checks above cannot see). The password is read, never echoed:
+
+      ```bash
+      read -rs PW; jar=$(mktemp)
+      curl -sk -c "$jar" -o /dev/null -w '%{http_code}\n' --data-urlencode usr=Administrator \
+        --data-urlencode "pwd=$PW" https://<SITE_NAME>/api/method/login    # 200
+      curl -sk -b "$jar" -w '\n%{http_code}\n' https://<SITE_NAME>/town/api/me # 200, "user":"Administrator"
+      unset PW; rm -f "$jar"
+      ```
 - [ ] `dc exec backend bench --site <SITE_NAME> list-apps` lists frappe, erpnext, hrms, erp_town
 - [ ] Thai company bootstrapped on the pilot site (once; idempotent, no demo data or users — never
       run `erp_town.setup.seed.run` on the pilot): System Settings th / Asia/Bangkok / Thailand / THB,

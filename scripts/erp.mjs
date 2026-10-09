@@ -50,7 +50,10 @@ const PILOT_REQUIRED = [
   'PILOT_ADMIN_PASSWORD',
   'LETSENCRYPT_EMAIL',
   'PILOT_TOWN_JWT_PRIVATE_KEY',
+  'TOWN_PG_PASSWORD',
 ]
+// dev-only defaults `pilot:up` refuses (compose falls back to them when unset)
+const PILOT_REFUSED = { TOWN_PG_PASSWORD: 'town' }
 
 const HELP = `Usage: node scripts/erp.mjs <command> [args...]   (or: pnpm erp:<command> -- [args...])
 
@@ -377,6 +380,13 @@ const commands = {
     const missing = PILOT_REQUIRED.filter((key) => !settings[key])
     if (missing.length > 0)
       throw new Error(`pilot:up: set ${missing.join(', ')} in ${ENV_FILE} (see ${ENV_EXAMPLE})`)
+    for (const [key, devValue] of Object.entries(PILOT_REFUSED)) {
+      if (settings[key] === devValue)
+        throw new Error(
+          `pilot:up: ${key} is the dev-only default "${devValue}"; set a strong unique value in ${ENV_FILE} ` +
+            '(on an existing postgres volume also ALTER ROLE, see infra/docker/pilot/RESTORE.md)',
+        )
+    }
     // shared services (postgres) must be up and town_pilot must exist before `town` starts
     let code = await pilotCompose('up', '-d', '--wait', PG_SERVICE)
     if (code === 0) code = await ensurePilotDatabase()
