@@ -58,11 +58,16 @@ func New(mux *http.ServeMux, port erp.Port, authn *auth.Authenticator, jwt *auth
 	cfg.CreateHooks = nil // no $schema links in response bodies
 	cfg.Info.Description = "Authenticated API of ERP Town. Sign in to the ERP first: every operation " +
 		"uses the Frappe session cookie `sid`. State-changing requests must send header `" +
-		TownRequestHeader + ": 1`. Amounts and quantities are decimal strings."
+		TownRequestHeader + ": 1`. Amounts and quantities are decimal strings. 422 VALIDATION also covers " +
+		"a request body that is too large, an unsupported content type, or a body read timeout."
 	cfg.Components.SecuritySchemes = map[string]*huma.SecurityScheme{
 		sessionScheme: {Type: "apiKey", In: "cookie", Name: "sid", Description: "Frappe session cookie"},
 	}
 	cfg.Security = []map[string][]string{{sessionScheme: {}}}
+
+	// Unmatched paths and methods under /town/api/ get our JSON 404 instead of
+	// net/http's plain-text 404/405; every registered pattern is more specific.
+	mux.HandleFunc("/town/api/", notFound)
 
 	api := humago.New(mux, cfg)
 	api.UseMiddleware(withRequestID, requireTownHeader, authenticate(authn))
@@ -112,6 +117,15 @@ func writeError(ctx huma.Context, e *APIError) {
 	enc := json.NewEncoder(ctx.BodyWriter())
 	enc.SetEscapeHTML(false)
 	_ = enc.Encode(e) // the client went away; nothing else to do
+}
+
+func notFound(w http.ResponseWriter, _ *http.Request) {
+	w.Header().Set(RequestIDHeader, ulid.Make().String())
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusNotFound)
+	enc := json.NewEncoder(w)
+	enc.SetEscapeHTML(false)
+	_ = enc.Encode(&APIError{Status: http.StatusNotFound, Code: CodeNotFound, Message: "no such API route"})
 }
 
 func requestID(ctx context.Context) string {

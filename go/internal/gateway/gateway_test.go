@@ -328,3 +328,73 @@ func TestHealthzStillServed(t *testing.T) {
 	require.Equal(t, http.StatusOK, w.Code)
 	assert.JSONEq(t, `{"status":"ok"}`, w.Body.String())
 }
+
+// zeroDatePort returns a Sales Order without a delivery date (Frappe null).
+type zeroDatePort struct{ erp.Port }
+
+func (zeroDatePort) GetSalesOrder(_ context.Context, _ erp.Principal, name string) (erp.SalesOrder, error) {
+	return erp.SalesOrder{
+		Ref: erp.DocRef{DocType: erp.DocSalesOrder, Name: name}, Company: "ACME-TH", Customer: "CUST-001",
+		TransactionDate: erp.MustDate("2026-10-09"), Status: erp.DocDraft, WorkflowState: "Draft",
+	}, nil
+}
+
+func TestZeroDateIsNull(t *testing.T) {
+	h := newHarness(t, zeroDatePort{erpfake.DefaultEnv().Port})
+	w := h.do(http.MethodGet, "/town/api/sales-orders/SAL-ORD-00009", "", withSession(salesSession))
+	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+	so := decode[map[string]any](t, w)
+	require.Contains(t, so, "delivery_date")
+	assert.Nil(t, so["delivery_date"])
+	assert.Equal(t, "2026-10-09", so["transaction_date"])
+
+	// The published schema says so too.
+	w = h.do(http.MethodGet, "/town/api/openapi.json", "")
+	var doc struct {
+		Components struct {
+			Schemas map[string]struct {
+				Properties map[string]struct {
+					Type   any    `json:"type"`
+					Format string `json:"format"`
+				} `json:"properties"`
+			} `json:"schemas"`
+		} `json:"components"`
+	}
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &doc))
+	for _, f := range []string{"transaction_date", "delivery_date"} {
+		p := doc.Components.Schemas["SalesOrderOutputBody"].Properties[f]
+		assert.Equal(t, []any{"string", "null"}, p.Type, f)
+		assert.Equal(t, "date", p.Format, f)
+	}
+}
+
+func TestUnknownAPIPathIsJSON404(t *testing.T) {
+	h := newHarness(t, erpfake.DefaultEnv().Port)
+	for _, c := range []struct{ method, path string }{
+		{http.MethodGet, "/town/api/nope"},
+		{http.MethodPut, "/town/api/sales-orders"},
+		{http.MethodDelete, "/town/api/me"},
+	} {
+		w := h.do(c.method, c.path, "", withSession(salesSession), withTownHeader())
+		require.Equal(t, http.StatusNotFound, w.Code, "%s %s: %s", c.method, c.path, w.Body.String())
+		assert.Equal(t, "application/json", w.Header().Get("Content-Type"))
+		assert.Equal(t, "NOT_FOUND", decode[errBody](t, w).Code)
+	}
+	// The catch-all shadows neither the operations nor their CSRF and auth checks.
+	assert.Equal(t, http.StatusForbidden, h.do(http.MethodPost, "/town/api/sales-orders", orderBody, withSession(salesSession)).Code)
+	assert.Equal(t, http.StatusUnauthorized, h.do(http.MethodGet, "/town/api/me", "").Code)
+	assert.Equal(t, http.StatusOK, h.do(http.MethodGet, "/town/api/me", "", withSession(salesSession)).Code)
+}
+
+func TestAPIDescriptionMentionsValidationScope(t *testing.T) {
+	h := newHarness(t, erpfake.DefaultEnv().Port)
+	var doc struct {
+		Info struct {
+			Description string `json:"description"`
+		} `json:"info"`
+	}
+	require.NoError(t, json.Unmarshal(h.do(http.MethodGet, "/town/api/openapi.json", "").Body.Bytes(), &doc))
+	for _, s := range []string{"too large", "content type", "timeout"} {
+		assert.Contains(t, doc.Info.Description, s)
+	}
+}

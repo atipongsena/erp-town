@@ -155,6 +155,9 @@ func humaError(status int, msg string, errs ...error) *APIError {
 // configureHuma replaces Huma's problem+json errors with APIError and makes
 // arrays non-nullable (our bodies never send null lists). Huma keeps these as
 // package variables, so this runs once per process.
+//
+// WARNING: these overrides are process-wide and apply to every Huma API in
+// the binary; the town binary must hold only this one Huma API.
 func configureHuma() {
 	huma.DefaultArrayNullable = false
 	huma.NewError = func(status int, msg string, errs ...error) huma.StatusError {

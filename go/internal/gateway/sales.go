@@ -118,8 +118,8 @@ type salesOrderOutput struct {
 		Name            string    `json:"name"`
 		Company         string    `json:"company"`
 		Customer        string    `json:"customer"`
-		TransactionDate string    `json:"transaction_date" format:"date"`
-		DeliveryDate    string    `json:"delivery_date" format:"date"`
+		TransactionDate *string   `json:"transaction_date" format:"date" doc:"null when unset"`
+		DeliveryDate    *string   `json:"delivery_date" format:"date" doc:"null when unset"`
 		Lines           []lineOut `json:"lines"`
 		NetTotal        string    `json:"net_total"`
 		TaxTotal        string    `json:"tax_total"`
@@ -272,8 +272,8 @@ func salesOrderBody(so erp.SalesOrder) *salesOrderOutput {
 	b.Name = so.Ref.Name
 	b.Company = so.Company
 	b.Customer = so.Customer
-	b.TransactionDate = so.TransactionDate.String()
-	b.DeliveryDate = so.DeliveryDate.String()
+	b.TransactionDate = dateOrNil(so.TransactionDate)
+	b.DeliveryDate = dateOrNil(so.DeliveryDate)
 	b.Lines = make([]lineOut, len(so.Lines))
 	for i, l := range so.Lines {
 		b.Lines[i] = lineOut{ItemCode: l.ItemCode, Qty: l.Qty.String(), Rate: l.Rate.String(), Amount: l.Amount.String()}
@@ -285,6 +285,15 @@ func salesOrderBody(so erp.SalesOrder) *salesOrderOutput {
 	b.Status = string(so.Status)
 	b.WorkflowState = so.WorkflowState
 	return out
+}
+
+// dateOrNil encodes a zero date as JSON null, like erp.Date.MarshalJSON.
+func dateOrNil(d erp.Date) *string {
+	if d.IsZero() {
+		return nil
+	}
+	s := d.String()
+	return &s
 }
 
 func nonNil(s []string) []string {
