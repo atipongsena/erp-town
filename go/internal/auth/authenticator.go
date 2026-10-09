@@ -49,6 +49,9 @@ func (a *Authenticator) FromRequest(r *http.Request) (erp.Principal, error) {
 	if err != nil {
 		return erp.Principal{}, err
 	}
+	if id.User == "" {
+		return erp.Principal{}, erp.ErrUnauthenticated
+	}
 	if id.Credential == nil {
 		id.Credential = sc
 	}

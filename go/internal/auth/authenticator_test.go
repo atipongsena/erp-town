@@ -118,3 +118,20 @@ func TestExpiredEntriesArePruned(t *testing.T) {
 		assert.Len(t, a.cache, 1)
 	})
 }
+
+type emptyUserIdentities struct{ calls int }
+
+func (e *emptyUserIdentities) Whoami(context.Context, erp.Credential) (erp.Identity, error) {
+	e.calls++
+	return erp.Identity{}, nil
+}
+
+func TestEmptyUserIsUnauthenticatedAndNotCached(t *testing.T) {
+	ids := &emptyUserIdentities{}
+	a := NewAuthenticator(ids, 30*time.Second)
+	for range 2 {
+		_, err := a.FromRequest(requestWithSID("abc"))
+		require.ErrorIs(t, err, erp.ErrUnauthenticated)
+	}
+	assert.Equal(t, 2, ids.calls)
+}

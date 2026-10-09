@@ -4,10 +4,13 @@ import (
 	"crypto/ed25519"
 	"crypto/rand"
 	"encoding/base64"
+	"encoding/json"
+	"strings"
 	"testing"
 	"testing/synctest"
 	"time"
 
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -48,25 +51,25 @@ func TestJWTRoundTrip(t *testing.T) {
 
 func TestJWTRejectsExpiredAndTampered(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
-		seed := newSeed(t)
-		j, err := NewJWTIssuer(seed, 15*time.Minute)
+		j, err := NewJWTIssuer(newSeed(t), 15*time.Minute)
 		require.NoError(t, err)
 		tok, _, err := j.Issue(testPrincipal())
 		require.NoError(t, err)
 
-		// Tampered payload: flip one byte of the middle segment.
-		b := []byte(tok)
-		first := 0
-		for b[first] != '.' {
-			first++
-		}
-		if b[first+1] == 'A' {
-			b[first+1] = 'B'
-		} else {
-			b[first+1] = 'A'
-		}
-		_, err = j.Verify(string(b))
-		require.Error(t, err)
+		// Tampered payload: valid JSON with different claims, original signature.
+		parts := strings.Split(tok, ".")
+		require.Len(t, parts, 3)
+		raw, err := base64.RawURLEncoding.DecodeString(parts[1])
+		require.NoError(t, err)
+		var m map[string]any
+		require.NoError(t, json.Unmarshal(raw, &m))
+		m["roles"] = []string{"System Manager"}
+		forged, err := json.Marshal(m)
+		require.NoError(t, err)
+		parts[1] = base64.RawURLEncoding.EncodeToString(forged)
+		_, err = j.Verify(strings.Join(parts, "."))
+		require.ErrorIs(t, err, jwt.ErrTokenSignatureInvalid)
+		require.ErrorIs(t, err, erp.ErrUnauthenticated)
 
 		// Signed by another key.
 		other, err := NewJWTIssuer(newSeed(t), 15*time.Minute)
@@ -74,11 +77,35 @@ func TestJWTRejectsExpiredAndTampered(t *testing.T) {
 		otherTok, _, err := other.Issue(testPrincipal())
 		require.NoError(t, err)
 		_, err = j.Verify(otherTok)
-		require.Error(t, err)
+		require.ErrorIs(t, err, jwt.ErrTokenSignatureInvalid)
+		require.ErrorIs(t, err, erp.ErrUnauthenticated)
 
 		time.Sleep(16 * time.Minute)
 		_, err = j.Verify(tok)
-		require.Error(t, err)
+		require.ErrorIs(t, err, jwt.ErrTokenExpired)
+		require.ErrorIs(t, err, erp.ErrUnauthenticated)
+	})
+}
+
+func TestJWTRejectsOtherAlgorithms(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		j, err := NewJWTIssuer(newSeed(t), 15*time.Minute)
+		require.NoError(t, err)
+		claims := tokenClaims{
+			Roles: []string{"System Manager"}, Companies: []string{"TOWN"},
+			RegisteredClaims: jwt.RegisteredClaims{
+				Subject:   "mallory",
+				ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour)),
+			},
+		}
+		hs, err := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString([]byte("secret"))
+		require.NoError(t, err)
+		none, err := jwt.NewWithClaims(jwt.SigningMethodNone, claims).SignedString(jwt.UnsafeAllowNoneSignatureType)
+		require.NoError(t, err)
+		for name, tok := range map[string]string{"HS256": hs, "none": none} {
+			_, err := j.Verify(tok)
+			require.ErrorIs(t, err, erp.ErrUnauthenticated, name)
+		}
 	})
 }
 

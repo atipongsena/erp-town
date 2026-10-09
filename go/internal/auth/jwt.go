@@ -77,7 +77,7 @@ func (j *JWTIssuer) Verify(token string) (Claims, error) {
 		jwt.WithTimeFunc(time.Now),
 	)
 	if err != nil {
-		return Claims{}, fmt.Errorf("auth: verify jwt: %w", err)
+		return Claims{}, fmt.Errorf("%w: %w", erp.ErrUnauthenticated, err)
 	}
 	var exp time.Time
 	if tc.ExpiresAt != nil {
