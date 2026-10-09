@@ -29,3 +29,18 @@ class TestSessionApi(IntegrationTestCase):
 	def test_whoami_is_whitelisted_but_not_for_guest(self):
 		self.assertIn(whoami, frappe.whitelisted)
 		self.assertNotIn(whoami, frappe.guest_methods)
+
+	def test_user_without_company_read_gets_no_companies(self):
+		email = "session-api-no-company@example.com"
+		if not frappe.db.exists("User", email):
+			frappe.get_doc(
+				{"doctype": "User", "email": email, "first_name": "No Company", "send_welcome_email": 0}
+			).insert(ignore_permissions=True)
+		self.assertFalse(frappe.has_permission("Company", "read", user=email))
+		frappe.set_user(email)
+		frappe.local.message_log = []  # drop the user-creation notice
+		out = whoami()
+		self.assertEqual(out["user"], email)
+		self.assertEqual(out["companies"], [])
+		self.assertTrue(out["csrf_token"])
+		self.assertEqual(frappe.local.message_log, [])

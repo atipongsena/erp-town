@@ -26,7 +26,7 @@ type meOutput struct {
 	Body struct {
 		User      string   `json:"user" doc:"ERP user id"`
 		Roles     []string `json:"roles"`
-		Companies []string `json:"companies" doc:"Company abbr codes the user may act for"`
+		Companies []string `json:"companies" doc:"Abbr codes of the companies the user can read"`
 	}
 }
 

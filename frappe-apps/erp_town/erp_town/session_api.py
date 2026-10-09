@@ -19,6 +19,15 @@ def whoami() -> dict:
 	return {
 		"user": user,
 		"roles": frappe.get_roles(user),
-		"companies": frappe.get_list("Company", pluck="abbr", order_by="abbr asc", limit_page_length=0),
+		"companies": _readable_company_codes(),
 		"csrf_token": get_csrf_token(),
 	}
+
+
+def _readable_company_codes() -> list[str]:
+	"""Abbr codes of the companies the user can read; none (not an error) without Company read."""
+	try:
+		return frappe.get_list("Company", pluck="abbr", order_by="abbr asc", limit_page_length=0)
+	except frappe.PermissionError:
+		frappe.clear_last_message()  # drop the "Insufficient Permission" msgprint from the response
+		return []
