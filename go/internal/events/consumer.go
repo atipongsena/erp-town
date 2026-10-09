@@ -63,7 +63,9 @@ const (
 )
 
 // Consumer reads town events from a stream through a consumer group and hands each
-// valid, new, in-order event to its Handler exactly once per group.
+// valid, new, in-order event to its Handler. The Handler's Postgres effects (through
+// its tx) commit exactly once per group; the Handler itself runs at most
+// MaxDeliveries times per event.
 type Consumer struct {
 	rdb  *redis.Client
 	pool *pgxpool.Pool

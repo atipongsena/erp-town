@@ -26,7 +26,8 @@ type Roles map[Role]bool
 // Has reports whether x is enabled.
 func (r Roles) Has(x Role) bool { return r[x] }
 
-// ParseRoles parses a comma-separated role list; empty means all known roles.
+// ParseRoles parses a comma-separated role list; blank means all known roles,
+// and a non-blank list that names no role (e.g. ",") is an error.
 func ParseRoles(s string) (Roles, error) {
 	roles := Roles{}
 	if strings.TrimSpace(s) == "" {
@@ -54,6 +55,9 @@ func ParseRoles(s string) (Roles, error) {
 			return nil, fmt.Errorf("unknown role %q (known roles: %s)", name, strings.Join(names, ", "))
 		}
 		roles[name] = true
+	}
+	if len(roles) == 0 {
+		return nil, fmt.Errorf("no role in %q (leave it blank for all roles)", s)
 	}
 	return roles, nil
 }

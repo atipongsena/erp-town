@@ -3,6 +3,7 @@ package platform
 import (
 	"bytes"
 	"encoding/base64"
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -71,6 +72,33 @@ func TestParseRoles(t *testing.T) {
 	r, err = ParseRoles("")
 	require.NoError(t, err)
 	assert.Len(t, r, 2)
+}
+
+func TestParseRolesNonBlankWithoutRoles(t *testing.T) {
+	tests := []struct {
+		in      string
+		wantErr bool
+		want    int
+	}{
+		{"", false, 2},
+		{"   ", false, 2},
+		{",", true, 0},
+		{" , ", true, 0},
+		{",,", true, 0},
+		{"gateway,", false, 1},
+		{", outbox ,", false, 1},
+	}
+	for _, tt := range tests {
+		t.Run(fmt.Sprintf("%q", tt.in), func(t *testing.T) {
+			r, err := ParseRoles(tt.in)
+			if tt.wantErr {
+				assert.ErrorContains(t, err, "no role")
+				return
+			}
+			require.NoError(t, err)
+			assert.Len(t, r, tt.want)
+		})
+	}
 }
 
 func TestParseRolesRejectsUnknown(t *testing.T) {
