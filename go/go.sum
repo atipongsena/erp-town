@@ -306,6 +306,8 @@ github.com/gohugoio/hugo-goldmark-extensions/extras v0.7.0 h1:I/n6v7VImJ3aISLnn7
 github.com/gohugoio/hugo-goldmark-extensions/extras v0.7.0/go.mod h1:9LJNfKWFmhEJ7HW0in5znezMwH+FYMBIhNZ3VWtRcRs=
 github.com/gohugoio/hugo-goldmark-extensions/passthrough v0.5.0 h1:p13Q0DBCrBRpJGtbtlgkYNCs4TnIlZJh8vHgnAiofrI=
 github.com/gohugoio/hugo-goldmark-extensions/passthrough v0.5.0/go.mod h1:ob9PCHy/ocsQhTz68uxhyInaYCbbVNpOOrJkIoSeD+8=
+github.com/golang-jwt/jwt/v5 v5.3.1 h1:kYf81DTWFe7t+1VvL7eS+jKFVWaUnK9cB1qbwn63YCY=
+github.com/golang-jwt/jwt/v5 v5.3.1/go.mod h1:fxCRLWMO43lRc8nhHWY6LGqRcf+1gQWArsqaEUEa5bE=
 github.com/golangci/asciicheck v0.5.0 h1:jczN/BorERZwK8oiFBOGvlGPknhvq0bjnysTj4nUfo0=
 github.com/golangci/asciicheck v0.5.0/go.mod h1:5RMNAInbNFw2krqN6ibBxN/zfRFa9S6tA1nPdM0l8qQ=
 github.com/golangci/canonicalheader v0.0.0-20260827115959-a25c71c521f6 h1:fVLolA3dG6s0brGetsiDAtcnpMSwVa2LqXJEw/9RJG4=
