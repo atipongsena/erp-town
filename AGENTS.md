@@ -7,6 +7,8 @@ instructions for both (`CLAUDE.md` imports it).
 - Program overview: `docs/superpowers/specs/2026-10-07-program-overview.md`
 - Foundation (sub-project B) spec: `docs/superpowers/specs/2026-10-07-foundation-design.md`
 - Foundation plan (current work, tick checkboxes as you go): `docs/superpowers/plans/2026-10-07-foundation.md`
+- Current A–H handoff and ownership: `docs/superpowers/plans/2026-10-10-program-handoff.md`
+- World State (C) plan and observed acceptance: `docs/superpowers/plans/2026-10-10-world-state.md`
 
 ## Layout
 
@@ -31,8 +33,9 @@ Docker must be running for `pnpm go:test` (testcontainers). Run from the repo ro
 | `pnpm go:test` | Go unit tests: `gotestsum -- -race ./...` in `go/` (needs gcc and Docker) |
 | `pnpm go:test:integration` | Go integration tests (`-tags integration`) via `tests/integration/test-site.ts`: seeds and restores `test.localhost` |
 | `pnpm go:lint` | golangci-lint (govet, staticcheck, errcheck, depguard, gofumpt) |
-| `pnpm go:gen` | `pnpm schema:gen`, then `go generate ./...` |
-| `pnpm dev:town` | run `town serve` with live reload (air) on `127.0.0.1:8090`; loads `infra/docker/.env`, whose `TOWN_JWT_PRIVATE_KEY` the `gateway` role requires (generate once: `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"`, paste into `.env`, never commit); API reference at `/town/api/docs` |
+| `pnpm go:gen` | `pnpm schema:gen`, `pnpm world:gen`, then `go generate ./...` |
+| `pnpm world:gen` | lint and generate the shared world protobuf locally with pinned Buf/Go/TS plugins |
+| `pnpm dev:town` | run `town serve` with live reload (air) on `127.0.0.1:8090`; loads `infra/docker/.env`; `gateway`/`world` require `TOWN_JWT_PRIVATE_KEY`, and `world` needs its separate read-only credential (see `docs/world-state-operations.md`); API reference at `/town/api/docs` |
 | `pnpm schema:gen` | regenerate TS types, copy the event schema into the Frappe app, and write `go/internal/events/{schema,gen}` (needs Go on PATH) |
 | `pnpm erp:up` | `docker compose -f infra/docker/compose.yaml --profile dev up -d`, then wait for `/api/method/ping` (first boot 15–30 min) |
 | `pnpm erp:down` | stop the dev stack |
@@ -65,6 +68,8 @@ Pass options after `--` with pnpm (e.g. `pnpm erp:test -- --module erp_town.test
   `frappe-apps/erp_town/erp_town/events/schema/`); run `pnpm schema:gen`.
 - Generated Go paths, never hand-edited: `go/internal/events/gen/`, `go/internal/events/schema/`,
   `go/internal/store/sqlc/` (run `pnpm go:gen`).
+- Generated world protocol paths, never hand-edited: `go/internal/worldpb/world/v1/` and
+  `packages/world-proto/src/gen/` (run `pnpm world:gen`; included in `pnpm go:gen`).
 - Clean-room: never open Frappe/ERPNext source as a model for `go/` code; `go/` is proprietary
   (`go/LICENSE`), no GPL headers there.
 - `pnpm lint` must pass before committing.
@@ -88,7 +93,7 @@ Status: done
 
 - `Agent`: `claude` or `codex`. `Status`: `done`, `partial` (must include a `Next:` line) or `blocked`.
 - Claude commits end with `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>` after the trailer block.
-- Resume point: `git log --grep="Plan: foundation" --format="%h %s%n%b" -n 20`
+- Resume point: `git log --grep="Plan: foundation" --grep="Plan: go-platform" --grep="Plan: world-state" --grep="Plan: program" --format="%h %s%n%b" -n 20`
 - Subagent-driven-development working notes (briefs, reports) live in `.superpowers/sdd/`, which is
   git-ignored and local only; anything other agents need must be in a commit.
 
