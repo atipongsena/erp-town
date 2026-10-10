@@ -22,6 +22,8 @@ import (
 // the whole transaction back and leaves the stream entry pending; it is delivered again
 // after ClaimIdle (the handler sees it at most MaxDeliveries times). Side effects
 // outside Postgres are at-least-once. The handler must not commit or roll back tx.
+// A panic is treated as a failed delivery: its transaction is rolled back and the
+// entry stays pending for retry, subject to MaxDeliveries.
 type Handler func(ctx context.Context, tx pgx.Tx, e Envelope) error
 
 // ConsumerConfig configures one member of a Redis Streams consumer group.
@@ -264,7 +266,7 @@ func (c *Consumer) process(ctx context.Context, msg redis.XMessage) {
 		return
 	}
 	for {
-		err := c.apply(ctx, e)
+		err := c.apply(WithStreamID(ctx, msg.ID), e)
 		if err == nil {
 			c.ack(ctx, msg.ID)
 			return
@@ -365,10 +367,17 @@ func (c *Consumer) apply(ctx context.Context, e Envelope) (err error) {
 		return fmt.Errorf("lock subject seq: %w", err)
 	}
 	if e.Seq <= last { // stale; never wait for a missing seq either
-		return commit(ctx, tx)
+		if err := commit(ctx, tx); err != nil {
+			return err
+		}
+		c.m.EventsStale.Add(ctx, 1)
+		c.log.Warn("consumer: stale seq skipped", "event_id", e.ID, "type", e.Type,
+			"group", c.cfg.Group, "subject_doctype", e.Subject.DocType, "subject_name", e.Subject.Name,
+			"seq", e.Seq, "last_seq", last)
+		return nil
 	}
 
-	if err := c.h(ctx, tx, e); err != nil {
+	if err := c.handle(ctx, tx, e); err != nil {
 		return &handlerError{err: err}
 	}
 	// The handler succeeded: finish even if ctx is cancelled now, so a shutdown does not
@@ -381,6 +390,17 @@ func (c *Consumer) apply(ctx context.Context, e Envelope) (err error) {
 		return fmt.Errorf("set subject seq: %w", err)
 	}
 	return commit(fctx, tx)
+}
+
+// handle confines recovery to the application handler, leaving consumer defects
+// visible. Returning an error lets apply roll back before process retries later.
+func (c *Consumer) handle(ctx context.Context, tx pgx.Tx, e Envelope) (err error) {
+	defer func() {
+		if recovered := recover(); recovered != nil {
+			err = fmt.Errorf("panic: %v", recovered)
+		}
+	}()
+	return c.h(ctx, tx, e)
 }
 
 func commit(ctx context.Context, tx pgx.Tx) error {

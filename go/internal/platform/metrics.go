@@ -20,12 +20,13 @@ const meterName = "github.com/atipongsena/erp-town/go"
 const (
 	MetricEventsInvalid         = "town_events_invalid_total"
 	MetricEventsDropped         = "town_events_dropped_total"
+	MetricEventsStale           = "town_events_stale_total"
 	MetricOutboxPublishFailures = "town_outbox_publish_failures_total"
 )
 
 // Metrics holds the town's OpenTelemetry counters.
 type Metrics struct {
-	EventsInvalid, EventsDropped, OutboxPublishFailures metric.Int64Counter
+	EventsInvalid, EventsDropped, EventsStale, OutboxPublishFailures metric.Int64Counter
 }
 
 // NewMetrics creates the counters on a meter provider exported through a private
@@ -88,6 +89,7 @@ func newMetrics(mp metric.MeterProvider) (*Metrics, error) {
 	}{
 		{&m.EventsInvalid, MetricEventsInvalid, "Stream entries acked without handling because they failed the event schema."},
 		{&m.EventsDropped, MetricEventsDropped, "Stream entries acked without success after the maximum number of deliveries."},
+		{&m.EventsStale, MetricEventsStale, "Unique events skipped because their subject sequence was already applied."},
 		{&m.OutboxPublishFailures, MetricOutboxPublishFailures, "Failed attempts to publish a town_outbox row to the stream."},
 	} {
 		ctr, err := meter.Int64Counter(c.name, metric.WithDescription(c.desc))

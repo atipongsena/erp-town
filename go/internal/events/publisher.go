@@ -73,11 +73,13 @@ func NewPublisher(pool *pgxpool.Pool, rdb *redis.Client, v *Validator, m *platfo
 }
 
 // PublishDue publishes due Pending rows and returns how many were published. In one
-// transaction it locks up to BatchSize rows that are Pending and due (next_attempt_at
-// unset or not after now) in insertion order, so each subject's events go out in seq
-// order, skipping rows another publisher holds (FOR UPDATE SKIP LOCKED); XADDs each
-// payload as field "event" while the rows are locked, trimming the stream to
-// RetentionDays (MINID ~); records each result and commits.
+// transaction it handles up to BatchSize rows within an initial insertion boundary.
+// It locks due Pending subject heads in insertion order, skipping locked heads
+// (FOR UPDATE SKIP LOCKED). A Pending head blocks later events of its subject,
+// including during backoff; unrelated subjects still progress. After each round,
+// successful or terminal results expose the next subject heads within the batch.
+// It XADDs each payload as field "event" while its row is locked, trimming the
+// stream to RetentionDays (MINID ~); records each result and commits.
 //
 // A successful XADD marks the row Published with its stream id. A failed one
 // increments attempts, stores the error and retries after min(2^attempts, 300) s,
@@ -104,38 +106,55 @@ func (p *Publisher) PublishDue(ctx context.Context) (published int, err error) {
 		}
 	}()
 	q := sqlc.New(tx)
-	rows, err := q.LockDueOutbox(ctx, sqlc.LockDueOutboxParams{Now: timestamptz(now), BatchSize: int32(min(p.cfg.BatchSize, 1<<30))})
+	boundary, err := q.OutboxBoundary(ctx)
 	if err != nil {
-		return 0, fmt.Errorf("publisher: lock due rows: %w", err)
+		return 0, fmt.Errorf("publisher: capture backlog: %w", err)
 	}
 
 	var broken error // connection-level Redis error: skip XADD for the rest of the batch
-	for _, r := range rows {
+publish:
+	for remaining := min(p.cfg.BatchSize, 1<<30); remaining > 0; {
+		rows, err := q.LockDueOutbox(ctx, sqlc.LockDueOutboxParams{
+			Now: timestamptz(now), BatchSize: int32(remaining),
+			Boundary: pgtype.Int8{Int64: boundary, Valid: true},
+		})
+		if err != nil {
+			return published, fmt.Errorf("publisher: lock due rows: %w", err)
+		}
+		if len(rows) == 0 {
+			break
+		}
+		for _, r := range rows {
+			if ctx.Err() != nil {
+				break publish
+			}
+			streamID, xerr := "", broken
+			if xerr == nil {
+				streamID, xerr = p.xadd(ctx, now, r.Payload)
+				if xerr != nil && ctx.Err() != nil {
+					break publish // shutting down: not a publish failure
+				}
+				var reply redis.Error
+				if xerr != nil && !errors.As(xerr, &reply) {
+					broken = xerr
+				}
+			}
+			// Redis may hold the entry: record the outcome even if ctx is cancelled.
+			if xerr != nil {
+				if err := p.recordFailure(ctx, tx, now, r, xerr); err != nil {
+					return published, err
+				}
+			} else {
+				if err := p.markPublished(ctx, q, now, r.ID, streamID); err != nil {
+					return published, err
+				}
+				published++
+			}
+			remaining--
+		}
 		if ctx.Err() != nil {
 			break
 		}
-		streamID, xerr := "", broken
-		if xerr == nil {
-			streamID, xerr = p.xadd(ctx, now, r.Payload)
-			if xerr != nil && ctx.Err() != nil {
-				break // shutting down: not a publish failure
-			}
-			var reply redis.Error
-			if xerr != nil && !errors.As(xerr, &reply) {
-				broken = xerr
-			}
-		}
-		// From here on Redis may hold the entry: record the outcome even if ctx is cancelled.
-		if xerr != nil {
-			if err := p.recordFailure(ctx, tx, now, r, xerr); err != nil {
-				return published, err
-			}
-			continue
-		}
-		if err := p.markPublished(ctx, q, now, r.ID, streamID); err != nil {
-			return published, err
-		}
-		published++
 	}
 
 	cctx, cancel := detached(ctx)

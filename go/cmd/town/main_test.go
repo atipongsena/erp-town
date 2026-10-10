@@ -10,9 +10,10 @@ import (
 	"go.uber.org/goleak"
 
 	"github.com/atipongsena/erp-town/go/internal/platform"
+	"github.com/atipongsena/erp-town/go/internal/store/storetest"
 )
 
-func TestMain(m *testing.M) { goleak.VerifyTestMain(m) }
+func TestMain(m *testing.M) { goleak.VerifyTestMain(m, storetest.IgnoreBackgroundGoroutines()...) }
 
 func waitDone(ctx context.Context) error {
 	<-ctx.Done()

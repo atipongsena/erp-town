@@ -42,16 +42,25 @@ func (q *Queries) InsertOutbox(ctx context.Context, arg InsertOutboxParams) erro
 }
 
 const lockDueOutbox = `-- name: LockDueOutbox :many
-SELECT id, type, payload, attempts
-FROM town_outbox
-WHERE status = 'Pending'
-  AND (next_attempt_at IS NULL OR next_attempt_at <= $1)
-ORDER BY insert_order
-LIMIT $2
-FOR UPDATE SKIP LOCKED
+SELECT candidate.id, candidate.type, candidate.payload, candidate.attempts
+FROM town_outbox AS candidate
+WHERE candidate.status = 'Pending'
+  AND candidate.insert_order <= $1
+  AND (candidate.next_attempt_at IS NULL OR candidate.next_attempt_at <= $2)
+  AND NOT EXISTS (
+    SELECT 1 FROM town_outbox AS earlier
+    WHERE earlier.status = 'Pending'
+      AND earlier.subject_doctype = candidate.subject_doctype
+      AND earlier.subject_name = candidate.subject_name
+      AND earlier.insert_order < candidate.insert_order
+  )
+ORDER BY candidate.insert_order
+LIMIT $3
+FOR UPDATE OF candidate SKIP LOCKED
 `
 
 type LockDueOutboxParams struct {
+	Boundary  pgtype.Int8
 	Now       pgtype.Timestamptz
 	BatchSize int32
 }
@@ -63,11 +72,11 @@ type LockDueOutboxRow struct {
 	Attempts int32
 }
 
-// Locks up to batch_size due Pending rows in insertion order (so each subject's events
-// go out in seq order); rows another publisher holds are skipped, so no row is
-// published by two publishers at once.
+// Locks due subject heads only. An earlier Pending row blocks its subject even
+// during backoff or while another publisher holds its lock. Terminal rows do not.
+// The boundary keeps rows inserted during this publish call for the next batch.
 func (q *Queries) LockDueOutbox(ctx context.Context, arg LockDueOutboxParams) ([]LockDueOutboxRow, error) {
-	rows, err := q.db.Query(ctx, lockDueOutbox, arg.Now, arg.BatchSize)
+	rows, err := q.db.Query(ctx, lockDueOutbox, arg.Boundary, arg.Now, arg.BatchSize)
 	if err != nil {
 		return nil, err
 	}
@@ -128,6 +137,19 @@ func (q *Queries) NextSubjectSeq(ctx context.Context, arg NextSubjectSeqParams) 
 	var last_seq int64
 	err := row.Scan(&last_seq)
 	return last_seq, err
+}
+
+const outboxBoundary = `-- name: OutboxBoundary :one
+SELECT COALESCE(max(insert_order), 0)::bigint FROM town_outbox WHERE status = 'Pending'
+`
+
+// Capture the visible backlog's insertion boundary before publishing. New error
+// reports and events inserted beyond this boundary wait for the next call.
+func (q *Queries) OutboxBoundary(ctx context.Context) (int64, error) {
+	row := q.db.QueryRow(ctx, outboxBoundary)
+	var column_1 int64
+	err := row.Scan(&column_1)
+	return column_1, err
 }
 
 const recordOutboxFailure = `-- name: RecordOutboxFailure :exec

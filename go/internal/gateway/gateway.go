@@ -6,6 +6,7 @@ package gateway
 import (
 	"context"
 	"encoding/json"
+	"log/slog"
 	"net/http"
 	"sync"
 	"time"
@@ -16,6 +17,7 @@ import (
 
 	"github.com/atipongsena/erp-town/go/internal/auth"
 	"github.com/atipongsena/erp-town/go/internal/erp"
+	"github.com/atipongsena/erp-town/go/internal/platform"
 )
 
 const (
@@ -39,10 +41,7 @@ var humaOnce sync.Once
 
 type ctxKey int
 
-const (
-	principalKey ctxKey = iota
-	requestIDKey
-)
+const principalKey ctxKey = 0
 
 type gateway struct {
 	port erp.Port
@@ -75,7 +74,7 @@ func New(mux *http.ServeMux, port erp.Port, authn *auth.Authenticator, jwt *auth
 	mux.HandleFunc("/town/api/", notFound)
 
 	api := humago.New(mux, cfg)
-	api.UseMiddleware(withRequestID, withDeadline, requireTownHeader, authenticate(authn))
+	api.UseMiddleware(withRequestID, withAccessLog, withDeadline, requireTownHeader, authenticate(authn))
 
 	g := &gateway{port: port, jwt: jwt}
 	g.registerIdentity(api)
@@ -86,7 +85,25 @@ func New(mux *http.ServeMux, port erp.Port, authn *auth.Authenticator, jwt *auth
 func withRequestID(ctx huma.Context, next func(huma.Context)) {
 	id := ulid.Make().String()
 	ctx.SetHeader(RequestIDHeader, id)
-	next(huma.WithValue(ctx, requestIDKey, id))
+	next(huma.WithContext(ctx, platform.WithRequestID(ctx.Context(), id)))
+}
+
+func withAccessLog(ctx huma.Context, next func(huma.Context)) {
+	start := time.Now()
+	defer func() {
+		status := ctx.Status()
+		if status == 0 {
+			status = http.StatusOK
+		}
+		logAccess(ctx.Context(), ctx.Method(), ctx.URL().Path, status, start)
+	}()
+	next(ctx)
+}
+
+func logAccess(ctx context.Context, method, path string, status int, start time.Time) {
+	slog.InfoContext(ctx, "gateway: request completed",
+		"request_id", requestID(ctx), "method", method, "path", path,
+		"status", status, "duration_ms", float64(time.Since(start))/float64(time.Millisecond))
 }
 
 func withDeadline(ctx huma.Context, next func(huma.Context)) {
@@ -130,8 +147,12 @@ func writeError(ctx huma.Context, e *APIError) {
 	_ = enc.Encode(e) // the client went away; nothing else to do
 }
 
-func notFound(w http.ResponseWriter, _ *http.Request) {
-	w.Header().Set(RequestIDHeader, ulid.Make().String())
+func notFound(w http.ResponseWriter, r *http.Request) {
+	start := time.Now()
+	id := ulid.Make().String()
+	ctx := platform.WithRequestID(r.Context(), id)
+	defer logAccess(ctx, r.Method, r.URL.Path, http.StatusNotFound, start)
+	w.Header().Set(RequestIDHeader, id)
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusNotFound)
 	enc := json.NewEncoder(w)
@@ -140,8 +161,7 @@ func notFound(w http.ResponseWriter, _ *http.Request) {
 }
 
 func requestID(ctx context.Context) string {
-	id, _ := ctx.Value(requestIDKey).(string)
-	return id
+	return platform.RequestID(ctx)
 }
 
 // principal returns the caller set by the authenticate middleware.

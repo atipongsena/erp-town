@@ -1,0 +1,62 @@
+syntax = "proto3";
+
+package world.v1;
+
+option go_package = "github.com/atipongsena/erp-town/go/internal/worldpb/world/v1;worldv1";
+
+// Credentials travel only in the first binary frame, never in a URL.
+message Join {
+  string jwt = 1;
+  string company = 2;
+  string resume_token = 3;
+  uint64 last_version = 4;
+}
+
+// Display-only intents cannot invoke ERP commands.
+message DisplayIntent {
+  string name = 1;
+  string target = 2;
+}
+
+message ClientFrame {
+  oneof message {
+    Join join = 1;
+    DisplayIntent display_intent = 2;
+  }
+}
+
+message EntityKey {
+  string doctype = 1;
+  string name = 2;
+  string kind = 3;
+  string scope = 4;
+}
+
+message Entity {
+  EntityKey key = 1;
+  uint64 version = 2;
+  string event_type = 3;
+  // Whitelisted event/projection data, filtered before encoding.
+  bytes data_json = 4;
+  string time = 5;
+  int64 seq = 6;
+  string event_id = 7;
+  string correlation_id = 8;
+  string actor_id = 9;
+}
+
+enum FrameKind {
+  FRAME_KIND_UNSPECIFIED = 0;
+  FRAME_KIND_SNAPSHOT = 1;
+  FRAME_KIND_PATCH = 2;
+}
+
+message ServerFrame {
+  FrameKind kind = 1;
+  string company = 2;
+  uint64 version = 3;
+  uint64 base_version = 4;
+  repeated Entity upserts = 5;
+  repeated EntityKey removes = 6;
+  string resume_token = 7;
+}

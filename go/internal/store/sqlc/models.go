@@ -42,3 +42,10 @@ type TownSubjectSeq struct {
 	SubjectName    string
 	LastSeq        int64
 }
+
+type WorldSnapshot struct {
+	Company  string
+	StreamID string
+	State    []byte
+	TakenAt  pgtype.Timestamptz
+}

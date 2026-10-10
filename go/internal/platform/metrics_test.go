@@ -14,6 +14,7 @@ func TestMetricsHandlerExposesCounterNames(t *testing.T) {
 	require.NoError(t, err)
 	m.EventsInvalid.Add(t.Context(), 2)
 	m.EventsDropped.Add(t.Context(), 1)
+	m.EventsStale.Add(t.Context(), 4)
 	m.OutboxPublishFailures.Add(t.Context(), 3)
 
 	rec := httptest.NewRecorder()
@@ -22,6 +23,7 @@ func TestMetricsHandlerExposesCounterNames(t *testing.T) {
 	body := rec.Body.String()
 	assert.Regexp(t, `(?m)^town_events_invalid_total(\{[^}]*\})? 2$`, body)
 	assert.Regexp(t, `(?m)^town_events_dropped_total(\{[^}]*\})? 1$`, body)
+	assert.Regexp(t, `(?m)^town_events_stale_total(\{[^}]*\})? 4$`, body)
 	assert.Regexp(t, `(?m)^town_outbox_publish_failures_total(\{[^}]*\})? 3$`, body)
 	assert.NotContains(t, body, "_total_total")
 }

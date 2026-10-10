@@ -15,10 +15,11 @@ type Role string
 const (
 	RoleGateway Role = "gateway"
 	RoleOutbox  Role = "outbox"
+	RoleWorld   Role = "world"
 )
 
 // KnownRoles lists every valid role.
-var KnownRoles = []Role{RoleGateway, RoleOutbox}
+var KnownRoles = []Role{RoleGateway, RoleOutbox, RoleWorld}
 
 // Roles is a set of enabled roles.
 type Roles map[Role]bool
@@ -65,6 +66,7 @@ func ParseRoles(s string) (Roles, error) {
 // Config is the process configuration, read from TOWN_* environment variables.
 type Config struct {
 	HTTPAddr, DatabaseURL, RedisURL, Stream, ERPURL, ERPSite, JWTPrivateKey string
+	WorldAPIKey, WorldAPISecret                                             string
 	Roles                                                                   Roles
 }
 
@@ -81,18 +83,28 @@ func LoadConfig(getenv func(string) string) (Config, error) {
 		return Config{}, fmt.Errorf("TOWN_ROLES: %w", err)
 	}
 	cfg := Config{
-		HTTPAddr:      get("TOWN_HTTP_ADDR", "127.0.0.1:8090"),
-		DatabaseURL:   get("TOWN_DATABASE_URL", "postgres://town:town@127.0.0.1:5433/town?sslmode=disable"),
-		RedisURL:      get("TOWN_REDIS_URL", "redis://127.0.0.1:6380/0"),
-		Stream:        get("TOWN_STREAM", "town:events"),
-		ERPURL:        get("TOWN_ERP_URL", "http://127.0.0.1:8080"),
-		ERPSite:       get("TOWN_ERP_SITE", "town.localhost"),
-		JWTPrivateKey: getenv("TOWN_JWT_PRIVATE_KEY"),
-		Roles:         roles,
+		HTTPAddr:       get("TOWN_HTTP_ADDR", "127.0.0.1:8090"),
+		DatabaseURL:    get("TOWN_DATABASE_URL", "postgres://town:town@127.0.0.1:5433/town?sslmode=disable"),
+		RedisURL:       get("TOWN_REDIS_URL", "redis://127.0.0.1:6380/0"),
+		Stream:         get("TOWN_STREAM", "town:events"),
+		ERPURL:         get("TOWN_ERP_URL", "http://127.0.0.1:8080"),
+		ERPSite:        get("TOWN_ERP_SITE", "town.localhost"),
+		JWTPrivateKey:  getenv("TOWN_JWT_PRIVATE_KEY"),
+		WorldAPIKey:    getenv("TOWN_WORLD_API_KEY"),
+		WorldAPISecret: getenv("TOWN_WORLD_API_SECRET"),
+		Roles:          roles,
 	}
-	if roles.Has(RoleGateway) {
+	if roles.Has(RoleGateway) || roles.Has(RoleWorld) {
 		if err := checkJWTKey(cfg.JWTPrivateKey); err != nil {
 			return Config{}, err
+		}
+	}
+	if roles.Has(RoleWorld) {
+		if cfg.WorldAPIKey == "" {
+			return Config{}, errors.New("TOWN_WORLD_API_KEY is required by the world role (dedicated Town Projection Reader credential)")
+		}
+		if cfg.WorldAPISecret == "" {
+			return Config{}, errors.New("TOWN_WORLD_API_SECRET is required by the world role (dedicated Town Projection Reader credential)")
 		}
 	}
 	return cfg, nil
@@ -102,7 +114,7 @@ func LoadConfig(getenv func(string) string) (Config, error) {
 // never include the key itself.
 func checkJWTKey(key string) error {
 	if key == "" {
-		return errors.New("TOWN_JWT_PRIVATE_KEY is required by the gateway role " +
+		return errors.New("TOWN_JWT_PRIVATE_KEY is required by the gateway/world roles " +
 			"(standard base64 of a 32-byte Ed25519 seed)")
 	}
 	seed, err := base64.StdEncoding.DecodeString(key)

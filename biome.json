@@ -13,6 +13,7 @@
       "!.superpowers",
       "!frappe-apps",
       "!packages/*/src/generated.ts",
+      "!packages/world-proto/src/gen",
       "!playwright-report",
       "!test-results"
     ]

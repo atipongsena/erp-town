@@ -14,16 +14,29 @@ INSERT INTO town_outbox (id, type, subject_doctype, subject_name, payload, statu
 VALUES ($1, $2, $3, $4, $5, $6, $7, clock_timestamp());
 
 -- name: LockDueOutbox :many
--- Locks up to batch_size due Pending rows in insertion order (so each subject's events
--- go out in seq order); rows another publisher holds are skipped, so no row is
--- published by two publishers at once.
-SELECT id, type, payload, attempts
-FROM town_outbox
-WHERE status = 'Pending'
-  AND (next_attempt_at IS NULL OR next_attempt_at <= sqlc.arg(now))
-ORDER BY insert_order
+-- Locks due subject heads only. An earlier Pending row blocks its subject even
+-- during backoff or while another publisher holds its lock. Terminal rows do not.
+-- The boundary keeps rows inserted during this publish call for the next batch.
+SELECT candidate.id, candidate.type, candidate.payload, candidate.attempts
+FROM town_outbox AS candidate
+WHERE candidate.status = 'Pending'
+  AND candidate.insert_order <= sqlc.arg(boundary)
+  AND (candidate.next_attempt_at IS NULL OR candidate.next_attempt_at <= sqlc.arg(now))
+  AND NOT EXISTS (
+    SELECT 1 FROM town_outbox AS earlier
+    WHERE earlier.status = 'Pending'
+      AND earlier.subject_doctype = candidate.subject_doctype
+      AND earlier.subject_name = candidate.subject_name
+      AND earlier.insert_order < candidate.insert_order
+  )
+ORDER BY candidate.insert_order
 LIMIT sqlc.arg(batch_size)
-FOR UPDATE SKIP LOCKED;
+FOR UPDATE OF candidate SKIP LOCKED;
+
+-- name: OutboxBoundary :one
+-- Capture the visible backlog's insertion boundary before publishing. New error
+-- reports and events inserted beyond this boundary wait for the next call.
+SELECT COALESCE(max(insert_order), 0)::bigint FROM town_outbox WHERE status = 'Pending';
 
 -- name: MarkOutboxPublished :exec
 UPDATE town_outbox

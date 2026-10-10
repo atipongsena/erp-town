@@ -208,6 +208,70 @@ func TestPublishSkipsLockedRows(t *testing.T) {
 	assert.Equal(t, "Published", loadRow(t, h.pool, free).Status)
 }
 
+func TestPublishBackoffBlocksOnlyItsSubject(t *testing.T) {
+	h := newPubHarness(t)
+	in := systemErrorInput("RETRY", gen.SystemErrorData{Code: "TEST", Message: "m"})
+	head := emitCommitted(t, h.pool, h.v, testNow, in)
+	next := emitCommitted(t, h.pool, h.v, testNow, in)
+	other := emitCommitted(t, h.pool, h.v, testNow, systemErrorInput("OTHER", gen.SystemErrorData{Code: "TEST", Message: "m"}))
+	_, err := h.pool.Exec(t.Context(), "UPDATE town_outbox SET next_attempt_at = $2 WHERE id = $1", head, testNow.Add(2*time.Second))
+	require.NoError(t, err)
+
+	n, err := h.publisher(h.rdb, testNow).PublishDue(t.Context())
+	require.NoError(t, err)
+	require.Equal(t, 1, n, "an independent subject can publish while RETRY waits")
+	assert.Equal(t, StatusPending, loadRow(t, h.pool, next).Status)
+	assert.Equal(t, StatusPublished, loadRow(t, h.pool, other).Status)
+
+	n, err = h.publisher(h.rdb, testNow.Add(2*time.Second)).PublishDue(t.Context())
+	require.NoError(t, err)
+	require.Equal(t, 2, n, "the unblocked subject drains up to the batch limit")
+	msgs, err := h.rdb.XRange(t.Context(), h.stream, "-", "+").Result()
+	require.NoError(t, err)
+	require.Len(t, msgs, 3)
+	assert.Equal(t, head, decodeStored(t, h.v, msgs[1].Values[eventField].(string)).ID)
+	assert.Equal(t, next, decodeStored(t, h.v, msgs[2].Values[eventField].(string)).ID)
+}
+
+func TestPublishLockedHeadBlocksOnlyItsSubject(t *testing.T) {
+	h := newPubHarness(t)
+	in := systemErrorInput("LOCKED", gen.SystemErrorData{Code: "TEST", Message: "m"})
+	head := emitCommitted(t, h.pool, h.v, testNow, in)
+	next := emitCommitted(t, h.pool, h.v, testNow, in)
+	other := emitCommitted(t, h.pool, h.v, testNow, systemErrorInput("OTHER", gen.SystemErrorData{Code: "TEST", Message: "m"}))
+	inTx(t, h.pool, func(tx pgx.Tx) {
+		_, err := tx.Exec(t.Context(), "SELECT 1 FROM town_outbox WHERE id = $1 FOR UPDATE", head)
+		require.NoError(t, err)
+		n, err := h.publisher(h.rdb, testNow).PublishDue(t.Context())
+		require.NoError(t, err)
+		require.Equal(t, 1, n, "another publisher cannot overtake a locked subject head")
+	})
+	assert.Equal(t, StatusPending, loadRow(t, h.pool, next).Status)
+	assert.Equal(t, StatusPublished, loadRow(t, h.pool, other).Status)
+
+	n, err := h.publisher(h.rdb, testNow).PublishDue(t.Context())
+	require.NoError(t, err)
+	require.Equal(t, 2, n)
+}
+
+func TestPublishFailureLeavesLaterSubjectAttemptsUntouched(t *testing.T) {
+	h := newPubHarness(t)
+	in := systemErrorInput("RETRY", gen.SystemErrorData{Code: "TEST", Message: "m"})
+	head := emitCommitted(t, h.pool, h.v, testNow, in)
+	next := emitCommitted(t, h.pool, h.v, testNow, in)
+	// A server reply error lets the publisher try unrelated subjects, but it must
+	// not attempt the next event of this subject after the head enters backoff.
+	require.NoError(t, h.rdb.Set(t.Context(), h.stream, "not a stream", 0).Err())
+	n, err := h.publisher(h.rdb, testNow).PublishDue(t.Context())
+	require.NoError(t, err)
+	assert.Zero(t, n)
+	assert.Equal(t, 1, loadRow(t, h.pool, head).Attempts)
+	r := loadRow(t, h.pool, next)
+	assert.Zero(t, r.Attempts)
+	assert.Nil(t, r.NextAttemptAt)
+	assert.Equal(t, int64(1), h.read(platform.MetricOutboxPublishFailures))
+}
+
 func TestPublishHonoursBatchSizeAndOrder(t *testing.T) {
 	h := newPubHarness(t)
 	var ids []string

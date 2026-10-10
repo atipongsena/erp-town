@@ -36,18 +36,48 @@ Before the pilot goes live:
 - Remote retention is skipped on runs where `pg_dump` fails (the run exits non-zero); a long pg_dump outage stops pruning of remote ERP sets.
 
 Before C (World State) adds the first production consumer handler:
-- Recover handler panics in the consumer (count as a failed delivery).
-- Log and count stale-seq skips; add an access log and propagate `X-Request-Id` to ERPNext calls (final review M10).
+- [x] Recover handler panics in the consumer (count as a failed delivery). Completed 2026-10-10: recovery is confined to the handler; its transaction rolls back, the entry stays pending, and repeated panics reach the existing MaxDeliveries drop path without stopping other entries. Regression tests: `TestConsumerHandlerPanicRollsBackAndRetries`, `TestConsumerPersistentPanicDropsAndContinues` (including `panic(nil)`).
+- [x] Log and count stale-seq skips; add an access log and propagate `X-Request-Id` to ERPNext calls (final review M10). Completed 2026-10-10: `town_events_stale_total` and structured stale-seq logs are emitted after the dedupe transaction commits, once per unique skipped event. Gateway operations and JSON 404 responses log method, path, status, duration and the server-generated request id; query strings, credentials and request bodies are excluded. The id reaches ERPNext whoami, document calls and GET retries through request context. Regression tests: `TestConsumerStaleSeqIsCountedAndLoggedOnce`, `TestGatewayAccessLogCorrelatesEveryOutcome`, `TestGatewayRequestIDReachesERPNextOnEveryAttempt` (real gateway and adapter against a local HTTP test server).
 - Emit→consume is ≈1.1–1.7 s on test.localhost (envelope `time` has 1 s precision + after-commit RQ publish); publish→consume 6 ms. C's 250 ms target must be measured from the stream entry, or the Frappe publish path must change.
 
+Verification for the 2026-10-10 readiness fixes: the five new regression tests were observed failing before implementation, then passing. `pnpm test` passed (TS 71; Go 311 with `-race`; Python 42 unit and 186 integration, one existing Chrome PDF skip because Chromium is unavailable). `pnpm lint` passed with 0 Go issues. The local request-tracing test also passed with goroutine leak checks in both normal and integration-tag builds; this does not claim a new live ERPNext or pilot integration run. Changes were uncommitted at this readiness checkpoint; the user subsequently authorized local commits, recorded in `2026-10-10-program-handoff.md`.
+
 Before E (agents) emits events through the Go outbox:
-- Head-of-line publishing per subject: a row in backoff can be overtaken by a later seq of the same subject, which consumers then drop (final review M2; same behaviour as the Frappe outbox).
+- [x] Head-of-line publishing per subject: fixed 2026-10-10 in the Go publisher. Only due Pending subject heads are locked; a head in backoff or locked by another publisher blocks its own subject, while unrelated subjects progress. Rounds expose the next heads after successful/terminal results, preserving the total batch limit. An insertion boundary prevents new error reports from being processed in the same call. Three regressions were observed failing before the fix, then the complete `events` suite passed with `-race -p 1 -count=1` (96.235 s). This does not change the Frappe publisher or resolve E's separate Go-owned subject allowlist decision.
 - Purge Published `town_outbox` rows (Frappe has a daily purge); set per-XADD timeout and go-redis `MaxRetries` so retries don't hold row locks.
 - Typed data with nullable keys: generated pointer + `omitempty` drops explicit null on re-encode.
 - Test whoami with an API-key credential against real Frappe; decide the Go-owned subject allowlist (Task 5 ruling).
 
 Before D (client) relies on retries:
 - No client idempotency keys: a create that times out (45 s gateway deadline → 503) or a client disconnect (499) can still have committed in ERPNext.
+
+## C projection increment (2026-10-10)
+
+The complete C implementation and local acceptance are recorded in
+[2026-10-10-world-state.md](2026-10-10-world-state.md), with operation details in
+`docs/world-state-operations.md`. Projection, format-2 snapshots, raw recovery,
+ERP reconciliation, protobuf rooms, `/town/ws` and process wiring are implemented.
+Sequential validation passes: TS 73 tests/typechecks, Go 412 race tests, Python
+45 unit/189 integration tests (one existing Chromium skip), and full lint. The
+200-client/4,000-sample local acceptance measures p95 89.5308 ms from Redis entry
+time. A final process-cancellation close-code regression is fixed and its focused
+WebSocket race suite passes. Real reader provisioning and pilot validation remain
+unauthorized. The user has now authorized local commits for cross-agent handoff;
+see `2026-10-10-program-handoff.md`. The earlier increment notes below record
+how the projection contract was established, not the current remaining C scope.
+
+The first part of spec §6.1 is implemented in `go/internal/world/{state,projection}.go`, with fixture-based tests in `projection_test.go`. `Projector.Apply` validates the existing contract and returns a new company-scoped state without I/O, clocks, ERP access or mutation of its input. It accepts seq gaps, ignores duplicates/stale seq and keeps seq tombstones after signal removal. Entity payloads, actor metadata and visibility slices are copied on input and snapshot reads; snapshot order is deterministic.
+
+The internal model keeps separate document activity, pending approval, overdue, per-warehouse stock and company-scoped error facts. Approval decisions remove pending signals; cancellations remove approval/overdue signals for that subject. It deliberately does not infer full payment from a Payment Entry, stock recovery from a below-reorder event, or the current ERP backlog from document submissions. Those facts require read-only reconciliation. Original visibility stays attached to each separate fact; `Entities()` is an internal snapshot and must not be sent to clients without filtering. This is an internal reducer, not a running world role or the public wire schema.
+
+Validation: `go -C go test -race ./internal/world -count=1` passed after observed failing behavioral tests; `pnpm go:test` passed 341 tests (unchanged packages may use the Go test cache); `pnpm lint` passed. No dependencies, migrations, authenticated endpoints or deployment configuration were changed for this increment. Changes are uncommitted.
+
+Historical proposal for the subsequently approved C increment (already implemented above):
+
+- Add `github.com/coder/websocket` v1.8.15; promote the existing `google.golang.org/protobuf` v1.36.12 to a direct dependency and add its `protoc-gen-go` tool at the same version; add Buf CLI v1.73.0 as a Go tool and `@bufbuild/protobuf` / `@bufbuild/protoc-gen-es` v2.16.0 in a new `packages/world-proto` workspace package. Pin versions, use local generators (no schema upload), and review necessary transitive changes to Go/pnpm manifests and lockfiles. Version sources: [coder/websocket releases](https://github.com/coder/websocket/releases/tag/v1.8.15), [Buf releases](https://github.com/bufbuild/buf/releases/tag/v1.73.0), [Protobuf-ES releases](https://github.com/bufbuild/protobuf-es/releases/tag/v2.16.0).
+- Add the company-room runtime and `/town/ws` with the existing EdDSA JWT verifier: same-origin connection, JWT/company join message with a 5 s authentication deadline, no room data before verification, and no ERP write intents. `public` facts stay within the authorized company and `roles` facts require a matching role. Proposed private-owner rule for approval: only a user actor whose id equals `"user." + JWT.sub` may see the private fact; `on_behalf_of` grants no ownership and other actor kinds are denied until E defines explicit owner mapping. Tick at 10 Hz, send snapshot/upsert/remove patches, cap each writer queue at 256 messages, and bind 30 s resume tokens to the authenticated user/company/visibility scope; a changed visibility scope forces a newly filtered snapshot.
+- Add a new `world_snapshots` table: `company text PRIMARY KEY`, `stream_id text NOT NULL`, `state bytea NOT NULL`, `taken_at timestamptz NOT NULL`. Store the projection version, seq tombstones and fact metadata in a versioned snapshot format. Save every 30 s. Run the new migration only in testcontainers/local development after approval; pilot/production operations need separate authorization.
+- Connect recovery and read-only `erp.Projection` reconciliation. Replay raw stream entries from a snapshot cursor independently of `consumed_events` (otherwise events already deduped after the last snapshot would be lost after restart), then hand off to live consumption without a gap. Carry Redis entry ids in the handler context through an events helper, preserving the existing Handler signature. Establish the live group before capturing a replay boundary and hold live callbacks during replay/rebuild; cursor checkpoints must not advance past pending work. Stream trim/rebuild and concurrent live capture need explicit tests. No new real Frappe system credentials or role grants are provisioned as part of local implementation without authorization.
 
 ## Deferred minor review findings
 
@@ -64,12 +94,10 @@ Before D (client) relies on retries:
 - Task 3: storetest labels every container start error "docker unavailable"
 - Task 3: store.Open untested; isolation test doesn't assert schema dropped
 - Task 4: shutdown mid-batch increments delivery counts of read-but-unprocessed entries
-- Task 4: stale-seq skips not logged (no trace when N is skipped after N+1 applied)
 - Task 4: goleak ignores net/http persistConn loops in events package (broader than testcontainers)
 - Task 4: consumer logs to slog.Default — WARN/ERROR noise in test output
 - Task 4: XPENDING round trip per claimed entry + PEL scan each step (pilot-scale OK)
 - Task 4: no test for fail-once-then-succeed on reclaim
-- Task 4: handler panic not recovered
 - Task 4: outage hitting mid-handler costs one delivery (handlerError path skips ping)
 - Task 4: Begin has no per-call timeout against a blackholed DB (shutdown latency)
 - Task 5: no test that one broken Redis connection costs one dial per batch

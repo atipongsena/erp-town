@@ -15,6 +15,7 @@
     "test:integration": "vitest run -c tests/integration/vitest.config.ts",
     "test:e2e": "playwright test",
     "schema:gen": "node packages/event-schema/scripts/gen.mjs",
+    "world:gen": "pnpm --filter @erp-town/world-proto gen",
     "erp:up": "node scripts/erp.mjs up",
     "erp:down": "node scripts/erp.mjs down",
     "erp:logs": "node scripts/erp.mjs logs",
@@ -31,7 +32,7 @@
     "go:test": "go -C go tool gotestsum --format pkgname -- -race ./...",
     "go:test:integration": "node tests/integration/test-site.ts run --scheduler -- go -C go tool gotestsum --format pkgname -- -race -p 1 -tags integration -count=1 ./...",
     "go:lint": "go -C go tool golangci-lint run ./...",
-    "go:gen": "pnpm schema:gen && go -C go generate ./...",
+    "go:gen": "pnpm schema:gen && pnpm world:gen && go -C go generate ./...",
     "dev:town": "go -C go tool air"
   },
   "devDependencies": {

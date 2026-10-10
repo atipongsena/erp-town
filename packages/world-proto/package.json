@@ -1,0 +1,22 @@
+{
+  "name": "@erp-town/world-proto",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Shared proprietary world WebSocket protocol",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "gen": "node scripts/gen.mjs",
+    "test": "vitest run",
+    "typecheck": "node ../../node_modules/typescript/bin/tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@bufbuild/protobuf": "2.16.0"
+  },
+  "devDependencies": {
+    "@bufbuild/protoc-gen-es": "2.16.0",
+    "vitest": "^5.0.3"
+  }
+}

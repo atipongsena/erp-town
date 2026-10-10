@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/atipongsena/erp-town/go/internal/erp"
+	"github.com/atipongsena/erp-town/go/internal/platform"
 )
 
 const (
@@ -169,6 +170,9 @@ func (c *Client) do(ctx context.Context, method, target string, body []byte, cre
 		return fmt.Errorf("erpnext: build request: %w", err)
 	}
 	req.Header.Set("Accept", "application/json")
+	if id := platform.RequestID(ctx); id != "" {
+		req.Header.Set("X-Request-Id", id)
+	}
 	req.Header.Set("X-Frappe-Site-Name", c.site)
 	if c.site != "" {
 		// Proxies in front of Frappe (the pilot nginx) derive the site from
