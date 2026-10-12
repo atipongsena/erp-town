@@ -1,0 +1,83 @@
+{
+  "sourceCheckout": "D:\\ERP_Town-art-direction",
+  "sourceBlendSha256": "e9bee83331bb4cf1649790bf884cf09f764911334e6cc842db8b2625e226c933",
+  "approval": "Development snapshot; G-A3/G-A4 remain open.",
+  "buildings": [
+    {
+      "source": "assets/art/models/buildings/town-shop.glb",
+      "file": "town-shop.glb",
+      "sha256": "08ea0129e9d268ac36bc3a86b64b65e6a20280eb35cbb4e60dfd3977741573c7"
+    },
+    {
+      "source": "assets/art/models/buildings/town-warehouse.glb",
+      "file": "town-warehouse.glb",
+      "sha256": "5d28d3524ecae7d01976ab8f6e421433795fc77b442c6fa28df6555e9c6a8f52"
+    },
+    {
+      "source": "assets/art/models/buildings/town-bank.glb",
+      "file": "town-bank.glb",
+      "sha256": "85d699e21722bb09e1996a4190c9ebf013502b8c53595e038ccf7fe3d594134e"
+    },
+    {
+      "source": "assets/art/models/buildings/town-hq.glb",
+      "file": "town-hq.glb",
+      "sha256": "deb3436d85bc7d9d062a2e55c5a40bb21e1b3d5a74d04f7700f1dfa1195f2e1e"
+    },
+    {
+      "source": "assets/art/models/buildings/town-it.glb",
+      "file": "town-it.glb",
+      "sha256": "d7523127f3bd1458d9188c9e3abef44cdeb952f54ab843a49707beba1907d06a"
+    },
+    {
+      "source": "assets/art/models/buildings/town-post.glb",
+      "file": "town-post.glb",
+      "sha256": "37cd3c1aabf448446e781b50b5252054aec5ac263666b30eb628e3f3d385c0a3"
+    },
+    {
+      "source": "assets/art/models/buildings/town-clocktower.glb",
+      "file": "town-clocktower.glb",
+      "sha256": "ea856c61a3e4e27d21470b96378058b70a3c2b51424c2b26f96fe36ffb7163d2"
+    },
+    {
+      "source": "assets/art/models/buildings/town-citygate.glb",
+      "file": "town-citygate.glb",
+      "sha256": "52a600e4250062871e752dc8d8f88092bc6c743a2a62329e47ac4bbae0fd543f"
+    }
+  ],
+  "vehicles": [
+    {
+      "source": "assets/art/models/vehicles/town-car.glb",
+      "file": "town-car.glb",
+      "sha256": "ec0784b3576b95034e4f25ae279c7bf211f8c45c21a199b46d407cfb2c10d65d"
+    },
+    {
+      "source": "assets/art/models/vehicles/town-truck.glb",
+      "file": "town-truck.glb",
+      "sha256": "6ad67121845a1b0d93bc4b652284c3fa42898cad6f62e7aef152f7405f5bcae0"
+    }
+  ],
+  "characters": [
+    {
+      "source": "assets/art/models/characters/town-human-01.glb",
+      "file": "town-human-01.glb",
+      "sha256": "3a475b58ec22293ae6361718fd6c62407e5d8a5148ff30c8da30c7c51af0d70f",
+      "approval": "Development snapshot; human design acceptance remains open"
+    },
+    {
+      "source": "assets/art/models/characters/town-human-02.glb",
+      "file": "town-human-02.glb",
+      "sha256": "f02cf0fe73b478f8a4ff1a5626b880f078ff5b18ff26eda1a24370c9b9467caa",
+      "approval": "Development snapshot; human design acceptance remains open"
+    },
+    {
+      "source": "assets/art/models/characters/town-agent-hq.glb",
+      "file": "town-agent-hq.glb",
+      "sha256": "9583251bb2625066455c0b46bf3710da807ce7798b7523b402b737bc76341f5c",
+      "approval": "Development snapshot; human design acceptance remains open"
+    }
+  ],
+  "environment": {
+    "file": "town-environment.glb",
+    "sha256": "64343538717afd7e9b0b7d92eb25999b09f90124a0f20531f926baa1e75071ef"
+  }
+}

@@ -1,0 +1,697 @@
+[
+  {
+    "id": "quaternius-bench",
+    "path": "assets/art/models/quaternius-bench.glb",
+    "category": "prop",
+    "source": "Poly Pizza",
+    "license": "CC0-1.0",
+    "url": "https://poly.pizza/m/jLxjFxFRpw",
+    "author": "Quaternius",
+    "modifications": "Normalized to 1.8 m; base pivot; shared wood material role; instanced at public seats.",
+    "conformance": {
+      "materialRoles": true,
+      "scale": true,
+      "pivot": true,
+      "shading": true,
+      "triangles": 376
+    }
+  },
+  {
+    "id": "town-shop",
+    "path": "assets/art/models/buildings/town-shop.glb",
+    "category": "building",
+    "source": "ERP Town hand-authored Blender kit",
+    "license": "own",
+    "author": "ERP Town",
+    "modifications": "Shared material roles; evaluated geometry merged; base pivot; metres; canonical -Y source facing. Retains inspect_roof animation.",
+    "conformance": {
+      "materialRoles": true,
+      "scale": true,
+      "pivot": true,
+      "shading": true,
+      "triangles": 5898
+    }
+  },
+  {
+    "id": "town-warehouse",
+    "path": "assets/art/models/buildings/town-warehouse.glb",
+    "category": "building",
+    "source": "ERP Town hand-authored Blender kit",
+    "license": "own",
+    "author": "ERP Town",
+    "modifications": "Shared material roles; evaluated geometry merged; base pivot; metres; canonical -Y source facing. Retains inspect_roof animation.",
+    "conformance": {
+      "materialRoles": true,
+      "scale": true,
+      "pivot": true,
+      "shading": true,
+      "triangles": 5852
+    }
+  },
+  {
+    "id": "town-bank",
+    "path": "assets/art/models/buildings/town-bank.glb",
+    "category": "building",
+    "source": "ERP Town hand-authored Blender kit",
+    "license": "own",
+    "author": "ERP Town",
+    "modifications": "Shared material roles; evaluated geometry merged; base pivot; metres; canonical -Y source facing. Retains inspect_roof animation.",
+    "conformance": {
+      "materialRoles": true,
+      "scale": true,
+      "pivot": true,
+      "shading": true,
+      "triangles": 5952
+    }
+  },
+  {
+    "id": "town-hq",
+    "path": "assets/art/models/buildings/town-hq.glb",
+    "category": "building",
+    "source": "ERP Town hand-authored Blender kit",
+    "license": "own",
+    "author": "ERP Town",
+    "modifications": "Shared material roles; evaluated geometry merged; base pivot; metres; canonical -Y source facing. Retains inspect_roof animation.",
+    "conformance": {
+      "materialRoles": true,
+      "scale": true,
+      "pivot": true,
+      "shading": true,
+      "triangles": 5794
+    }
+  },
+  {
+    "id": "town-it",
+    "path": "assets/art/models/buildings/town-it.glb",
+    "category": "building",
+    "source": "ERP Town hand-authored Blender kit",
+    "license": "own",
+    "author": "ERP Town",
+    "modifications": "Shared material roles; evaluated geometry merged; base pivot; metres; canonical -Y source facing.",
+    "conformance": {
+      "materialRoles": true,
+      "scale": true,
+      "pivot": true,
+      "shading": true,
+      "triangles": 3512
+    }
+  },
+  {
+    "id": "town-post",
+    "path": "assets/art/models/buildings/town-post.glb",
+    "category": "building",
+    "source": "ERP Town hand-authored Blender kit",
+    "license": "own",
+    "author": "ERP Town",
+    "modifications": "Shared material roles; evaluated geometry merged; base pivot; metres; canonical -Y source facing.",
+    "conformance": {
+      "materialRoles": true,
+      "scale": true,
+      "pivot": true,
+      "shading": true,
+      "triangles": 2288
+    }
+  },
+  {
+    "id": "town-clocktower",
+    "path": "assets/art/models/buildings/town-clocktower.glb",
+    "category": "building",
+    "source": "ERP Town hand-authored Blender kit",
+    "license": "own",
+    "author": "ERP Town",
+    "modifications": "Shared material roles; evaluated geometry merged; base pivot; metres; canonical -Y source facing.",
+    "conformance": {
+      "materialRoles": true,
+      "scale": true,
+      "pivot": true,
+      "shading": true,
+      "triangles": 4952
+    }
+  },
+  {
+    "id": "town-citygate",
+    "path": "assets/art/models/buildings/town-citygate.glb",
+    "category": "building",
+    "source": "ERP Town hand-authored Blender kit",
+    "license": "own",
+    "author": "ERP Town",
+    "modifications": "Shared material roles; evaluated geometry merged; base pivot; metres; canonical -Y source facing.",
+    "conformance": {
+      "materialRoles": true,
+      "scale": true,
+      "pivot": true,
+      "shading": true,
+      "triangles": 696
+    }
+  },
+  {
+    "id": "town-car",
+    "path": "assets/art/models/vehicles/town-car.glb",
+    "category": "vehicle",
+    "source": "ERP Town hand-authored Blender kit",
+    "license": "own",
+    "author": "ERP Town",
+    "modifications": "Shared material roles; evaluated geometry merged; base pivot; metres; canonical -Y source facing.",
+    "conformance": {
+      "materialRoles": true,
+      "scale": true,
+      "pivot": true,
+      "shading": true,
+      "triangles": 780
+    }
+  },
+  {
+    "id": "town-van",
+    "path": "assets/art/models/vehicles/town-van.glb",
+    "category": "vehicle",
+    "source": "ERP Town hand-authored Blender kit",
+    "license": "own",
+    "author": "ERP Town",
+    "modifications": "Shared material roles; evaluated geometry merged; base pivot; metres; canonical -Y source facing.",
+    "conformance": {
+      "materialRoles": true,
+      "scale": true,
+      "pivot": true,
+      "shading": true,
+      "triangles": 780
+    }
+  },
+  {
+    "id": "town-truck",
+    "path": "assets/art/models/vehicles/town-truck.glb",
+    "category": "vehicle",
+    "source": "ERP Town hand-authored Blender kit",
+    "license": "own",
+    "author": "ERP Town",
+    "modifications": "Shared material roles; evaluated geometry merged; base pivot; metres; canonical -Y source facing.",
+    "conformance": {
+      "materialRoles": true,
+      "scale": true,
+      "pivot": true,
+      "shading": true,
+      "triangles": 1056
+    }
+  },
+  {
+    "id": "town-bus",
+    "path": "assets/art/models/vehicles/town-bus.glb",
+    "category": "vehicle",
+    "source": "ERP Town hand-authored Blender kit",
+    "license": "own",
+    "author": "ERP Town",
+    "modifications": "Shared material roles; evaluated geometry merged; base pivot; metres; canonical -Y source facing.",
+    "conformance": {
+      "materialRoles": true,
+      "scale": true,
+      "pivot": true,
+      "shading": true,
+      "triangles": 956
+    }
+  },
+  {
+    "id": "town-bush",
+    "path": "assets/art/models/props/town-bush.glb",
+    "category": "prop",
+    "source": "ERP Town hand-authored Blender kit",
+    "license": "own",
+    "author": "ERP Town",
+    "modifications": "Shared material roles; evaluated geometry merged; base pivot; metres; canonical -Y source facing.",
+    "conformance": {
+      "materialRoles": true,
+      "scale": true,
+      "pivot": true,
+      "shading": true,
+      "triangles": 80
+    }
+  },
+  {
+    "id": "town-cafe-chair",
+    "path": "assets/art/models/props/town-cafe-chair.glb",
+    "category": "prop",
+    "source": "ERP Town hand-authored Blender kit",
+    "license": "own",
+    "author": "ERP Town",
+    "modifications": "Shared material roles; evaluated geometry merged; base pivot; metres; canonical -Y source facing. Reusable alternative to fixture baked into Shop; avoid placing over the baked prototype.",
+    "conformance": {
+      "materialRoles": true,
+      "scale": true,
+      "pivot": true,
+      "shading": true,
+      "triangles": 264
+    }
+  },
+  {
+    "id": "town-cafe-table",
+    "path": "assets/art/models/props/town-cafe-table.glb",
+    "category": "prop",
+    "source": "ERP Town hand-authored Blender kit",
+    "license": "own",
+    "author": "ERP Town",
+    "modifications": "Shared material roles; evaluated geometry merged; base pivot; metres; canonical -Y source facing. Reusable alternative to fixture baked into Shop; avoid placing over the baked prototype.",
+    "conformance": {
+      "materialRoles": true,
+      "scale": true,
+      "pivot": true,
+      "shading": true,
+      "triangles": 124
+    }
+  },
+  {
+    "id": "town-cafe-umbrella",
+    "path": "assets/art/models/props/town-cafe-umbrella.glb",
+    "category": "prop",
+    "source": "ERP Town hand-authored Blender kit",
+    "license": "own",
+    "author": "ERP Town",
+    "modifications": "Shared material roles; evaluated geometry merged; base pivot; metres; canonical -Y source facing. Reusable alternative to fixture baked into Shop; avoid placing over the baked prototype.",
+    "conformance": {
+      "materialRoles": true,
+      "scale": true,
+      "pivot": true,
+      "shading": true,
+      "triangles": 72
+    }
+  },
+  {
+    "id": "town-crate",
+    "path": "assets/art/models/props/town-crate.glb",
+    "category": "prop",
+    "source": "ERP Town hand-authored Blender kit",
+    "license": "own",
+    "author": "ERP Town",
+    "modifications": "Shared material roles; evaluated geometry merged; base pivot; metres; canonical -Y source facing. Reusable alternative to fixture baked into Warehouse; avoid placing over the baked prototype.",
+    "conformance": {
+      "materialRoles": true,
+      "scale": true,
+      "pivot": true,
+      "shading": true,
+      "triangles": 68
+    }
+  },
+  {
+    "id": "town-delivery-scooter",
+    "path": "assets/art/models/vehicles/town-delivery-scooter.glb",
+    "category": "vehicle",
+    "source": "ERP Town hand-authored Blender kit",
+    "license": "own",
+    "author": "ERP Town",
+    "modifications": "Shared material roles; evaluated geometry merged; base pivot; metres; canonical -Y source facing.",
+    "conformance": {
+      "materialRoles": true,
+      "scale": true,
+      "pivot": true,
+      "shading": true,
+      "triangles": 748
+    }
+  },
+  {
+    "id": "town-document-coin-bag",
+    "path": "assets/art/models/props/town-document-coin-bag.glb",
+    "category": "prop",
+    "source": "ERP Town hand-authored Blender kit",
+    "license": "own",
+    "author": "ERP Town",
+    "modifications": "Shared material roles; evaluated geometry merged; base pivot; metres; canonical -Y source facing.",
+    "conformance": {
+      "materialRoles": true,
+      "scale": true,
+      "pivot": true,
+      "shading": true,
+      "triangles": 240
+    }
+  },
+  {
+    "id": "town-document-envelope",
+    "path": "assets/art/models/props/town-document-envelope.glb",
+    "category": "prop",
+    "source": "ERP Town hand-authored Blender kit",
+    "license": "own",
+    "author": "ERP Town",
+    "modifications": "Shared material roles; evaluated geometry merged; base pivot; metres; canonical -Y source facing.",
+    "conformance": {
+      "materialRoles": true,
+      "scale": true,
+      "pivot": true,
+      "shading": true,
+      "triangles": 72
+    }
+  },
+  {
+    "id": "town-document-invoice",
+    "path": "assets/art/models/props/town-document-invoice.glb",
+    "category": "prop",
+    "source": "ERP Town hand-authored Blender kit",
+    "license": "own",
+    "author": "ERP Town",
+    "modifications": "Shared material roles; evaluated geometry merged; base pivot; metres; canonical -Y source facing.",
+    "conformance": {
+      "materialRoles": true,
+      "scale": true,
+      "pivot": true,
+      "shading": true,
+      "triangles": 148
+    }
+  },
+  {
+    "id": "town-document-order",
+    "path": "assets/art/models/props/town-document-order.glb",
+    "category": "prop",
+    "source": "ERP Town hand-authored Blender kit",
+    "license": "own",
+    "author": "ERP Town",
+    "modifications": "Shared material roles; evaluated geometry merged; base pivot; metres; canonical -Y source facing.",
+    "conformance": {
+      "materialRoles": true,
+      "scale": true,
+      "pivot": true,
+      "shading": true,
+      "triangles": 136
+    }
+  },
+  {
+    "id": "town-document-parcel",
+    "path": "assets/art/models/props/town-document-parcel.glb",
+    "category": "prop",
+    "source": "ERP Town hand-authored Blender kit",
+    "license": "own",
+    "author": "ERP Town",
+    "modifications": "Shared material roles; evaluated geometry merged; base pivot; metres; canonical -Y source facing.",
+    "conformance": {
+      "materialRoles": true,
+      "scale": true,
+      "pivot": true,
+      "shading": true,
+      "triangles": 80
+    }
+  },
+  {
+    "id": "town-flower-planter",
+    "path": "assets/art/models/props/town-flower-planter.glb",
+    "category": "prop",
+    "source": "ERP Town hand-authored Blender kit",
+    "license": "own",
+    "author": "ERP Town",
+    "modifications": "Shared material roles; evaluated geometry merged; base pivot; metres; canonical -Y source facing.",
+    "conformance": {
+      "materialRoles": true,
+      "scale": true,
+      "pivot": true,
+      "shading": true,
+      "triangles": 328
+    }
+  },
+  {
+    "id": "town-flowerpot",
+    "path": "assets/art/models/props/town-flowerpot.glb",
+    "category": "prop",
+    "source": "ERP Town hand-authored Blender kit",
+    "license": "own",
+    "author": "ERP Town",
+    "modifications": "Shared material roles; evaluated geometry merged; base pivot; metres; canonical -Y source facing. Reusable alternative to fixture baked into Shop; avoid placing over the baked prototype.",
+    "conformance": {
+      "materialRoles": true,
+      "scale": true,
+      "pivot": true,
+      "shading": true,
+      "triangles": 172
+    }
+  },
+  {
+    "id": "town-forklift",
+    "path": "assets/art/models/vehicles/town-forklift.glb",
+    "category": "vehicle",
+    "source": "ERP Town hand-authored Blender kit",
+    "license": "own",
+    "author": "ERP Town",
+    "modifications": "Shared material roles; evaluated geometry merged; base pivot; metres; canonical -Y source facing. Reusable alternative to fixture baked into Warehouse; avoid placing over the baked prototype.",
+    "conformance": {
+      "materialRoles": true,
+      "scale": true,
+      "pivot": true,
+      "shading": true,
+      "triangles": 652
+    }
+  },
+  {
+    "id": "town-fountain",
+    "path": "assets/art/models/props/town-fountain.glb",
+    "category": "prop",
+    "source": "ERP Town hand-authored Blender kit",
+    "license": "own",
+    "author": "ERP Town",
+    "modifications": "Shared material roles; evaluated geometry merged; base pivot; metres; canonical -Y source facing.",
+    "conformance": {
+      "materialRoles": true,
+      "scale": true,
+      "pivot": true,
+      "shading": true,
+      "triangles": 1348
+    }
+  },
+  {
+    "id": "town-mailbox",
+    "path": "assets/art/models/props/town-mailbox.glb",
+    "category": "prop",
+    "source": "ERP Town hand-authored Blender kit",
+    "license": "own",
+    "author": "ERP Town",
+    "modifications": "Shared material roles; evaluated geometry merged; base pivot; metres; canonical -Y source facing. Reusable alternative to fixture baked into Post; avoid placing over the baked prototype.",
+    "conformance": {
+      "materialRoles": true,
+      "scale": true,
+      "pivot": true,
+      "shading": true,
+      "triangles": 662
+    }
+  },
+  {
+    "id": "town-motorboat",
+    "path": "assets/art/models/props/town-motorboat.glb",
+    "category": "prop",
+    "source": "ERP Town hand-authored Blender kit",
+    "license": "own",
+    "author": "ERP Town",
+    "modifications": "Shared material roles; evaluated geometry merged; base pivot; metres; canonical -Y source facing.",
+    "conformance": {
+      "materialRoles": true,
+      "scale": true,
+      "pivot": true,
+      "shading": true,
+      "triangles": 572
+    }
+  },
+  {
+    "id": "town-pallet",
+    "path": "assets/art/models/props/town-pallet.glb",
+    "category": "prop",
+    "source": "ERP Town hand-authored Blender kit",
+    "license": "own",
+    "author": "ERP Town",
+    "modifications": "Shared material roles; evaluated geometry merged; base pivot; metres; canonical -Y source facing. Reusable alternative to fixture baked into Warehouse; avoid placing over the baked prototype.",
+    "conformance": {
+      "materialRoles": true,
+      "scale": true,
+      "pivot": true,
+      "shading": true,
+      "triangles": 364
+    }
+  },
+  {
+    "id": "town-payment-kiosk",
+    "path": "assets/art/models/props/town-payment-kiosk.glb",
+    "category": "prop",
+    "source": "ERP Town hand-authored Blender kit",
+    "license": "own",
+    "author": "ERP Town",
+    "modifications": "Shared material roles; evaluated geometry merged; base pivot; metres; canonical -Y source facing. Reusable alternative to fixture baked into Bank; avoid placing over the baked prototype.",
+    "conformance": {
+      "materialRoles": true,
+      "scale": true,
+      "pivot": true,
+      "shading": true,
+      "triangles": 376
+    }
+  },
+  {
+    "id": "town-pier",
+    "path": "assets/art/models/props/town-pier.glb",
+    "category": "prop",
+    "source": "ERP Town hand-authored Blender kit",
+    "license": "own",
+    "author": "ERP Town",
+    "modifications": "Shared material roles; evaluated geometry merged; base pivot; metres; canonical -Y source facing.",
+    "conformance": {
+      "materialRoles": true,
+      "scale": true,
+      "pivot": true,
+      "shading": true,
+      "triangles": 1024
+    }
+  },
+  {
+    "id": "town-sailboat",
+    "path": "assets/art/models/props/town-sailboat.glb",
+    "category": "prop",
+    "source": "ERP Town hand-authored Blender kit",
+    "license": "own",
+    "author": "ERP Town",
+    "modifications": "Shared material roles; evaluated geometry merged; base pivot; metres; canonical -Y source facing.",
+    "conformance": {
+      "materialRoles": true,
+      "scale": true,
+      "pivot": true,
+      "shading": true,
+      "triangles": 564
+    }
+  },
+  {
+    "id": "town-street-lamp",
+    "path": "assets/art/models/props/town-street-lamp.glb",
+    "category": "prop",
+    "source": "ERP Town hand-authored Blender kit",
+    "license": "own",
+    "author": "ERP Town",
+    "modifications": "Shared material roles; evaluated geometry merged; base pivot; metres; canonical -Y source facing.",
+    "conformance": {
+      "materialRoles": true,
+      "scale": true,
+      "pivot": true,
+      "shading": true,
+      "triangles": 568
+    }
+  },
+  {
+    "id": "town-tree-round",
+    "path": "assets/art/models/props/town-tree-round.glb",
+    "category": "prop",
+    "source": "ERP Town hand-authored Blender kit",
+    "license": "own",
+    "author": "ERP Town",
+    "modifications": "Shared material roles; evaluated geometry merged; base pivot; metres; canonical -Y source facing.",
+    "conformance": {
+      "materialRoles": true,
+      "scale": true,
+      "pivot": true,
+      "shading": true,
+      "triangles": 348
+    }
+  },
+  {
+    "id": "town-tree-tall",
+    "path": "assets/art/models/props/town-tree-tall.glb",
+    "category": "prop",
+    "source": "ERP Town hand-authored Blender kit",
+    "license": "own",
+    "author": "ERP Town",
+    "modifications": "Shared material roles; evaluated geometry merged; base pivot; metres; canonical -Y source facing.",
+    "conformance": {
+      "materialRoles": true,
+      "scale": true,
+      "pivot": true,
+      "shading": true,
+      "triangles": 348
+    }
+  },
+  {
+    "id": "town-human-01",
+    "path": "assets/art/models/characters/town-human-01.glb",
+    "category": "character",
+    "source": "ERP Town custom skins and office clips; KayKit Adventurers 1.0 CC0 rig/base clips",
+    "license": "own",
+    "author": "ERP Town; Kay Lousberg (CC0 rig/base animation)",
+    "url": "https://github.com/KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0/tree/672074b73ba276876a19e8816ecdc5241817ab47",
+    "modifications": "Own meshes/materials; pinned 41-bone CC0 rig; eight shared clips including four authored office clips; ground-plane origin (agents hover); metre units; preserved skin weights.",
+    "conformance": {
+      "materialRoles": true,
+      "scale": true,
+      "pivot": true,
+      "shading": true,
+      "triangles": 3342
+    }
+  },
+  {
+    "id": "town-human-02",
+    "path": "assets/art/models/characters/town-human-02.glb",
+    "category": "character",
+    "source": "ERP Town custom skins and office clips; KayKit Adventurers 1.0 CC0 rig/base clips",
+    "license": "own",
+    "author": "ERP Town; Kay Lousberg (CC0 rig/base animation)",
+    "url": "https://github.com/KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0/tree/672074b73ba276876a19e8816ecdc5241817ab47",
+    "modifications": "Own meshes/materials; pinned 41-bone CC0 rig; eight shared clips including four authored office clips; ground-plane origin (agents hover); metre units; preserved skin weights.",
+    "conformance": {
+      "materialRoles": true,
+      "scale": true,
+      "pivot": true,
+      "shading": true,
+      "triangles": 3458
+    }
+  },
+  {
+    "id": "town-agent-shop",
+    "path": "assets/art/models/characters/town-agent-shop.glb",
+    "category": "character",
+    "source": "ERP Town custom skins and office clips; KayKit Adventurers 1.0 CC0 rig/base clips",
+    "license": "own",
+    "author": "ERP Town; Kay Lousberg (CC0 rig/base animation)",
+    "url": "https://github.com/KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0/tree/672074b73ba276876a19e8816ecdc5241817ab47",
+    "modifications": "Own meshes/materials; pinned 41-bone CC0 rig; eight shared clips including four authored office clips; ground-plane origin (agents hover); metre units; preserved skin weights.",
+    "conformance": {
+      "materialRoles": true,
+      "scale": true,
+      "pivot": true,
+      "shading": true,
+      "triangles": 2084
+    }
+  },
+  {
+    "id": "town-agent-warehouse",
+    "path": "assets/art/models/characters/town-agent-warehouse.glb",
+    "category": "character",
+    "source": "ERP Town custom skins and office clips; KayKit Adventurers 1.0 CC0 rig/base clips",
+    "license": "own",
+    "author": "ERP Town; Kay Lousberg (CC0 rig/base animation)",
+    "url": "https://github.com/KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0/tree/672074b73ba276876a19e8816ecdc5241817ab47",
+    "modifications": "Own meshes/materials; pinned 41-bone CC0 rig; eight shared clips including four authored office clips; ground-plane origin (agents hover); metre units; preserved skin weights.",
+    "conformance": {
+      "materialRoles": true,
+      "scale": true,
+      "pivot": true,
+      "shading": true,
+      "triangles": 2084
+    }
+  },
+  {
+    "id": "town-agent-bank",
+    "path": "assets/art/models/characters/town-agent-bank.glb",
+    "category": "character",
+    "source": "ERP Town custom skins and office clips; KayKit Adventurers 1.0 CC0 rig/base clips",
+    "license": "own",
+    "author": "ERP Town; Kay Lousberg (CC0 rig/base animation)",
+    "url": "https://github.com/KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0/tree/672074b73ba276876a19e8816ecdc5241817ab47",
+    "modifications": "Own meshes/materials; pinned 41-bone CC0 rig; eight shared clips including four authored office clips; ground-plane origin (agents hover); metre units; preserved skin weights.",
+    "conformance": {
+      "materialRoles": true,
+      "scale": true,
+      "pivot": true,
+      "shading": true,
+      "triangles": 2084
+    }
+  },
+  {
+    "id": "town-agent-hq",
+    "path": "assets/art/models/characters/town-agent-hq.glb",
+    "category": "character",
+    "source": "ERP Town custom skins and office clips; KayKit Adventurers 1.0 CC0 rig/base clips",
+    "license": "own",
+    "author": "ERP Town; Kay Lousberg (CC0 rig/base animation)",
+    "url": "https://github.com/KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0/tree/672074b73ba276876a19e8816ecdc5241817ab47",
+    "modifications": "Own meshes/materials; pinned 41-bone CC0 rig; eight shared clips including four authored office clips; ground-plane origin (agents hover); metre units; preserved skin weights.",
+    "conformance": {
+      "materialRoles": true,
+      "scale": true,
+      "pivot": true,
+      "shading": true,
+      "triangles": 2084
+    }
+  }
+]
