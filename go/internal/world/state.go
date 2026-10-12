@@ -18,11 +18,14 @@ import (
 type EntityKind string
 
 const (
-	KindDocument EntityKind = "document"
-	KindApproval EntityKind = "approval"
-	KindOverdue  EntityKind = "overdue"
-	KindStock    EntityKind = "stock"
-	KindError    EntityKind = "error"
+	KindDocument      EntityKind = "document"
+	KindApproval      EntityKind = "approval"
+	KindOverdue       EntityKind = "overdue"
+	KindStock         EntityKind = "stock"
+	KindError         EntityKind = "error"
+	KindAgentRun      EntityKind = "agent_run"
+	KindAgentProgress EntityKind = "agent_progress"
+	KindDevTask       EntityKind = "dev_task"
 )
 
 // EntityKey identifies a document activity or signal. Scope is the warehouse for

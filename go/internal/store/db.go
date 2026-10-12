@@ -5,6 +5,9 @@ import (
 	"context"
 	"embed"
 	"fmt"
+	"io/fs"
+	"strconv"
+	"strings"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/stdlib"
@@ -26,6 +29,33 @@ func Open(ctx context.Context, url string) (*pgxpool.Pool, error) {
 		return nil, fmt.Errorf("store: ping: %w", err)
 	}
 	return pool, nil
+}
+
+// RequireCurrentSchema checks every embedded version without creating any table.
+// Explicit local activation uses this to prevent startup from applying migrations.
+func RequireCurrentSchema(ctx context.Context, pool *pgxpool.Pool) error {
+	var exists bool
+	if err := pool.QueryRow(ctx, "SELECT to_regclass('goose_db_version') IS NOT NULL").Scan(&exists); err != nil {
+		return fmt.Errorf("store: schema check: %w", err)
+	}
+	if !exists {
+		return fmt.Errorf("store: schema must be explicitly provisioned before startup")
+	}
+	files, err := fs.Glob(migrations, "migrations/*.sql")
+	if err != nil {
+		return err
+	}
+	for _, file := range files {
+		version, err := strconv.ParseInt(strings.Split(strings.TrimPrefix(file, "migrations/"), "_")[0], 10, 64)
+		if err != nil {
+			return fmt.Errorf("store: invalid embedded migration version")
+		}
+		var applied bool
+		if err := pool.QueryRow(ctx, "SELECT is_applied FROM goose_db_version WHERE version_id=$1 ORDER BY id DESC LIMIT 1", version).Scan(&applied); err != nil || !applied {
+			return fmt.Errorf("store: migration %d must be explicitly provisioned before startup", version)
+		}
+	}
+	return nil
 }
 
 // Migrate applies all pending embedded migrations; it is safe to call repeatedly

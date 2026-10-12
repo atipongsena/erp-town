@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://erp-town.local/schema/events/dev.task.completed.json",
+  "title": "dev.task.completed data",
+  "description": "Coarse developer task state, without code, prompts, paths or credentials.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["provider", "state", "sequence"],
+  "properties": {
+    "provider": {
+      "enum": ["claude", "codex"]
+    },
+    "state": {
+      "const": "completed"
+    },
+    "sequence": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9007199254740991
+    }
+  }
+}

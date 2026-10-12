@@ -1,0 +1,30 @@
+{
+  "specversion": "1.0",
+  "id": "01JA0K6Y8Z9P3R4S5T6V7W8XB3",
+  "type": "agent.run.failed",
+  "source": "town/agents",
+  "time": "2026-10-07T10:15:01+07:00",
+  "schema_version": 1,
+  "company": "ACME-TH",
+  "actor": {
+    "kind": "agent",
+    "id": "helper",
+    "on_behalf_of": null
+  },
+  "subject": {
+    "doctype": "Town Agent Run",
+    "name": "RUN-1"
+  },
+  "seq": 1,
+  "correlation_id": "RUN-1",
+  "causation_id": null,
+  "visibility": {
+    "level": "roles",
+    "roles": ["System Manager"]
+  },
+  "data": {
+    "agent_key": "helper",
+    "state": "failed",
+    "code": "OK"
+  }
+}

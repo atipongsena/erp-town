@@ -1,0 +1,30 @@
+{
+  "specversion": "1.0",
+  "id": "01JA0K6Y8Z9P3R4S5T6V7W8XA1",
+  "type": "dev.task.completed",
+  "source": "town/devbridge",
+  "time": "2026-10-11T10:00:00+07:00",
+  "schema_version": 1,
+  "company": "ACME-TH",
+  "actor": {
+    "kind": "agent",
+    "id": "agent.dev_codex",
+    "on_behalf_of": null
+  },
+  "subject": {
+    "doctype": "Town Dev Task",
+    "name": "codex/TASK-1"
+  },
+  "seq": 1,
+  "correlation_id": "TASK-1",
+  "causation_id": null,
+  "visibility": {
+    "level": "roles",
+    "roles": ["System Manager"]
+  },
+  "data": {
+    "provider": "codex",
+    "state": "completed",
+    "sequence": 1
+  }
+}

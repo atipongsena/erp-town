@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -703,6 +704,7 @@ func TestMapDeliveryNoteInvoiceAndPayment(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "ACME-TH", si.Company)
 	assert.Equal(t, erp.DocSubmitted, si.Status)
+	assert.Equal(t, []string{"DN6910-0001"}, si.AgainstDeliveryNotes)
 	assert.False(t, si.IsReturn)
 	assert.Equal(t, "36.0", si.NetTotal.String())
 	assert.Equal(t, "2.52", si.TaxTotal.String())
@@ -719,6 +721,39 @@ func TestMapDeliveryNoteInvoiceAndPayment(t *testing.T) {
 	assert.Equal(t, "เงินสด", pe.ModeOfPayment)
 	assert.Equal(t, erp.DocSubmitted, pe.Status)
 	assert.Equal(t, []string{"IV6910-0001"}, pe.AgainstInvoices)
+}
+
+func TestSalesInvoiceLineageRetainsAllDistinctAuthorizedSources(t *testing.T) {
+	for _, names := range [][]string{{"DN-a", "DN-b", "DN-a", ""}, {""}} {
+		t.Run(strings.Join(names, ","), func(t *testing.T) {
+			var payload map[string]any
+			require.NoError(t, json.Unmarshal(fixture(t, "sales_invoice.json"), &payload))
+			data := payload["data"].(map[string]any)
+			source := data["items"].([]any)[0].(map[string]any)
+			items := []any{}
+			expected := []string{}
+			for _, name := range names {
+				row := map[string]any{}
+				for k, v := range source {
+					row[k] = v
+				}
+				row["delivery_note"] = name
+				items = append(items, row)
+				if name != "" && !slices.Contains(expected, name) {
+					expected = append(expected, name)
+				}
+			}
+			data["items"] = items
+			body, err := json.Marshal(payload)
+			require.NoError(t, err)
+			f := newFakeERP(t)
+			f.on("GET /api/resource/Sales Invoice/IV6910-0001", fixedReply(200, body))
+			invoice, err := f.adapter().GetSalesInvoice(t.Context(), sales, "IV6910-0001")
+			require.NoError(t, err)
+			assert.Equal(t, expected, invoice.AgainstDeliveryNotes)
+			assert.Len(t, invoice.Lines, len(names), "lineage deduplication must not discard invoice items")
+		})
+	}
 }
 
 func TestWhoami(t *testing.T) {

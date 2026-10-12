@@ -41,7 +41,7 @@ func newValidator(t testing.TB) *Validator {
 func TestValidFixturesPassAndRoundTrip(t *testing.T) {
 	v := newValidator(t)
 	valid := fixtures(t, "valid")
-	require.Len(t, valid, 13)
+	require.Len(t, valid, 22)
 	for name, raw := range valid {
 		t.Run(name, func(t *testing.T) {
 			require.NoError(t, v.Validate(raw))
@@ -116,7 +116,7 @@ func TestEventTypesMatchSchema(t *testing.T) {
 	sort.Strings(got)
 	sort.Strings(want)
 	assert.Equal(t, want, got)
-	assert.Len(t, got, 13)
+	assert.Len(t, got, 22)
 }
 
 func TestEmbeddedSchemaMatchesSource(t *testing.T) {

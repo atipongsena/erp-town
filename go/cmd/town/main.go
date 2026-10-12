@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"slices"
 	"sort"
 	"sync"
 	"syscall"
@@ -47,6 +48,7 @@ func run(args []string) error {
 	}
 	fs := flag.NewFlagSet("serve", flag.ContinueOnError)
 	rolesFlag := fs.String("roles", "", "comma-separated roles (overrides TOWN_ROLES)")
+	requireSchema := fs.Bool("require-provisioned-schema", false, "check schema without applying migrations")
 	if err := fs.Parse(args[1:]); err != nil {
 		return err
 	}
@@ -63,6 +65,7 @@ func run(args []string) error {
 	if err != nil {
 		return err
 	}
+	cfg.RequireProvisionedSchema = *requireSchema
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	return serve(ctx, cfg)
@@ -84,6 +87,17 @@ func serve(ctx context.Context, cfg platform.Config) error {
 		if err := wireGateway(mux, cfg); err != nil {
 			return err
 		}
+	}
+	if cfg.ExperienceEnabled {
+		if !cfg.Roles.Has(platform.RoleGateway) {
+			return errors.New("experience requires gateway")
+		}
+		runExperience, closeExperience, err := wireExperience(ctx, mux, cfg)
+		if err != nil {
+			return err
+		}
+		defer closeExperience()
+		tasks = append(tasks, runExperience)
 	}
 	if cfg.Roles.Has(platform.RoleOutbox) {
 		publish, closeOutbox, err := wireOutbox(ctx, cfg, metrics)
@@ -113,7 +127,7 @@ func wireGateway(mux *http.ServeMux, cfg platform.Config) error {
 	if err != nil {
 		return err
 	}
-	gateway.New(mux, port, auth.NewAuthenticator(port, whoamiCacheTTL), issuer)
+	gateway.New(mux, port, auth.NewAuthenticator(port, whoamiCacheTTL), issuer, gateway.HostCapabilities{WorldEnabled: cfg.Roles.Has(platform.RoleWorld)})
 	return nil
 }
 
@@ -129,7 +143,7 @@ func wireWorld(ctx context.Context, mux *http.ServeMux, cfg platform.Config, m *
 	if err != nil {
 		return nil, nil, err
 	}
-	if err := store.Migrate(ctx, pool); err != nil {
+	if err := prepareSchema(ctx, cfg, pool); err != nil {
 		pool.Close()
 		return nil, nil, err
 	}
@@ -148,7 +162,14 @@ func wireWorld(ctx context.Context, mux *http.ServeMux, cfg platform.Config, m *
 	// Adapter selection stays in cmd; the runtime receives only the read capability.
 	reader := erpnext.NewAdapter(erpnext.NewClient(erpnext.ClientConfig{BaseURL: cfg.ERPURL, Site: cfg.ERPSite}))
 	as := erp.Principal{Kind: erp.PrincipalSystem, ID: "system.town", Credential: erp.APIKeyCredential{Key: cfg.WorldAPIKey, Secret: cfg.WorldAPISecret}}
-	runtime, err := world.NewRuntime(service, rdb, pool, m, reader, as, world.DefaultRuntimeConfig(cfg.Stream))
+	identity, err := reader.Whoami(ctx, as.Credential)
+	if err != nil || !slices.Contains(identity.Roles, "Town Projection Reader") || len(identity.Companies) == 0 {
+		closeAll()
+		return nil, nil, errors.New("world reader must have the projection role and readable companies")
+	}
+	runtimeConfig := world.DefaultRuntimeConfig(cfg.Stream)
+	runtimeConfig.AllowedCompanies = identity.Companies
+	runtime, err := world.NewRuntime(service, rdb, pool, m, reader, as, runtimeConfig)
 	if err != nil {
 		closeAll()
 		return nil, nil, err
@@ -166,7 +187,7 @@ func wireOutbox(ctx context.Context, cfg platform.Config, m *platform.Metrics) (
 	if err != nil {
 		return nil, nil, err
 	}
-	if err := store.Migrate(ctx, pool); err != nil {
+	if err := prepareSchema(ctx, cfg, pool); err != nil {
 		pool.Close()
 		return nil, nil, err
 	}
@@ -175,7 +196,7 @@ func wireOutbox(ctx context.Context, cfg platform.Config, m *platform.Metrics) (
 		pool.Close()
 		return nil, nil, fmt.Errorf("TOWN_REDIS_URL: %w", err)
 	}
-	rdb := redis.NewClient(opts)
+	rdb := events.NewPublisherRedisClient(opts)
 	v, err := events.NewValidator()
 	if err != nil {
 		_ = rdb.Close()

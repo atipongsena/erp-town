@@ -44,7 +44,7 @@ Verification for the 2026-10-10 readiness fixes: the five new regression tests w
 
 Before E (agents) emits events through the Go outbox:
 - [x] Head-of-line publishing per subject: fixed 2026-10-10 in the Go publisher. Only due Pending subject heads are locked; a head in backoff or locked by another publisher blocks its own subject, while unrelated subjects progress. Rounds expose the next heads after successful/terminal results, preserving the total batch limit. An insertion boundary prevents new error reports from being processed in the same call. Three regressions were observed failing before the fix, then the complete `events` suite passed with `-race -p 1 -count=1` (96.235 s). This does not change the Frappe publisher or resolve E's separate Go-owned subject allowlist decision.
-- Purge Published `town_outbox` rows (Frappe has a daily purge); set per-XADD timeout and go-redis `MaxRetries` so retries don't hold row locks.
+- [x] Purge Published `town_outbox` rows; bound XADD and Redis retries. Completed 2026-10-11: the outbox role uses a dedicated `NewPublisherRedisClient` with hidden command retries disabled, context deadlines enabled and dial/pool/socket waits capped at 5 s. Each XADD also has its own 5 s deadline by default. A lost reply is one durable outbox failure, not four Redis writes; later durable retries retain the same event id. Parent cancellation leaves untouched attempts untouched and releases row locks. Cleanup runs at startup and daily, draining at most BatchSize (default 500) per iteration between publishing calls. It removes only Published rows whose published_at is strictly older than the existing Foundation retention of 400 days, using SKIP LOCKED; Pending/Failed/Invalid rows, null/boundary timestamps and subject seq counters survive. No migration or ERP change was required. Three original regressions were observed failing before implementation; all six new regression tests (including both socket/cancellation subcases) passed with race/leak checks in 33.104 s. Full-suite verification is recorded in the program handoff.
 - Typed data with nullable keys: generated pointer + `omitempty` drops explicit null on re-encode.
 - Test whoami with an API-key credential against real Frappe; decide the Go-owned subject allowlist (Task 5 ruling).
 
@@ -100,8 +100,8 @@ Historical proposal for the subsequently approved C increment (already implement
 - Task 4: no test for fail-once-then-succeed on reclaim
 - Task 4: outage hitting mid-handler costs one delivery (handlerError path skips ping)
 - Task 4: Begin has no per-call timeout against a blackholed DB (shutdown latency)
-- Task 5: no test that one broken Redis connection costs one dial per batch
-- Task 5: go-redis default retries can hold batch row locks ~20 s — document client options / per-XADD timeout
+- Task 5: broken-connection batch behavior now has deadline coverage (`TestPublishHasPerXAddDeadline`); one attempted XADD marks independent subject heads for backoff without another Redis command. Exact TCP dial counts remain unmeasured.
+- Task 5: go-redis retry lock-holding risk resolved in the 2026-10-11 outbox readiness increment above.
 - Task 5: EVENT_INVALID report drops original company (Frappe passes it)
 - Task 5: most tests not table-driven
 - Task 5: per-row backoff on a server-side XADD error can still publish seq N+1 before N (same as Frappe)

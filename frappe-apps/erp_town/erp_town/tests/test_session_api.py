@@ -4,12 +4,18 @@
 """`erp_town.session_api.whoami`: the session's user, roles, readable company codes and CSRF token."""
 
 import frappe
+from unittest.mock import patch
 from frappe.tests import IntegrationTestCase
 
 from erp_town.session_api import whoami
 
 
 class TestSessionApi(IntegrationTestCase):
+	def test_disabled_account_fails_closed_even_with_an_existing_session(self):
+		frappe.set_user("Administrator")
+		with patch("erp_town.session_api.frappe.db.exists", return_value=False):
+			with self.assertRaises(frappe.PermissionError):
+				whoami()
 	def tearDown(self):
 		frappe.set_user("Administrator")
 

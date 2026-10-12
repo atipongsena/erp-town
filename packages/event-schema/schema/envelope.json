@@ -22,8 +22,12 @@
     "data"
   ],
   "properties": {
-    "specversion": { "const": "1.0" },
-    "id": { "$ref": "#/$defs/ulid" },
+    "specversion": {
+      "const": "1.0"
+    },
+    "id": {
+      "$ref": "#/$defs/ulid"
+    },
     "type": {
       "type": "string",
       "enum": [
@@ -39,125 +43,720 @@
         "erp.stock.below_reorder",
         "workflow.approval.requested",
         "workflow.approval.decided",
-        "system.error"
+        "system.error",
+        "agent.run.started",
+        "agent.run.completed",
+        "agent.run.needs_human",
+        "agent.run.failed",
+        "agent.progress.updated",
+        "dev.task.started",
+        "dev.task.updated",
+        "dev.task.completed",
+        "dev.task.failed"
       ]
     },
-    "source": { "type": "string", "pattern": "^[a-z]+/[a-z_]+$" },
+    "source": {
+      "type": "string",
+      "pattern": "^[a-z]+/[a-z_]+$"
+    },
     "time": {
       "description": "ISO 8601 with the system timezone offset (Asia/Bangkok, +07:00).",
       "type": "string",
       "format": "date-time",
       "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d+)?(Z|[+-]\\d{2}:\\d{2})$"
     },
-    "schema_version": { "const": 1 },
+    "schema_version": {
+      "const": 1
+    },
     "company": {
       "description": "Company code (the ERPNext Company abbr, e.g. ACME-TH), not the Company record name; null only for system.* events and subjects without a company (e.g. Item).",
       "type": ["string", "null"],
       "minLength": 1
     },
-    "actor": { "$ref": "#/$defs/actor" },
-    "subject": { "$ref": "#/$defs/subject" },
+    "actor": {
+      "$ref": "#/$defs/actor"
+    },
+    "subject": {
+      "$ref": "#/$defs/subject"
+    },
     "seq": {
       "description": "Per-subject sequence, starting at 1, shared by all event types and statuses of that subject. Gaps are expected: Invalid events take a seq but are never published, and system.error events are role-restricted. Order by seq; never wait for a missing seq.",
       "type": "integer",
       "minimum": 1
     },
-    "correlation_id": { "type": "string", "minLength": 1 },
-    "causation_id": {
-      "anyOf": [{ "$ref": "#/$defs/ulid" }, { "type": "null" }]
+    "correlation_id": {
+      "type": "string",
+      "minLength": 1
     },
-    "visibility": { "$ref": "#/$defs/visibility" },
-    "data": { "type": "object" }
+    "causation_id": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ulid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "visibility": {
+      "$ref": "#/$defs/visibility"
+    },
+    "data": {
+      "type": "object"
+    }
   },
   "allOf": [
-    { "$ref": "#/$defs/no_money_in_public" },
     {
-      "if": {
-        "required": ["type"],
-        "properties": { "type": { "const": "erp.sales_order.submitted" } }
-      },
-      "then": { "properties": { "data": { "$ref": "events/erp.sales_order.submitted.json" } } }
+      "$ref": "#/$defs/no_money_in_public"
     },
     {
       "if": {
         "required": ["type"],
-        "properties": { "type": { "const": "erp.sales_order.cancelled" } }
+        "properties": {
+          "type": {
+            "const": "erp.sales_order.submitted"
+          }
+        }
       },
-      "then": { "properties": { "data": { "$ref": "events/erp.sales_order.cancelled.json" } } }
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "events/erp.sales_order.submitted.json"
+          }
+        }
+      }
     },
     {
       "if": {
         "required": ["type"],
-        "properties": { "type": { "const": "erp.delivery_note.submitted" } }
+        "properties": {
+          "type": {
+            "const": "erp.sales_order.cancelled"
+          }
+        }
       },
-      "then": { "properties": { "data": { "$ref": "events/erp.delivery_note.submitted.json" } } }
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "events/erp.sales_order.cancelled.json"
+          }
+        }
+      }
     },
     {
       "if": {
         "required": ["type"],
-        "properties": { "type": { "const": "erp.delivery_note.cancelled" } }
+        "properties": {
+          "type": {
+            "const": "erp.delivery_note.submitted"
+          }
+        }
       },
-      "then": { "properties": { "data": { "$ref": "events/erp.delivery_note.cancelled.json" } } }
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "events/erp.delivery_note.submitted.json"
+          }
+        }
+      }
     },
     {
       "if": {
         "required": ["type"],
-        "properties": { "type": { "const": "erp.sales_invoice.submitted" } }
+        "properties": {
+          "type": {
+            "const": "erp.delivery_note.cancelled"
+          }
+        }
       },
-      "then": { "properties": { "data": { "$ref": "events/erp.sales_invoice.submitted.json" } } }
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "events/erp.delivery_note.cancelled.json"
+          }
+        }
+      }
     },
     {
       "if": {
         "required": ["type"],
-        "properties": { "type": { "const": "erp.sales_invoice.cancelled" } }
+        "properties": {
+          "type": {
+            "const": "erp.sales_invoice.submitted"
+          }
+        }
       },
-      "then": { "properties": { "data": { "$ref": "events/erp.sales_invoice.cancelled.json" } } }
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "events/erp.sales_invoice.submitted.json"
+          }
+        }
+      }
     },
     {
       "if": {
         "required": ["type"],
-        "properties": { "type": { "const": "erp.sales_invoice.overdue" } }
+        "properties": {
+          "type": {
+            "const": "erp.sales_invoice.cancelled"
+          }
+        }
       },
-      "then": { "properties": { "data": { "$ref": "events/erp.sales_invoice.overdue.json" } } }
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "events/erp.sales_invoice.cancelled.json"
+          }
+        }
+      }
     },
     {
       "if": {
         "required": ["type"],
-        "properties": { "type": { "const": "erp.payment_entry.submitted" } }
+        "properties": {
+          "type": {
+            "const": "erp.sales_invoice.overdue"
+          }
+        }
       },
-      "then": { "properties": { "data": { "$ref": "events/erp.payment_entry.submitted.json" } } }
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "events/erp.sales_invoice.overdue.json"
+          }
+        }
+      }
     },
     {
       "if": {
         "required": ["type"],
-        "properties": { "type": { "const": "erp.payment_entry.cancelled" } }
+        "properties": {
+          "type": {
+            "const": "erp.payment_entry.submitted"
+          }
+        }
       },
-      "then": { "properties": { "data": { "$ref": "events/erp.payment_entry.cancelled.json" } } }
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "events/erp.payment_entry.submitted.json"
+          }
+        }
+      }
     },
     {
       "if": {
         "required": ["type"],
-        "properties": { "type": { "const": "erp.stock.below_reorder" } }
+        "properties": {
+          "type": {
+            "const": "erp.payment_entry.cancelled"
+          }
+        }
       },
-      "then": { "properties": { "data": { "$ref": "events/erp.stock.below_reorder.json" } } }
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "events/erp.payment_entry.cancelled.json"
+          }
+        }
+      }
     },
     {
       "if": {
         "required": ["type"],
-        "properties": { "type": { "const": "workflow.approval.requested" } }
+        "properties": {
+          "type": {
+            "const": "erp.stock.below_reorder"
+          }
+        }
       },
-      "then": { "properties": { "data": { "$ref": "events/workflow.approval.requested.json" } } }
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "events/erp.stock.below_reorder.json"
+          }
+        }
+      }
     },
     {
       "if": {
         "required": ["type"],
-        "properties": { "type": { "const": "workflow.approval.decided" } }
+        "properties": {
+          "type": {
+            "const": "workflow.approval.requested"
+          }
+        }
       },
-      "then": { "properties": { "data": { "$ref": "events/workflow.approval.decided.json" } } }
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "events/workflow.approval.requested.json"
+          }
+        }
+      }
     },
     {
-      "if": { "required": ["type"], "properties": { "type": { "const": "system.error" } } },
-      "then": { "properties": { "data": { "$ref": "events/system.error.json" } } }
+      "if": {
+        "required": ["type"],
+        "properties": {
+          "type": {
+            "const": "workflow.approval.decided"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "events/workflow.approval.decided.json"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "required": ["type"],
+        "properties": {
+          "type": {
+            "const": "system.error"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "events/system.error.json"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "required": ["type"],
+        "properties": {
+          "type": {
+            "const": "agent.run.started"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "events/agent.run.started.json"
+          },
+          "company": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source": {
+            "const": "town/agents"
+          },
+          "subject": {
+            "properties": {
+              "doctype": {
+                "const": "Town Agent Run"
+              }
+            }
+          },
+          "actor": {
+            "properties": {
+              "kind": {
+                "const": "agent"
+              },
+              "on_behalf_of": {
+                "type": "null"
+              }
+            }
+          },
+          "visibility": {
+            "properties": {
+              "level": {
+                "const": "roles"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "required": ["type"],
+        "properties": {
+          "type": {
+            "const": "agent.run.completed"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "events/agent.run.completed.json"
+          },
+          "company": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source": {
+            "const": "town/agents"
+          },
+          "subject": {
+            "properties": {
+              "doctype": {
+                "const": "Town Agent Run"
+              }
+            }
+          },
+          "actor": {
+            "properties": {
+              "kind": {
+                "const": "agent"
+              },
+              "on_behalf_of": {
+                "type": "null"
+              }
+            }
+          },
+          "visibility": {
+            "properties": {
+              "level": {
+                "const": "roles"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "required": ["type"],
+        "properties": {
+          "type": {
+            "const": "agent.run.needs_human"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "events/agent.run.needs_human.json"
+          },
+          "company": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source": {
+            "const": "town/agents"
+          },
+          "subject": {
+            "properties": {
+              "doctype": {
+                "const": "Town Agent Run"
+              }
+            }
+          },
+          "actor": {
+            "properties": {
+              "kind": {
+                "const": "agent"
+              },
+              "on_behalf_of": {
+                "type": "null"
+              }
+            }
+          },
+          "visibility": {
+            "properties": {
+              "level": {
+                "const": "roles"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "required": ["type"],
+        "properties": {
+          "type": {
+            "const": "agent.run.failed"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "events/agent.run.failed.json"
+          },
+          "company": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source": {
+            "const": "town/agents"
+          },
+          "subject": {
+            "properties": {
+              "doctype": {
+                "const": "Town Agent Run"
+              }
+            }
+          },
+          "actor": {
+            "properties": {
+              "kind": {
+                "const": "agent"
+              },
+              "on_behalf_of": {
+                "type": "null"
+              }
+            }
+          },
+          "visibility": {
+            "properties": {
+              "level": {
+                "const": "roles"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "required": ["type"],
+        "properties": {
+          "type": {
+            "const": "agent.progress.updated"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "events/agent.progress.updated.json"
+          },
+          "company": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source": {
+            "const": "town/agents"
+          },
+          "subject": {
+            "properties": {
+              "doctype": {
+                "const": "Town Agent"
+              }
+            }
+          },
+          "actor": {
+            "properties": {
+              "kind": {
+                "const": "agent"
+              },
+              "on_behalf_of": {
+                "type": "null"
+              }
+            }
+          },
+          "visibility": {
+            "properties": {
+              "level": {
+                "const": "roles"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "dev.task.started"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "events/dev.task.started.json"
+          },
+          "source": {
+            "const": "town/devbridge"
+          },
+          "company": {
+            "type": "string",
+            "minLength": 1
+          },
+          "actor": {
+            "properties": {
+              "kind": {
+                "const": "agent"
+              },
+              "on_behalf_of": {
+                "type": "null"
+              }
+            }
+          },
+          "subject": {
+            "properties": {
+              "doctype": {
+                "const": "Town Dev Task"
+              }
+            }
+          },
+          "visibility": {
+            "properties": {
+              "level": {
+                "const": "roles"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "dev.task.updated"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "events/dev.task.updated.json"
+          },
+          "source": {
+            "const": "town/devbridge"
+          },
+          "company": {
+            "type": "string",
+            "minLength": 1
+          },
+          "actor": {
+            "properties": {
+              "kind": {
+                "const": "agent"
+              },
+              "on_behalf_of": {
+                "type": "null"
+              }
+            }
+          },
+          "subject": {
+            "properties": {
+              "doctype": {
+                "const": "Town Dev Task"
+              }
+            }
+          },
+          "visibility": {
+            "properties": {
+              "level": {
+                "const": "roles"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "dev.task.completed"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "events/dev.task.completed.json"
+          },
+          "source": {
+            "const": "town/devbridge"
+          },
+          "company": {
+            "type": "string",
+            "minLength": 1
+          },
+          "actor": {
+            "properties": {
+              "kind": {
+                "const": "agent"
+              },
+              "on_behalf_of": {
+                "type": "null"
+              }
+            }
+          },
+          "subject": {
+            "properties": {
+              "doctype": {
+                "const": "Town Dev Task"
+              }
+            }
+          },
+          "visibility": {
+            "properties": {
+              "level": {
+                "const": "roles"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "dev.task.failed"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "events/dev.task.failed.json"
+          },
+          "source": {
+            "const": "town/devbridge"
+          },
+          "company": {
+            "type": "string",
+            "minLength": 1
+          },
+          "actor": {
+            "properties": {
+              "kind": {
+                "const": "agent"
+              },
+              "on_behalf_of": {
+                "type": "null"
+              }
+            }
+          },
+          "subject": {
+            "properties": {
+              "doctype": {
+                "const": "Town Dev Task"
+              }
+            }
+          },
+          "visibility": {
+            "properties": {
+              "level": {
+                "const": "roles"
+              }
+            }
+          }
+        }
+      }
     }
   ],
   "$defs": {
@@ -171,20 +770,47 @@
       "additionalProperties": false,
       "required": ["kind", "id", "on_behalf_of"],
       "properties": {
-        "kind": { "type": "string", "enum": ["user", "agent", "system", "dev"] },
-        "id": { "type": "string", "minLength": 1 },
-        "on_behalf_of": { "type": ["string", "null"], "minLength": 1 }
+        "kind": {
+          "type": "string",
+          "enum": ["user", "agent", "system", "dev"]
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "on_behalf_of": {
+          "type": ["string", "null"],
+          "minLength": 1
+        }
       },
-      "if": { "properties": { "kind": { "const": "agent" } } },
-      "else": { "properties": { "on_behalf_of": { "type": "null" } } }
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "agent"
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "on_behalf_of": {
+            "type": "null"
+          }
+        }
+      }
     },
     "subject": {
       "type": "object",
       "additionalProperties": false,
       "required": ["doctype", "name"],
       "properties": {
-        "doctype": { "type": "string", "minLength": 1 },
-        "name": { "type": "string", "minLength": 1 }
+        "doctype": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        }
       }
     },
     "visibility": {
@@ -192,15 +818,34 @@
       "additionalProperties": false,
       "required": ["level", "roles"],
       "properties": {
-        "level": { "type": "string", "enum": ["public", "roles", "private"] },
+        "level": {
+          "type": "string",
+          "enum": ["public", "roles", "private"]
+        },
         "roles": {
           "type": "array",
           "uniqueItems": true,
-          "items": { "type": "string", "minLength": 1 }
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
         }
       },
-      "if": { "properties": { "level": { "const": "roles" } } },
-      "then": { "properties": { "roles": { "type": "array", "minItems": 1 } } }
+      "if": {
+        "properties": {
+          "level": {
+            "const": "roles"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "roles": {
+            "type": "array",
+            "minItems": 1
+          }
+        }
+      }
     },
     "money": {
       "description": "Money amount. Allowed in event data only when visibility.level is not public; no slice-1 event type uses it.",
@@ -208,8 +853,13 @@
       "additionalProperties": false,
       "required": ["amount", "currency"],
       "properties": {
-        "amount": { "type": "number" },
-        "currency": { "type": "string", "pattern": "^[A-Z]{3}$" }
+        "amount": {
+          "type": "number"
+        },
+        "currency": {
+          "type": "string",
+          "pattern": "^[A-Z]{3}$"
+        }
       }
     },
     "no_money_in_public": {
@@ -221,7 +871,11 @@
           "visibility": {
             "type": "object",
             "required": ["level"],
-            "properties": { "level": { "const": "public" } }
+            "properties": {
+              "level": {
+                "const": "public"
+              }
+            }
           }
         }
       },

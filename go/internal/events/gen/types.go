@@ -17,6 +17,15 @@ var EventTypes = []string{
 	"workflow.approval.requested",
 	"workflow.approval.decided",
 	"system.error",
+	"agent.run.started",
+	"agent.run.completed",
+	"agent.run.needs_human",
+	"agent.run.failed",
+	"agent.progress.updated",
+	"dev.task.started",
+	"dev.task.updated",
+	"dev.task.completed",
+	"dev.task.failed",
 }
 
 // NewData returns a pointer to a zero value of the data struct for eventType.
@@ -48,6 +57,24 @@ func NewData(eventType string) (any, bool) {
 		return new(WorkflowApprovalDecidedData), true
 	case "system.error":
 		return new(SystemErrorData), true
+	case "agent.run.started":
+		return new(AgentRunStartedData), true
+	case "agent.run.completed":
+		return new(AgentRunCompletedData), true
+	case "agent.run.needs_human":
+		return new(AgentRunNeedsHumanData), true
+	case "agent.run.failed":
+		return new(AgentRunFailedData), true
+	case "agent.progress.updated":
+		return new(AgentProgressUpdatedData), true
+	case "dev.task.started":
+		return new(DevTaskStartedData), true
+	case "dev.task.updated":
+		return new(DevTaskUpdatedData), true
+	case "dev.task.completed":
+		return new(DevTaskCompletedData), true
+	case "dev.task.failed":
+		return new(DevTaskFailedData), true
 	}
 	return nil, false
 }

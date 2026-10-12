@@ -1,0 +1,346 @@
+.business-journey p {
+  font-size: 10px;
+  margin: 4px 0;
+}
+.town-dashboard {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  pointer-events: none;
+}
+.hud-panel {
+  background: #faf9f5ed;
+  border: 1px solid #d9e5e4;
+  border-radius: 12px;
+  box-shadow: 0 4px 18px #265a6620;
+  padding: 12px;
+  pointer-events: auto;
+  color: #172b3a;
+}
+.hud-panel button {
+  color: inherit;
+  background: #ecece5;
+  border-radius: 6px;
+  padding: 5px 8px;
+}
+.hud-kpis {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(100px, 1fr));
+  gap: 12px;
+  width: min(640px, calc(100% - 376px));
+}
+.hud-kpis span {
+  font-size: 11px;
+  display: block;
+}
+.hud-kpis strong {
+  font-size: 23px;
+  line-height: 1.2;
+  display: block;
+  font-variant-numeric: tabular-nums;
+}
+.hud-kpis small {
+  grid-column: 1 / -1;
+  font-size: 10px;
+  line-height: 1;
+}
+.hud-flow {
+  position: absolute;
+  width: 240px;
+  left: 16px;
+  top: 126px;
+  max-height: calc(100% - 194px);
+  overflow: auto;
+}
+.hud-flow .operations-flow {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+}
+.hud-flow .operations-flow ol {
+  grid-template-columns: 1fr;
+}
+.hud-flow .operations-flow p {
+  font-size: 10px;
+}
+.hud-selection {
+  position: absolute;
+  right: 16px;
+  top: 16px;
+  width: 320px;
+  max-height: 106px;
+  overflow: auto;
+  font-size: 12px;
+}
+.hud-selection button {
+  margin: 4px 4px 0 0;
+  font-size: 11px;
+}
+.hud-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+.hud-heading h2 {
+  font-size: 14px;
+}
+.hud-queue {
+  position: absolute;
+  width: 360px;
+  right: 16px;
+  bottom: 68px;
+  height: 210px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.hud-queue-scroll {
+  overflow: auto;
+  min-height: 0;
+  flex: 1;
+}
+.hud-queue-scroll button {
+  display: flex;
+  width: 100%;
+  text-align: left;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 3px 0;
+  overflow-wrap: anywhere;
+}
+.hud-queue-scroll small {
+  font-size: 10px;
+  flex-shrink: 0;
+  max-width: 110px;
+}
+.hud-queue > small {
+  font-size: 10px;
+}
+.hud-journey {
+  position: absolute;
+  bottom: 68px;
+  left: 272px;
+  width: min(720px, calc(100% - 664px));
+  max-height: 210px;
+  overflow: auto;
+}
+.hud-timeline {
+  position: absolute;
+  bottom: 8px;
+  left: 16px;
+  right: 16px;
+  pointer-events: auto;
+}
+.hud-timeline .replay-panel {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin: 0;
+  padding: 6px 12px;
+  border-radius: 8px;
+}
+.hud-timeline .replay-panel p {
+  margin: 0;
+  font-size: 10px;
+}
+.hud-timeline .replay-panel label {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+.business-journey h2 {
+  font-size: 14px;
+}
+
+.journey-nodes {
+  display: flex;
+  flex-wrap: wrap;
+  list-style: none;
+  gap: 5px;
+  padding: 0;
+  margin: 8px 0;
+}
+.journey-nodes button {
+  font-size: 11px;
+}
+.journey-edges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px 16px;
+  padding-left: 12px;
+  font-size: 10px;
+}
+.journey-partial {
+  color: #775017;
+}
+.app:not(.demo-app) .workspace {
+  position: relative;
+  display: block;
+}
+.app:not(.demo-app) .town-view {
+  height: 100%;
+}
+.app:not(.demo-app) .sidebar {
+  position: absolute;
+  z-index: 45;
+  top: 126px;
+  bottom: 294px;
+  right: 16px;
+  width: 320px;
+  padding: 14px;
+  border: 1px solid #d9e5e4;
+  border-radius: 12px;
+  background: #faf9f5ed;
+  box-shadow: 0 4px 18px #265a6620;
+}
+.app:not(.demo-app) .section-heading {
+  margin-bottom: 10px;
+}
+.app:not(.demo-app) .section-heading h1 {
+  font-size: 18px;
+}
+.app:not(.demo-app) .scene-caption {
+  top: 108px;
+  left: 280px;
+  z-index: 40;
+  padding: 3px 10px;
+  font-size: 10px;
+}
+.app:not(.demo-app) .scene-tools {
+  top: 16px;
+  bottom: auto;
+  right: 352px;
+  left: 680px;
+  z-index: 60;
+  gap: 4px;
+}
+.app:not(.demo-app) .scene-tools label,
+.app:not(.demo-app) .scene-tools button {
+  padding: 5px 8px;
+  font-size: 10px;
+}
+.app:not(.demo-app) .scene-footer {
+  bottom: 50px;
+  left: 272px;
+  right: 392px;
+  font-size: 10px;
+  pointer-events: none;
+}
+@media (min-width: 1100px) {
+  .app:not(.demo-app):has(.hud-queue.expanded) .sidebar {
+    visibility: hidden;
+  }
+}
+.hud-queue.expanded {
+  height: calc(100% - 194px);
+}
+@media (min-width: 1100px) and (max-width: 1500px) {
+  .hud-kpis {
+    width: 520px;
+    gap: 6px;
+  }
+  .app:not(.demo-app) .scene-tools {
+    left: 552px;
+  }
+  .hud-flow .operations-flow button {
+    padding: 7px;
+  }
+  .hud-flow .operations-flow p {
+    line-height: 1.35;
+  }
+}
+@media (max-width: 1099px) {
+  .app:not(.demo-app) {
+    height: auto;
+    min-height: 100dvh;
+  }
+  .app:not(.demo-app) .workspace {
+    display: flex;
+    flex-direction: column;
+  }
+  .app:not(.demo-app) .town-view {
+    height: 480px;
+    flex: none;
+    overflow: visible;
+    margin-bottom: 0;
+  }
+  .app:not(.demo-app) .sidebar {
+    position: static;
+    width: auto;
+    overflow: visible;
+    border-radius: 0;
+    padding: 20px;
+  }
+  .hud-kpis {
+    width: calc(100% - 32px);
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 4px;
+  }
+  .hud-kpis strong {
+    font-size: 18px;
+  }
+  .hud-drawer {
+    display: grid;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .hud-drawer .hud-flow,
+  .hud-drawer .hud-selection,
+  .hud-drawer .hud-queue,
+  .hud-drawer .hud-journey {
+    position: static;
+    width: 100%;
+    height: auto;
+    max-height: none;
+    display: block;
+  }
+  .hud-drawer .hud-queue-scroll {
+    max-height: 300px;
+  }
+  .hud-drawer-toggle {
+    position: absolute;
+    top: 148px;
+    left: 16px;
+    padding: 8px 12px;
+  }
+  .hud-flow .operations-flow ol {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .app:not(.demo-app) .scene-tools {
+    top: auto;
+    bottom: 24px;
+    left: 12px;
+    right: 12px;
+  }
+  .app:not(.demo-app) .scene-caption {
+    top: 112px;
+    left: 16px;
+  }
+  .app:not(.demo-app) .scene-footer {
+    bottom: 2px;
+    left: 16px;
+    right: 16px;
+  }
+  .hud-timeline {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+  }
+  .app:not(.demo-app) .sidebar {
+    padding-bottom: 100px;
+  }
+  .app:not(.demo-app):has(.town-dashboard[data-drawer="closed"]) .sidebar {
+    display: none;
+  }
+  .hud-timeline .replay-panel {
+    display: block;
+  }
+}

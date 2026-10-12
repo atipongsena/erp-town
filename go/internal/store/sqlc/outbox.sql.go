@@ -152,6 +152,34 @@ func (q *Queries) OutboxBoundary(ctx context.Context) (int64, error) {
 	return column_1, err
 }
 
+const purgePublishedOutbox = `-- name: PurgePublishedOutbox :execrows
+WITH expired AS (
+    SELECT candidate.id FROM town_outbox AS candidate
+    WHERE candidate.status = 'Published' AND candidate.published_at < $1
+    ORDER BY candidate.published_at, candidate.id
+    LIMIT $2
+    FOR UPDATE SKIP LOCKED
+)
+DELETE FROM town_outbox AS outbox
+USING expired
+WHERE outbox.id = expired.id
+`
+
+type PurgePublishedOutboxParams struct {
+	Cutoff    pgtype.Timestamptz
+	BatchSize int32
+}
+
+// Bounded cleanup never waits on another publisher/cleaner or removes unresolved
+// rows. Subject seq counters deliberately survive retention.
+func (q *Queries) PurgePublishedOutbox(ctx context.Context, arg PurgePublishedOutboxParams) (int64, error) {
+	result, err := q.db.Exec(ctx, purgePublishedOutbox, arg.Cutoff, arg.BatchSize)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const recordOutboxFailure = `-- name: RecordOutboxFailure :exec
 UPDATE town_outbox
 SET status = $2, attempts = $3, last_error = $4, next_attempt_at = $5

@@ -15,7 +15,8 @@
       "!packages/*/src/generated.ts",
       "!packages/world-proto/src/gen",
       "!playwright-report",
-      "!test-results"
+      "!test-results",
+      "!packages/town-client/public/draco"
     ]
   },
   "formatter": {

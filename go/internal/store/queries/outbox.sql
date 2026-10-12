@@ -43,6 +43,20 @@ UPDATE town_outbox
 SET status = 'Published', stream_id = $2, published_at = $3, next_attempt_at = NULL, last_error = NULL
 WHERE id = $1;
 
+-- name: PurgePublishedOutbox :execrows
+-- Bounded cleanup never waits on another publisher/cleaner or removes unresolved
+-- rows. Subject seq counters deliberately survive retention.
+WITH expired AS (
+    SELECT candidate.id FROM town_outbox AS candidate
+    WHERE candidate.status = 'Published' AND candidate.published_at < sqlc.arg(cutoff)
+    ORDER BY candidate.published_at, candidate.id
+    LIMIT sqlc.arg(batch_size)
+    FOR UPDATE SKIP LOCKED
+)
+DELETE FROM town_outbox AS outbox
+USING expired
+WHERE outbox.id = expired.id;
+
 -- name: RecordOutboxFailure :exec
 UPDATE town_outbox
 SET status = $2, attempts = $3, last_error = $4, next_attempt_at = $5

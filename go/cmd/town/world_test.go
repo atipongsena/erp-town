@@ -33,8 +33,12 @@ func TestWireWorldServesAuthenticatedProjectionAndShutsDown(t *testing.T) {
 	dbURL.RawQuery = query.Encode()
 	erpServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		require.Equal(t, http.MethodGet, r.Method)
-		require.Equal(t, "/api/method/erp_town.projection_api.read_projection", r.URL.Path)
 		require.Equal(t, "token fixture-reader:fixture-secret", r.Header.Get("Authorization"))
+		if r.URL.Path == "/api/method/erp_town.session_api.whoami" {
+			_, _ = w.Write([]byte(`{"message":{"user":"reader@example.test","roles":["Town Projection Reader"],"companies":["ACME-TH"]}}`))
+			return
+		}
+		require.Equal(t, "/api/method/erp_town.projection_api.read_projection", r.URL.Path)
 		_, _ = w.Write([]byte(`{"message":{"company":"ACME-TH","facts":[{"doctype":"Sales Order","name":"SO-1","kind":"document","status":"To Deliver"}],"sequences":[{"doctype":"Sales Order","name":"SO-1","seq":1}]}}`))
 	}))
 	defer erpServer.Close()

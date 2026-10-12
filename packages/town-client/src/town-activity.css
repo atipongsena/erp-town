@@ -1,0 +1,126 @@
+.town-activity {
+  margin: 18px 0;
+  padding: 18px 0;
+  border-top: 1px solid #dddcd3;
+  border-bottom: 1px solid #dddcd3;
+}
+.town-activity-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+.town-activity-heading h2,
+.town-activity-heading h3 {
+  font-size: 16px;
+  margin: 0;
+}
+.town-activity-mode {
+  color: #62767d;
+  font-size: 10px;
+  text-align: right;
+}
+.town-crew-list,
+.town-delivery-list,
+.town-agent-statuses {
+  list-style: none;
+  margin: 12px 0;
+  padding: 0;
+}
+.town-crew-list li {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  margin: 12px 0;
+}
+.town-crew-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 34px;
+  height: 34px;
+  border-radius: 11px;
+  font-size: 20px;
+  background: #fce8e5;
+  color: #a3473e;
+}
+.town-crew-icon.warehouse {
+  background: #e0e8fc;
+  color: #345faf;
+}
+.town-crew-icon.bank {
+  background: #dcf1ed;
+  color: #24746d;
+}
+.town-crew-icon.it {
+  background: #faf2d9;
+  color: #876817;
+}
+.town-crew-list strong,
+.town-crew-list small,
+.town-delivery-list strong,
+.town-delivery-list span {
+  display: block;
+}
+.town-crew-list small,
+.town-activity-note,
+.town-truck-empty {
+  font-size: 12px;
+  color: #60747b;
+}
+.town-truck-button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  margin-top: 13px;
+  border: 1px solid #bccacb;
+  border-radius: 9px;
+  background: #eaf1ef;
+  color: #25494d;
+  text-align: left;
+}
+.town-truck-status {
+  margin-top: 12px;
+  padding: 13px;
+  border-radius: 12px;
+  background: #fffdf8;
+  border: 1px solid #dfdfd5;
+}
+.town-truck-status .town-activity-heading {
+  margin-bottom: 8px;
+}
+.town-truck-close {
+  min-width: 32px;
+  min-height: 32px;
+  border-radius: 7px;
+  background: #f0f0e8;
+  color: #334f53;
+  font-size: 20px;
+}
+.town-delivery-list li,
+.town-agent-statuses li {
+  padding: 9px 0;
+  border-top: 1px solid #e8e8df;
+  overflow-wrap: anywhere;
+}
+.town-delivery-list span,
+.town-agent-statuses span {
+  font-size: 12px;
+  color: #60747b;
+}
+.town-agent-statuses span {
+  display: block;
+}
+.town-delivery-list button {
+  margin-top: 6px;
+  padding: 6px 10px;
+  border-radius: 7px;
+  background: #e7efee;
+  color: #25494d;
+  min-height: 32px;
+}
+.town-truck-empty {
+  margin-top: 12px;
+}

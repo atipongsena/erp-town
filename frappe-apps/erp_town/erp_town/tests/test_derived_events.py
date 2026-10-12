@@ -252,7 +252,19 @@ class TestProducersMatchFixtures(_WorkflowTestCase):
 			for event in _events_for(doctype, name):
 				produced.setdefault(event["type"], event)
 
-		fixture_types = sorted(p.stem for p in FIXTURES_DIR.glob("*.json"))
+		# The shared contract now also contains Go-owned agent/dev events. Frappe
+		# must produce every ERP fixture and must never originate those Go subjects.
+		fixture_types = []
+		for path in FIXTURES_DIR.glob("*.json"):
+			fixture = _fixture(path.stem)
+			if fixture["source"].startswith("erp/"):
+				fixture_types.append(path.stem)
+			else:
+				owner = {"agent": "town/agents", "dev": "town/devbridge"}.get(path.stem.split(".")[0])
+				self.assertIsNotNone(owner, f"Unclassified producer ownership: {path.stem}")
+				self.assertEqual(fixture["source"], owner)
+				self.assertNotIn(path.stem, produced)
+		fixture_types.sort()
 		self.assertEqual(sorted(produced), fixture_types)
 		company_names = set(frappe.get_all("Company", pluck="name"))
 		for event_type, event in produced.items():

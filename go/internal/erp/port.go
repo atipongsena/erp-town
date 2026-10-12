@@ -50,4 +50,5 @@ type Port interface {
 	Billing
 	Workflow
 	Identities
+	AgentIdentities
 }

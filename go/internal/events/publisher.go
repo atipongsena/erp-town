@@ -24,6 +24,11 @@ type PublisherConfig struct {
 	// RetentionDays bounds the stream: every XADD trims entries older than this
 	// (MINID, approximate).
 	RetentionDays int
+	// OutboxRetentionDays keeps Published rows for inspection before daily cleanup.
+	// Pending, Failed and Invalid rows and subject seq counters are never purged.
+	OutboxRetentionDays int
+	// PublishTimeout bounds each XADD, including connection and reply wait.
+	PublishTimeout time.Duration
 	// MaxAttempts is how many failed publishes turn a row Failed.
 	MaxAttempts int
 	// BatchSize is the most rows one PublishDue locks and publishes.
@@ -33,9 +38,13 @@ type PublisherConfig struct {
 }
 
 // DefaultPublisherConfig returns the town defaults: 7-day retention, 10 attempts,
-// batches of 500, the real clock.
+// 400-day published outbox retention, 5-second XADD deadline, batches of 500,
+// the real clock.
 func DefaultPublisherConfig(stream string) PublisherConfig {
-	return PublisherConfig{Stream: stream, RetentionDays: 7, MaxAttempts: 10, BatchSize: 500, Now: time.Now}
+	return PublisherConfig{
+		Stream: stream, RetentionDays: 7, OutboxRetentionDays: 400,
+		PublishTimeout: publishTimeout, MaxAttempts: 10, BatchSize: 500, Now: time.Now,
+	}
 }
 
 const maxBackoff = 300 * time.Second
@@ -52,10 +61,18 @@ type Publisher struct {
 }
 
 // NewPublisher creates a publisher; zero config fields take DefaultPublisherConfig's values.
+// Production callers must use NewPublisherRedisClient to disable hidden Redis
+// retries and honor context deadlines. The caller owns and closes that client.
 func NewPublisher(pool *pgxpool.Pool, rdb *redis.Client, v *Validator, m *platform.Metrics, cfg PublisherConfig) *Publisher {
 	def := DefaultPublisherConfig(cfg.Stream)
 	if cfg.RetentionDays <= 0 {
 		cfg.RetentionDays = def.RetentionDays
+	}
+	if cfg.OutboxRetentionDays <= 0 {
+		cfg.OutboxRetentionDays = def.OutboxRetentionDays
+	}
+	if cfg.PublishTimeout <= 0 {
+		cfg.PublishTimeout = def.PublishTimeout
 	}
 	if cfg.MaxAttempts <= 0 {
 		cfg.MaxAttempts = def.MaxAttempts
@@ -167,14 +184,29 @@ publish:
 
 // Run calls PublishDue every interval until ctx is cancelled, then returns nil; a full
 // batch is followed by the next one right away. Errors are logged and retried on the
-// next tick.
+// next tick. Published rows past retention are purged at startup and daily, at most
+// BatchSize per iteration; publishing continues between cleanup batches.
 func (p *Publisher) Run(ctx context.Context, every time.Duration) error {
 	if every <= 0 {
 		return fmt.Errorf("publisher: interval must be positive, got %v", every)
 	}
 	tick := time.NewTicker(every)
 	defer tick.Stop()
+	var nextPurge time.Time
 	for {
+		if ctx.Err() != nil {
+			return nil
+		}
+		if now := p.cfg.Now(); !now.Before(nextPurge) {
+			n, err := p.PurgePublished(ctx)
+			if err != nil {
+				if ctx.Err() == nil {
+					p.log.Error("publisher: purge failed", "err", err)
+				}
+			} else if n < int64(p.cfg.BatchSize) {
+				nextPurge = now.Add(24 * time.Hour)
+			}
+		}
 		n, err := p.PublishDue(ctx)
 		if ctx.Err() != nil {
 			return nil
@@ -192,9 +224,27 @@ func (p *Publisher) Run(ctx context.Context, every time.Duration) error {
 	}
 }
 
+// PurgePublished deletes at most BatchSize Published rows older than the retention
+// cutoff, based on published_at (not created_at). Locked rows are skipped. It does
+// not remove subject seq counters, dedupe records, Redis entries or ERP documents.
+func (p *Publisher) PurgePublished(ctx context.Context) (int64, error) {
+	pctx, cancel := context.WithTimeout(ctx, cleanupTime)
+	defer cancel()
+	n, err := sqlc.New(p.pool).PurgePublishedOutbox(pctx, sqlc.PurgePublishedOutboxParams{
+		Cutoff:    timestamptz(p.cfg.Now().Add(-time.Duration(p.cfg.OutboxRetentionDays) * 24 * time.Hour)),
+		BatchSize: int32(min(p.cfg.BatchSize, 1<<30)),
+	})
+	if err != nil {
+		return 0, fmt.Errorf("publisher: purge published rows: %w", err)
+	}
+	return n, nil
+}
+
 func (p *Publisher) xadd(ctx context.Context, now time.Time, payload string) (string, error) {
+	xctx, cancel := context.WithTimeout(ctx, p.cfg.PublishTimeout)
+	defer cancel()
 	minID := max(now.UnixMilli()-int64(p.cfg.RetentionDays)*24*time.Hour.Milliseconds(), 0)
-	id, err := p.rdb.XAdd(ctx, &redis.XAddArgs{
+	id, err := p.rdb.XAdd(xctx, &redis.XAddArgs{
 		Stream: p.cfg.Stream,
 		MinID:  strconv.FormatInt(minID, 10) + "-0",
 		Approx: true,

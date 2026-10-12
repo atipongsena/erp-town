@@ -1,0 +1,32 @@
+{
+  "observed_at": "2026-10-11T20:30:20.996Z",
+  "site": "test.localhost",
+  "real_erp_documents": true,
+  "local_test_provider": true,
+  "serialized_outbox_pump": true,
+  "round": 1,
+  "documents": [
+    {
+      "doctype": "Sales Order",
+      "name": "SO6910-0001",
+      "status": "Submitted"
+    },
+    {
+      "doctype": "Delivery Note",
+      "name": "DN6910-0001",
+      "status": "Submitted"
+    },
+    {
+      "doctype": "Sales Invoice",
+      "name": "IV6910-0001",
+      "status": "Submitted"
+    },
+    {
+      "doctype": "Payment Entry",
+      "name": "RC6910-0001",
+      "status": "Submitted"
+    }
+  ],
+  "invoice_outstanding": "0.0",
+  "actors_idle": true
+}

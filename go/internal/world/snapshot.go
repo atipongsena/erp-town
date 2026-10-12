@@ -174,6 +174,14 @@ func validateSnapshotEntity(company string, entity Entity) error {
 		Subject: entity.Key.Subject, Actor: entity.Actor, CorrelationID: entity.CorrelationID,
 		Visibility: entity.Visibility, Data: entity.Data,
 	}
+	// Agent envelopes have a fixed Go-owned producer. Older ERP snapshots keep
+	// their existing reconstruction source and format; no sequence is rewritten.
+	if strings.HasPrefix(entity.EventType, "agent.") {
+		event.Source = "town/agents"
+	}
+	if strings.HasPrefix(entity.EventType, "dev.") {
+		event.Source = "town/devbridge"
+	}
 	raw, err := events.Marshal(event)
 	if err != nil {
 		return err

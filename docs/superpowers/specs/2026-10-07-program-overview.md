@@ -6,6 +6,10 @@
 
 ## เป้าหมายเฟส 1
 
+**ปรับขอบเขต 2026-10-10:** พัก F (PromptPay QR และ LINE OA) ไว้ก่อนตามคำสั่งผู้ใช้
+เดินงาน A/B/C/D/E/G/H ต่อจนจบแผน การรับเงินด้วย Payment Entry ตามปกติยังอยู่ใน
+vertical slice แรก การพัก F ไม่ได้ตัดงานบัญชีหรือรับชำระเงินออกจาก ERP
+
 - **Pilot กับบริษัทจริง** บน ERPNext และข้อมูลจริง (ไม่ใช่เดโม mock)
 - บริษัท pilot: **ซื้อมาขายไป มีสต็อก** (VAT 7%, มีใบส่งของ)
 - Vertical slice แรก: **ขาย → ส่งของ → วางบิล → รับเงิน** (SO → DN → SI → PE) ผ่านทุกชั้นจริง
@@ -33,7 +37,7 @@
 | C | World State Service (Colyseus) | B |
 | D | Town client 3D | A, C |
 | E | Agent runtime หลาย provider (Claude API / OpenAI Responses / Codex SDK) + policy proxy | B, C |
-| F | PromptPay QR + LINE OA | B |
+| F | PromptPay QR + LINE OA — พักไว้ก่อน | B |
 | G | Avatar คนจริง (opt-in) + Replay | C, D |
 | H | Dev-agent bridge (Claude Code/Codex hooks → อาคาร IT, ไม่มีสิทธิ์ ERP) | C |
 

@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://erp-town.local/schema/events/dev.task.failed.json",
+  "title": "dev.task.failed data",
+  "description": "Coarse developer task state, without code, prompts, paths or credentials.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["provider", "state", "sequence"],
+  "properties": {
+    "provider": {
+      "enum": ["claude", "codex"]
+    },
+    "state": {
+      "const": "failed"
+    },
+    "sequence": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9007199254740991
+    }
+  }
+}

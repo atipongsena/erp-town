@@ -40,6 +40,11 @@ def mark_setup_complete() -> None:
 	frappe.db.set_value(
 		"Installed Application", {"is_setup_complete": 0}, "is_setup_complete", 1, update_modified=False
 	)
+	# A fresh site's wizard route survives setting setup_complete directly.
+	# The finished wizard redirects to Desk, which loads that route again.
+	# Preserve any operator-selected home page and retire only the wizard.
+	if frappe.db.get_default("desktop:home_page") == "setup-wizard":
+		frappe.db.set_default("desktop:home_page", "desktop")
 
 
 def ensure_base_masters() -> None:

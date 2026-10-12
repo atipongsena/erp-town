@@ -33,7 +33,10 @@
     "go:test:integration": "node tests/integration/test-site.ts run --scheduler -- go -C go tool gotestsum --format pkgname -- -race -p 1 -tags integration -count=1 ./...",
     "go:lint": "go -C go tool golangci-lint run ./...",
     "go:gen": "pnpm schema:gen && pnpm world:gen && go -C go generate ./...",
-    "dev:town": "go -C go tool air"
+    "dev:town": "go -C go tool air",
+    "dev:client": "pnpm --filter @erp-town/town-client dev",
+    "build:client": "pnpm --filter @erp-town/town-client build",
+    "typecheck:client": "pnpm --filter @erp-town/town-client typecheck"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.15",

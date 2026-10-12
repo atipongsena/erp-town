@@ -30,6 +30,22 @@ func TestMigrateIsIdempotent(t *testing.T) {
 	require.NoError(t, store.Migrate(t.Context(), pool))
 }
 
+func TestRequireCurrentSchemaDoesNotProvisionAnEmptyDatabase(t *testing.T) {
+	pool := storetest.NewEmptyPool(t)
+	require.ErrorContains(t, store.RequireCurrentSchema(t.Context(), pool), "provisioned")
+	var exists bool
+	require.NoError(t, pool.QueryRow(t.Context(), "SELECT to_regclass('goose_db_version') IS NOT NULL").Scan(&exists))
+	require.False(t, exists)
+	require.NoError(t, store.Migrate(t.Context(), pool))
+	require.NoError(t, store.RequireCurrentSchema(t.Context(), pool))
+	_, err := pool.Exec(t.Context(), "UPDATE goose_db_version SET is_applied=false WHERE version_id=5")
+	require.NoError(t, err)
+	require.ErrorContains(t, store.RequireCurrentSchema(t.Context(), pool), "provisioned")
+	var applied bool
+	require.NoError(t, pool.QueryRow(t.Context(), "SELECT is_applied FROM goose_db_version WHERE version_id=5").Scan(&applied))
+	require.False(t, applied)
+}
+
 func TestSchemasAreIsolated(t *testing.T) {
 	a := storetest.NewPool(t)
 	b := storetest.NewPool(t)

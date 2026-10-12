@@ -4,6 +4,238 @@ package gen
 
 import "github.com/atombender/go-jsonschema/pkg/types"
 
+// Coarse AI-only metadata; no prompts, human activity or ERP financial facts.
+type AgentProgressUpdatedData struct {
+	// AgentKey corresponds to the JSON schema field "agent_key".
+	AgentKey string `json:"agent_key" yaml:"agent_key" mapstructure:"agent_key"`
+
+	// SuccessfulRuns corresponds to the JSON schema field "successful_runs".
+	SuccessfulRuns int `json:"successful_runs" yaml:"successful_runs" mapstructure:"successful_runs"`
+}
+
+// Coarse AI-only metadata; no prompts, human activity or ERP financial facts.
+type AgentRunCompletedData struct {
+	// AgentKey corresponds to the JSON schema field "agent_key".
+	AgentKey string `json:"agent_key" yaml:"agent_key" mapstructure:"agent_key"`
+
+	// Code corresponds to the JSON schema field "code".
+	Code AgentRunCompletedDataCode `json:"code" yaml:"code" mapstructure:"code"`
+
+	// State corresponds to the JSON schema field "state".
+	State AgentRunCompletedDataState `json:"state" yaml:"state" mapstructure:"state"`
+}
+
+type AgentRunCompletedDataCode string
+
+const AgentRunCompletedDataCodeAUDITUNAVAILABLE AgentRunCompletedDataCode = "AUDIT_UNAVAILABLE"
+const AgentRunCompletedDataCodeAUTHORITYREVOKED AgentRunCompletedDataCode = "AUTHORITY_REVOKED"
+const AgentRunCompletedDataCodeCALLCONFLICT AgentRunCompletedDataCode = "CALL_CONFLICT"
+const AgentRunCompletedDataCodeHUMANREQUIRED AgentRunCompletedDataCode = "HUMAN_REQUIRED"
+const AgentRunCompletedDataCodeINVALIDRESPONSE AgentRunCompletedDataCode = "INVALID_RESPONSE"
+const AgentRunCompletedDataCodeINVALIDRUN AgentRunCompletedDataCode = "INVALID_RUN"
+const AgentRunCompletedDataCodeOK AgentRunCompletedDataCode = "OK"
+const AgentRunCompletedDataCodePAYLOADLIMIT AgentRunCompletedDataCode = "PAYLOAD_LIMIT"
+const AgentRunCompletedDataCodePROVIDERUNAVAILABLE AgentRunCompletedDataCode = "PROVIDER_UNAVAILABLE"
+const AgentRunCompletedDataCodeTOKENLIMIT AgentRunCompletedDataCode = "TOKEN_LIMIT"
+const AgentRunCompletedDataCodeTOOLLIMIT AgentRunCompletedDataCode = "TOOL_LIMIT"
+const AgentRunCompletedDataCodeTOOLUNCERTAIN AgentRunCompletedDataCode = "TOOL_UNCERTAIN"
+const AgentRunCompletedDataCodeTURNLIMIT AgentRunCompletedDataCode = "TURN_LIMIT"
+const AgentRunCompletedDataCodeUNKNOWNTOOL AgentRunCompletedDataCode = "UNKNOWN_TOOL"
+const AgentRunCompletedDataCodeWORKERLOST AgentRunCompletedDataCode = "WORKER_LOST"
+
+type AgentRunCompletedDataState string
+
+const AgentRunCompletedDataStateCompleted AgentRunCompletedDataState = "completed"
+
+// Coarse AI-only metadata; no prompts, human activity or ERP financial facts.
+type AgentRunFailedData struct {
+	// AgentKey corresponds to the JSON schema field "agent_key".
+	AgentKey string `json:"agent_key" yaml:"agent_key" mapstructure:"agent_key"`
+
+	// Code corresponds to the JSON schema field "code".
+	Code AgentRunFailedDataCode `json:"code" yaml:"code" mapstructure:"code"`
+
+	// State corresponds to the JSON schema field "state".
+	State AgentRunFailedDataState `json:"state" yaml:"state" mapstructure:"state"`
+}
+
+type AgentRunFailedDataCode string
+
+const AgentRunFailedDataCodeAUDITUNAVAILABLE AgentRunFailedDataCode = "AUDIT_UNAVAILABLE"
+const AgentRunFailedDataCodeAUTHORITYREVOKED AgentRunFailedDataCode = "AUTHORITY_REVOKED"
+const AgentRunFailedDataCodeCALLCONFLICT AgentRunFailedDataCode = "CALL_CONFLICT"
+const AgentRunFailedDataCodeHUMANREQUIRED AgentRunFailedDataCode = "HUMAN_REQUIRED"
+const AgentRunFailedDataCodeINVALIDRESPONSE AgentRunFailedDataCode = "INVALID_RESPONSE"
+const AgentRunFailedDataCodeINVALIDRUN AgentRunFailedDataCode = "INVALID_RUN"
+const AgentRunFailedDataCodeOK AgentRunFailedDataCode = "OK"
+const AgentRunFailedDataCodePAYLOADLIMIT AgentRunFailedDataCode = "PAYLOAD_LIMIT"
+const AgentRunFailedDataCodePROVIDERUNAVAILABLE AgentRunFailedDataCode = "PROVIDER_UNAVAILABLE"
+const AgentRunFailedDataCodeTOKENLIMIT AgentRunFailedDataCode = "TOKEN_LIMIT"
+const AgentRunFailedDataCodeTOOLLIMIT AgentRunFailedDataCode = "TOOL_LIMIT"
+const AgentRunFailedDataCodeTOOLUNCERTAIN AgentRunFailedDataCode = "TOOL_UNCERTAIN"
+const AgentRunFailedDataCodeTURNLIMIT AgentRunFailedDataCode = "TURN_LIMIT"
+const AgentRunFailedDataCodeUNKNOWNTOOL AgentRunFailedDataCode = "UNKNOWN_TOOL"
+const AgentRunFailedDataCodeWORKERLOST AgentRunFailedDataCode = "WORKER_LOST"
+
+type AgentRunFailedDataState string
+
+const AgentRunFailedDataStateCancelled AgentRunFailedDataState = "cancelled"
+const AgentRunFailedDataStateFailed AgentRunFailedDataState = "failed"
+
+// Coarse AI-only metadata; no prompts, human activity or ERP financial facts.
+type AgentRunNeedsHumanData struct {
+	// AgentKey corresponds to the JSON schema field "agent_key".
+	AgentKey string `json:"agent_key" yaml:"agent_key" mapstructure:"agent_key"`
+
+	// Code corresponds to the JSON schema field "code".
+	Code AgentRunNeedsHumanDataCode `json:"code" yaml:"code" mapstructure:"code"`
+
+	// State corresponds to the JSON schema field "state".
+	State AgentRunNeedsHumanDataState `json:"state" yaml:"state" mapstructure:"state"`
+}
+
+type AgentRunNeedsHumanDataCode string
+
+const AgentRunNeedsHumanDataCodeAUDITUNAVAILABLE AgentRunNeedsHumanDataCode = "AUDIT_UNAVAILABLE"
+const AgentRunNeedsHumanDataCodeAUTHORITYREVOKED AgentRunNeedsHumanDataCode = "AUTHORITY_REVOKED"
+const AgentRunNeedsHumanDataCodeCALLCONFLICT AgentRunNeedsHumanDataCode = "CALL_CONFLICT"
+const AgentRunNeedsHumanDataCodeHUMANREQUIRED AgentRunNeedsHumanDataCode = "HUMAN_REQUIRED"
+const AgentRunNeedsHumanDataCodeINVALIDRESPONSE AgentRunNeedsHumanDataCode = "INVALID_RESPONSE"
+const AgentRunNeedsHumanDataCodeINVALIDRUN AgentRunNeedsHumanDataCode = "INVALID_RUN"
+const AgentRunNeedsHumanDataCodeOK AgentRunNeedsHumanDataCode = "OK"
+const AgentRunNeedsHumanDataCodePAYLOADLIMIT AgentRunNeedsHumanDataCode = "PAYLOAD_LIMIT"
+const AgentRunNeedsHumanDataCodePROVIDERUNAVAILABLE AgentRunNeedsHumanDataCode = "PROVIDER_UNAVAILABLE"
+const AgentRunNeedsHumanDataCodeTOKENLIMIT AgentRunNeedsHumanDataCode = "TOKEN_LIMIT"
+const AgentRunNeedsHumanDataCodeTOOLLIMIT AgentRunNeedsHumanDataCode = "TOOL_LIMIT"
+const AgentRunNeedsHumanDataCodeTOOLUNCERTAIN AgentRunNeedsHumanDataCode = "TOOL_UNCERTAIN"
+const AgentRunNeedsHumanDataCodeTURNLIMIT AgentRunNeedsHumanDataCode = "TURN_LIMIT"
+const AgentRunNeedsHumanDataCodeUNKNOWNTOOL AgentRunNeedsHumanDataCode = "UNKNOWN_TOOL"
+const AgentRunNeedsHumanDataCodeWORKERLOST AgentRunNeedsHumanDataCode = "WORKER_LOST"
+
+type AgentRunNeedsHumanDataState string
+
+const AgentRunNeedsHumanDataStateNeedsHuman AgentRunNeedsHumanDataState = "needs_human"
+
+// Coarse AI-only metadata; no prompts, human activity or ERP financial facts.
+type AgentRunStartedData struct {
+	// Activity corresponds to the JSON schema field "activity".
+	Activity *AgentRunStartedDataActivity `json:"activity,omitempty,omitzero" yaml:"activity,omitempty" mapstructure:"activity,omitempty"`
+
+	// AgentKey corresponds to the JSON schema field "agent_key".
+	AgentKey string `json:"agent_key" yaml:"agent_key" mapstructure:"agent_key"`
+
+	// Code corresponds to the JSON schema field "code".
+	Code AgentRunStartedDataCode `json:"code" yaml:"code" mapstructure:"code"`
+
+	// Department corresponds to the JSON schema field "department".
+	Department *AgentRunStartedDataDepartment `json:"department,omitempty,omitzero" yaml:"department,omitempty" mapstructure:"department,omitempty"`
+
+	// State corresponds to the JSON schema field "state".
+	State AgentRunStartedDataState `json:"state" yaml:"state" mapstructure:"state"`
+}
+
+type AgentRunStartedDataActivity string
+
+const AgentRunStartedDataActivityIdle AgentRunStartedDataActivity = "idle"
+const AgentRunStartedDataActivityWorking AgentRunStartedDataActivity = "working"
+
+type AgentRunStartedDataCode string
+
+const AgentRunStartedDataCodeAUDITUNAVAILABLE AgentRunStartedDataCode = "AUDIT_UNAVAILABLE"
+const AgentRunStartedDataCodeAUTHORITYREVOKED AgentRunStartedDataCode = "AUTHORITY_REVOKED"
+const AgentRunStartedDataCodeCALLCONFLICT AgentRunStartedDataCode = "CALL_CONFLICT"
+const AgentRunStartedDataCodeHUMANREQUIRED AgentRunStartedDataCode = "HUMAN_REQUIRED"
+const AgentRunStartedDataCodeINVALIDRESPONSE AgentRunStartedDataCode = "INVALID_RESPONSE"
+const AgentRunStartedDataCodeINVALIDRUN AgentRunStartedDataCode = "INVALID_RUN"
+const AgentRunStartedDataCodeOK AgentRunStartedDataCode = "OK"
+const AgentRunStartedDataCodePAYLOADLIMIT AgentRunStartedDataCode = "PAYLOAD_LIMIT"
+const AgentRunStartedDataCodePROVIDERUNAVAILABLE AgentRunStartedDataCode = "PROVIDER_UNAVAILABLE"
+const AgentRunStartedDataCodeTOKENLIMIT AgentRunStartedDataCode = "TOKEN_LIMIT"
+const AgentRunStartedDataCodeTOOLLIMIT AgentRunStartedDataCode = "TOOL_LIMIT"
+const AgentRunStartedDataCodeTOOLUNCERTAIN AgentRunStartedDataCode = "TOOL_UNCERTAIN"
+const AgentRunStartedDataCodeTURNLIMIT AgentRunStartedDataCode = "TURN_LIMIT"
+const AgentRunStartedDataCodeUNKNOWNTOOL AgentRunStartedDataCode = "UNKNOWN_TOOL"
+const AgentRunStartedDataCodeWORKERLOST AgentRunStartedDataCode = "WORKER_LOST"
+
+type AgentRunStartedDataDepartment string
+
+const AgentRunStartedDataDepartmentBank AgentRunStartedDataDepartment = "bank"
+const AgentRunStartedDataDepartmentShop AgentRunStartedDataDepartment = "shop"
+const AgentRunStartedDataDepartmentWarehouse AgentRunStartedDataDepartment = "warehouse"
+
+type AgentRunStartedDataState string
+
+const AgentRunStartedDataStateQueued AgentRunStartedDataState = "queued"
+const AgentRunStartedDataStateRunning AgentRunStartedDataState = "running"
+
+// Coarse developer task state, without code, prompts, paths or credentials.
+type DevTaskCompletedData struct {
+	// Provider corresponds to the JSON schema field "provider".
+	Provider DevTaskCompletedDataProvider `json:"provider" yaml:"provider" mapstructure:"provider"`
+
+	// Sequence corresponds to the JSON schema field "sequence".
+	Sequence int `json:"sequence" yaml:"sequence" mapstructure:"sequence"`
+
+	// State corresponds to the JSON schema field "state".
+	State interface{} `json:"state" yaml:"state" mapstructure:"state"`
+}
+
+type DevTaskCompletedDataProvider string
+
+const DevTaskCompletedDataProviderClaude DevTaskCompletedDataProvider = "claude"
+const DevTaskCompletedDataProviderCodex DevTaskCompletedDataProvider = "codex"
+
+// Coarse developer task state, without code, prompts, paths or credentials.
+type DevTaskFailedData struct {
+	// Provider corresponds to the JSON schema field "provider".
+	Provider DevTaskFailedDataProvider `json:"provider" yaml:"provider" mapstructure:"provider"`
+
+	// Sequence corresponds to the JSON schema field "sequence".
+	Sequence int `json:"sequence" yaml:"sequence" mapstructure:"sequence"`
+
+	// State corresponds to the JSON schema field "state".
+	State interface{} `json:"state" yaml:"state" mapstructure:"state"`
+}
+
+type DevTaskFailedDataProvider string
+
+const DevTaskFailedDataProviderClaude DevTaskFailedDataProvider = "claude"
+const DevTaskFailedDataProviderCodex DevTaskFailedDataProvider = "codex"
+
+// Coarse developer task state, without code, prompts, paths or credentials.
+type DevTaskStartedData struct {
+	// Provider corresponds to the JSON schema field "provider".
+	Provider DevTaskStartedDataProvider `json:"provider" yaml:"provider" mapstructure:"provider"`
+
+	// Sequence corresponds to the JSON schema field "sequence".
+	Sequence int `json:"sequence" yaml:"sequence" mapstructure:"sequence"`
+
+	// State corresponds to the JSON schema field "state".
+	State interface{} `json:"state" yaml:"state" mapstructure:"state"`
+}
+
+type DevTaskStartedDataProvider string
+
+const DevTaskStartedDataProviderClaude DevTaskStartedDataProvider = "claude"
+const DevTaskStartedDataProviderCodex DevTaskStartedDataProvider = "codex"
+
+// Coarse developer task state, without code, prompts, paths or credentials.
+type DevTaskUpdatedData struct {
+	// Provider corresponds to the JSON schema field "provider".
+	Provider DevTaskUpdatedDataProvider `json:"provider" yaml:"provider" mapstructure:"provider"`
+
+	// Sequence corresponds to the JSON schema field "sequence".
+	Sequence int `json:"sequence" yaml:"sequence" mapstructure:"sequence"`
+
+	// State corresponds to the JSON schema field "state".
+	State interface{} `json:"state" yaml:"state" mapstructure:"state"`
+}
+
+type DevTaskUpdatedDataProvider string
+
+const DevTaskUpdatedDataProviderClaude DevTaskUpdatedDataProvider = "claude"
+const DevTaskUpdatedDataProviderCodex DevTaskUpdatedDataProvider = "codex"
+
 // A Delivery Note was cancelled.
 type ErpDeliveryNoteCancelledData struct {
 	// Document status after the action (ERPNext status field).

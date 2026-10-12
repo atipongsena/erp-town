@@ -1,0 +1,2462 @@
+{
+  "observations": [
+    {
+      "observed_at": "2026-10-12T10:47:22.558Z",
+      "stage": "starting",
+      "phase": "starting",
+      "stage_started_at": "2026-10-12T10:45:30.4581308Z",
+      "stage_duration_ms": 0,
+      "actors": [
+        {
+          "id": "demo-shop",
+          "kind": "human",
+          "department": "hq",
+          "activity": "idle"
+        },
+        {
+          "id": "demo-warehouse",
+          "kind": "human",
+          "department": "hq",
+          "activity": "idle"
+        },
+        {
+          "id": "demo-bank",
+          "kind": "human",
+          "department": "hq",
+          "activity": "idle"
+        },
+        {
+          "id": "demo-assistant",
+          "kind": "agent",
+          "department": "it",
+          "activity": "idle"
+        }
+      ],
+      "documents": [],
+      "ui": {
+        "source": "live",
+        "version": "0",
+        "actors": [
+          {
+            "id": "demo-shop",
+            "department": "hq",
+            "phase": "idle"
+          },
+          {
+            "id": "demo-warehouse",
+            "department": "hq",
+            "phase": "idle"
+          },
+          {
+            "id": "demo-bank",
+            "department": "hq",
+            "phase": "idle"
+          },
+          {
+            "id": "demo-assistant",
+            "department": "it",
+            "phase": "idle"
+          }
+        ],
+        "trips": [],
+        "documents": "0",
+        "working": "0"
+      }
+    },
+    {
+      "observed_at": "2026-10-12T10:47:26.634Z",
+      "stage": "ai-order",
+      "phase": "travelling",
+      "stage_started_at": "2026-10-12T10:47:25.754215Z",
+      "stage_duration_ms": 9557,
+      "actors": [
+        {
+          "id": "demo-shop",
+          "kind": "human",
+          "department": "hq",
+          "activity": "idle"
+        },
+        {
+          "id": "demo-warehouse",
+          "kind": "human",
+          "department": "hq",
+          "activity": "idle"
+        },
+        {
+          "id": "demo-bank",
+          "kind": "human",
+          "department": "hq",
+          "activity": "idle"
+        },
+        {
+          "id": "demo-assistant",
+          "kind": "agent",
+          "department": "shop",
+          "from_department": "it",
+          "activity": "travelling",
+          "travel": {
+            "started_at": "2026-10-12T10:47:25.754215Z",
+            "duration_ms": 9557
+          }
+        }
+      ],
+      "documents": [],
+      "ui": {
+        "source": "live",
+        "version": "0",
+        "actors": [
+          {
+            "id": "demo-shop",
+            "department": "hq",
+            "phase": "idle"
+          },
+          {
+            "id": "demo-warehouse",
+            "department": "hq",
+            "phase": "idle"
+          },
+          {
+            "id": "demo-bank",
+            "department": "hq",
+            "phase": "idle"
+          },
+          {
+            "id": "demo-assistant",
+            "department": "shop",
+            "phase": "travelling"
+          }
+        ],
+        "trips": [],
+        "documents": "0",
+        "working": "0"
+      }
+    },
+    {
+      "observed_at": "2026-10-12T10:47:35.753Z",
+      "stage": "ai-order",
+      "phase": "working",
+      "stage_started_at": "2026-10-12T10:47:35.31141Z",
+      "stage_duration_ms": 12000,
+      "actors": [
+        {
+          "id": "demo-shop",
+          "kind": "human",
+          "department": "hq",
+          "activity": "idle"
+        },
+        {
+          "id": "demo-warehouse",
+          "kind": "human",
+          "department": "hq",
+          "activity": "idle"
+        },
+        {
+          "id": "demo-bank",
+          "kind": "human",
+          "department": "hq",
+          "activity": "idle"
+        },
+        {
+          "id": "demo-assistant",
+          "kind": "agent",
+          "department": "shop",
+          "from_department": "shop",
+          "activity": "working"
+        }
+      ],
+      "documents": [],
+      "ui": {
+        "source": "live",
+        "version": "0",
+        "actors": [
+          {
+            "id": "demo-shop",
+            "department": "hq",
+            "phase": "idle"
+          },
+          {
+            "id": "demo-warehouse",
+            "department": "hq",
+            "phase": "idle"
+          },
+          {
+            "id": "demo-bank",
+            "department": "hq",
+            "phase": "idle"
+          },
+          {
+            "id": "demo-assistant",
+            "department": "shop",
+            "phase": "working"
+          }
+        ],
+        "trips": [],
+        "documents": "0",
+        "working": "1"
+      }
+    },
+    {
+      "observed_at": "2026-10-12T10:47:36.765Z",
+      "stage": "ai-order",
+      "phase": "working",
+      "stage_started_at": "2026-10-12T10:47:35.31141Z",
+      "stage_duration_ms": 12000,
+      "actors": [
+        {
+          "id": "demo-shop",
+          "kind": "human",
+          "department": "hq",
+          "activity": "idle"
+        },
+        {
+          "id": "demo-warehouse",
+          "kind": "human",
+          "department": "hq",
+          "activity": "idle"
+        },
+        {
+          "id": "demo-bank",
+          "kind": "human",
+          "department": "hq",
+          "activity": "idle"
+        },
+        {
+          "id": "demo-assistant",
+          "kind": "agent",
+          "department": "shop",
+          "from_department": "shop",
+          "activity": "working"
+        }
+      ],
+      "documents": [],
+      "ui": {
+        "source": "live",
+        "version": "1",
+        "actors": [
+          {
+            "id": "demo-shop",
+            "department": "hq",
+            "phase": "idle"
+          },
+          {
+            "id": "demo-warehouse",
+            "department": "hq",
+            "phase": "idle"
+          },
+          {
+            "id": "demo-bank",
+            "department": "hq",
+            "phase": "idle"
+          },
+          {
+            "id": "demo-assistant",
+            "department": "shop",
+            "phase": "working"
+          }
+        ],
+        "trips": [],
+        "documents": "0",
+        "working": "1"
+      }
+    },
+    {
+      "observed_at": "2026-10-12T10:47:47.925Z",
+      "stage": "ai-order",
+      "phase": "working",
+      "stage_started_at": "2026-10-12T10:47:35.31141Z",
+      "stage_duration_ms": 12000,
+      "actors": [
+        {
+          "id": "demo-shop",
+          "kind": "human",
+          "department": "hq",
+          "activity": "idle"
+        },
+        {
+          "id": "demo-warehouse",
+          "kind": "human",
+          "department": "hq",
+          "activity": "idle"
+        },
+        {
+          "id": "demo-bank",
+          "kind": "human",
+          "department": "hq",
+          "activity": "idle"
+        },
+        {
+          "id": "demo-assistant",
+          "kind": "agent",
+          "department": "shop",
+          "from_department": "shop",
+          "activity": "working"
+        }
+      ],
+      "documents": [],
+      "ui": {
+        "source": "live",
+        "version": "2",
+        "actors": [
+          {
+            "id": "demo-shop",
+            "department": "hq",
+            "phase": "idle"
+          },
+          {
+            "id": "demo-warehouse",
+            "department": "hq",
+            "phase": "idle"
+          },
+          {
+            "id": "demo-bank",
+            "department": "hq",
+            "phase": "idle"
+          },
+          {
+            "id": "demo-assistant",
+            "department": "shop",
+            "phase": "working"
+          }
+        ],
+        "trips": [],
+        "documents": "0",
+        "working": "1"
+      }
+    },
+    {
+      "observed_at": "2026-10-12T10:47:48.932Z",
+      "stage": "sales-review",
+      "phase": "travelling",
+      "stage_started_at": "2026-10-12T10:47:48.3897429Z",
+      "stage_duration_ms": 7672,
+      "actors": [
+        {
+          "id": "demo-shop",
+          "kind": "human",
+          "department": "shop",
+          "from_department": "hq",
+          "activity": "travelling",
+          "travel": {
+            "started_at": "2026-10-12T10:47:48.3897429Z",
+            "duration_ms": 7672
+          },
+          "task_ref": {
+            "doctype": "Sales Order",
+            "name": "SO6910-0001"
+          }
+        },
+        {
+          "id": "demo-warehouse",
+          "kind": "human",
+          "department": "hq",
+          "activity": "idle"
+        },
+        {
+          "id": "demo-bank",
+          "kind": "human",
+          "department": "hq",
+          "activity": "idle"
+        },
+        {
+          "id": "demo-assistant",
+          "kind": "agent",
+          "department": "shop",
+          "activity": "idle"
+        }
+      ],
+      "documents": [
+        {
+          "doctype": "Sales Order",
+          "name": "SO6910-0001",
+          "status": "Draft"
+        }
+      ],
+      "ui": {
+        "source": "live",
+        "version": "5",
+        "actors": [
+          {
+            "id": "demo-shop",
+            "department": "shop",
+            "phase": "travelling"
+          },
+          {
+            "id": "demo-warehouse",
+            "department": "hq",
+            "phase": "idle"
+          },
+          {
+            "id": "demo-bank",
+            "department": "hq",
+            "phase": "idle"
+          },
+          {
+            "id": "demo-assistant",
+            "department": "shop",
+            "phase": "idle"
+          }
+        ],
+        "trips": [],
+        "documents": "0",
+        "working": "0"
+      }
+    },
+    {
+      "observed_at": "2026-10-12T10:47:56.834Z",
+      "stage": "sales-review",
+      "phase": "working",
+      "stage_started_at": "2026-10-12T10:47:56.0620245Z",
+      "stage_duration_ms": 12000,
+      "actors": [
+        {
+          "id": "demo-shop",
+          "kind": "human",
+          "department": "shop",
+          "from_department": "shop",
+          "activity": "working",
+          "task_ref": {
+            "doctype": "Sales Order",
+            "name": "SO6910-0001"
+          }
+        },
+        {
+          "id": "demo-warehouse",
+          "kind": "human",
+          "department": "hq",
+          "activity": "idle"
+        },
+        {
+          "id": "demo-bank",
+          "kind": "human",
+          "department": "hq",
+          "activity": "idle"
+        },
+        {
+          "id": "demo-assistant",
+          "kind": "agent",
+          "department": "shop",
+          "activity": "idle"
+        }
+      ],
+      "documents": [
+        {
+          "doctype": "Sales Order",
+          "name": "SO6910-0001",
+          "status": "Draft"
+        }
+      ],
+      "ui": {
+        "source": "live",
+        "version": "5",
+        "actors": [
+          {
+            "id": "demo-shop",
+            "department": "shop",
+            "phase": "working"
+          },
+          {
+            "id": "demo-warehouse",
+            "department": "hq",
+            "phase": "idle"
+          },
+          {
+            "id": "demo-bank",
+            "department": "hq",
+            "phase": "idle"
+          },
+          {
+            "id": "demo-assistant",
+            "department": "shop",
+            "phase": "idle"
+          }
+        ],
+        "trips": [],
+        "documents": "0",
+        "working": "1"
+      }
+    },
+    {
+      "observed_at": "2026-10-12T10:48:09.009Z",
+      "stage": "stock-prepare",
+      "phase": "travelling",
+      "stage_started_at": "2026-10-12T10:48:08.5770304Z",
+      "stage_duration_ms": 11339,
+      "actors": [
+        {
+          "id": "demo-shop",
+          "kind": "human",
+          "department": "shop",
+          "activity": "idle"
+        },
+        {
+          "id": "demo-warehouse",
+          "kind": "human",
+          "department": "warehouse",
+          "from_department": "hq",
+          "activity": "travelling",
+          "travel": {
+            "started_at": "2026-10-12T10:48:08.5770304Z",
+            "duration_ms": 11339
+          },
+          "task_ref": {
+            "doctype": "Sales Order",
+            "name": "SO6910-0001"
+          }
+        },
+        {
+          "id": "demo-bank",
+          "kind": "human",
+          "department": "hq",
+          "activity": "idle"
+        },
+        {
+          "id": "demo-assistant",
+          "kind": "agent",
+          "department": "shop",
+          "activity": "idle"
+        }
+      ],
+      "documents": [
+        {
+          "doctype": "Sales Order",
+          "name": "SO6910-0001",
+          "status": "Submitted"
+        }
+      ],
+      "ui": {
+        "source": "live",
+        "version": "5",
+        "actors": [
+          {
+            "id": "demo-shop",
+            "department": "shop",
+            "phase": "idle"
+          },
+          {
+            "id": "demo-warehouse",
+            "department": "warehouse",
+            "phase": "travelling"
+          },
+          {
+            "id": "demo-bank",
+            "department": "hq",
+            "phase": "idle"
+          },
+          {
+            "id": "demo-assistant",
+            "department": "shop",
+            "phase": "idle"
+          }
+        ],
+        "trips": [],
+        "documents": "0",
+        "working": "0"
+      }
+    },
+    {
+      "observed_at": "2026-10-12T10:48:10.027Z",
+      "stage": "stock-prepare",
+      "phase": "travelling",
+      "stage_started_at": "2026-10-12T10:48:08.5770304Z",
+      "stage_duration_ms": 11339,
+      "actors": [
+        {
+          "id": "demo-shop",
+          "kind": "human",
+          "department": "shop",
+          "activity": "idle"
+        },
+        {
+          "id": "demo-warehouse",
+          "kind": "human",
+          "department": "warehouse",
+          "from_department": "hq",
+          "activity": "travelling",
+          "travel": {
+            "started_at": "2026-10-12T10:48:08.5770304Z",
+            "duration_ms": 11339
+          },
+          "task_ref": {
+            "doctype": "Sales Order",
+            "name": "SO6910-0001"
+          }
+        },
+        {
+          "id": "demo-bank",
+          "kind": "human",
+          "department": "hq",
+          "activity": "idle"
+        },
+        {
+          "id": "demo-assistant",
+          "kind": "agent",
+          "department": "shop",
+          "activity": "idle"
+        }
+      ],
+      "documents": [
+        {
+          "doctype": "Sales Order",
+          "name": "SO6910-0001",
+          "status": "Submitted"
+        }
+      ],
+      "ui": {
+        "source": "live",
+        "version": "6",
+        "actors": [
+          {
+            "id": "demo-shop",
+            "department": "shop",
+            "phase": "idle"
+          },
+          {
+            "id": "demo-warehouse",
+            "department": "warehouse",
+            "phase": "travelling"
+          },
+          {
+            "id": "demo-bank",
+            "department": "hq",
+            "phase": "idle"
+          },
+          {
+            "id": "demo-assistant",
+            "department": "shop",
+            "phase": "idle"
+          }
+        ],
+        "trips": [],
+        "documents": "1",
+        "working": "0"
+      }
+    },
+    {
+      "observed_at": "2026-10-12T10:48:20.177Z",
+      "stage": "stock-prepare",
+      "phase": "working",
+      "stage_started_at": "2026-10-12T10:48:19.9165808Z",
+      "stage_duration_ms": 0,
+      "actors": [
+        {
+          "id": "demo-shop",
+          "kind": "human",
+          "department": "shop",
+          "activity": "idle"
+        },
+        {
+          "id": "demo-warehouse",
+          "kind": "human",
+          "department": "warehouse",
+          "from_department": "warehouse",
+          "activity": "working",
+          "task_ref": {
+            "doctype": "Sales Order",
+            "name": "SO6910-0001"
+          }
+        },
+        {
+          "id": "demo-bank",
+          "kind": "human",
+          "department": "hq",
+          "activity": "idle"
+        },
+        {
+          "id": "demo-assistant",
+          "kind": "agent",
+          "department": "shop",
+          "activity": "idle"
+        }
+      ],
+      "documents": [
+        {
+          "doctype": "Sales Order",
+          "name": "SO6910-0001",
+          "status": "Submitted"
+        }
+      ],
+      "ui": {
+        "source": "live",
+        "version": "6",
+        "actors": [
+          {
+            "id": "demo-shop",
+            "department": "shop",
+            "phase": "idle"
+          },
+          {
+            "id": "demo-warehouse",
+            "department": "warehouse",
+            "phase": "arrived"
+          },
+          {
+            "id": "demo-bank",
+            "department": "hq",
+            "phase": "idle"
+          },
+          {
+            "id": "demo-assistant",
+            "department": "shop",
+            "phase": "idle"
+          }
+        ],
+        "trips": [],
+        "documents": "1",
+        "working": "0"
+      }
+    },
+    {
+      "observed_at": "2026-10-12T10:48:21.193Z",
+      "stage": "stock-prepare",
+      "phase": "working",
+      "stage_started_at": "2026-10-12T10:48:20.2772581Z",
+      "stage_duration_ms": 12000,
+      "actors": [
+        {
+          "id": "demo-shop",
+          "kind": "human",
+          "department": "shop",
+          "activity": "idle"
+        },
+        {
+          "id": "demo-warehouse",
+          "kind": "human",
+          "department": "warehouse",
+          "from_department": "warehouse",
+          "activity": "working",
+          "task_ref": {
+            "doctype": "Delivery Note",
+            "name": "DN6910-0001"
+          }
+        },
+        {
+          "id": "demo-bank",
+          "kind": "human",
+          "department": "hq",
+          "activity": "idle"
+        },
+        {
+          "id": "demo-assistant",
+          "kind": "agent",
+          "department": "shop",
+          "activity": "idle"
+        }
+      ],
+      "documents": [
+        {
+          "doctype": "Sales Order",
+          "name": "SO6910-0001",
+          "status": "Submitted"
+        },
+        {
+          "doctype": "Delivery Note",
+          "name": "DN6910-0001",
+          "status": "Draft"
+        }
+      ],
+      "ui": {
+        "source": "live",
+        "version": "6",
+        "actors": [
+          {
+            "id": "demo-shop",
+            "department": "shop",
+            "phase": "idle"
+          },
+          {
+            "id": "demo-warehouse",
+            "department": "warehouse",
+            "phase": "working"
+          },
+          {
+            "id": "demo-bank",
+            "department": "hq",
+            "phase": "idle"
+          },
+          {
+            "id": "demo-assistant",
+            "department": "shop",
+            "phase": "idle"
+          }
+        ],
+        "trips": [],
+        "documents": "1",
+        "working": "1"
+      }
+    },
+    {
+      "observed_at": "2026-10-12T10:48:32.327Z",
+      "stage": "stock-prepare",
+      "phase": "working",
+      "stage_started_at": "2026-10-12T10:48:20.2772581Z",
+      "stage_duration_ms": 12000,
+      "actors": [
+        {
+          "id": "demo-shop",
+          "kind": "human",
+          "department": "shop",
+          "activity": "idle"
+        },
+        {
+          "id": "demo-warehouse",
+          "kind": "human",
+          "department": "warehouse",
+          "from_department": "warehouse",
+          "activity": "working",
+          "task_ref": {
+            "doctype": "Delivery Note",
+            "name": "DN6910-0001"
+          }
+        },
+        {
+          "id": "demo-bank",
+          "kind": "human",
+          "department": "hq",
+          "activity": "idle"
+        },
+        {
+          "id": "demo-assistant",
+          "kind": "agent",
+          "department": "shop",
+          "activity": "idle"
+        }
+      ],
+      "documents": [
+        {
+          "doctype": "Sales Order",
+          "name": "SO6910-0001",
+          "status": "Submitted"
+        },
+        {
+          "doctype": "Delivery Note",
+          "name": "DN6910-0001",
+          "status": "Draft"
+        }
+      ],
+      "ui": {
+        "source": "live",
+        "version": "7",
+        "actors": [
+          {
+            "id": "demo-shop",
+            "department": "shop",
+            "phase": "idle"
+          },
+          {
+            "id": "demo-warehouse",
+            "department": "warehouse",
+            "phase": "working"
+          },
+          {
+            "id": "demo-bank",
+            "department": "hq",
+            "phase": "idle"
+          },
+          {
+            "id": "demo-assistant",
+            "department": "shop",
+            "phase": "idle"
+          }
+        ],
+        "trips": [],
+        "documents": "1",
+        "working": "1"
+      }
+    },
+    {
+      "observed_at": "2026-10-12T10:48:33.356Z",
+      "stage": "dispatch",
+      "phase": "travelling",
+      "stage_started_at": "2026-10-12T10:48:32.6351232Z",
+      "stage_duration_ms": 11738,
+      "actors": [
+        {
+          "id": "demo-shop",
+          "kind": "human",
+          "department": "shop",
+          "activity": "idle"
+        },
+        {
+          "id": "demo-warehouse",
+          "kind": "human",
+          "department": "shop",
+          "from_department": "warehouse",
+          "activity": "travelling",
+          "travel": {
+            "started_at": "2026-10-12T10:48:32.6351232Z",
+            "duration_ms": 11738
+          },
+          "task_ref": {
+            "doctype": "Delivery Note",
+            "name": "DN6910-0001"
+          }
+        },
+        {
+          "id": "demo-bank",
+          "kind": "human",
+          "department": "hq",
+          "activity": "idle"
+        },
+        {
+          "id": "demo-assistant",
+          "kind": "agent",
+          "department": "shop",
+          "activity": "idle"
+        }
+      ],
+      "documents": [
+        {
+          "doctype": "Sales Order",
+          "name": "SO6910-0001",
+          "status": "Submitted"
+        },
+        {
+          "doctype": "Delivery Note",
+          "name": "DN6910-0001",
+          "status": "Submitted"
+        }
+      ],
+      "ui": {
+        "source": "live",
+        "version": "8",
+        "actors": [
+          {
+            "id": "demo-shop",
+            "department": "shop",
+            "phase": "idle"
+          },
+          {
+            "id": "demo-warehouse",
+            "department": "shop",
+            "phase": "travelling"
+          },
+          {
+            "id": "demo-bank",
+            "department": "hq",
+            "phase": "idle"
+          },
+          {
+            "id": "demo-assistant",
+            "department": "shop",
+            "phase": "idle"
+          }
+        ],
+        "trips": [
+          {
+            "id": "01M4QVMYKC49VJ6FECDBENZWW0",
+            "label": "DN6910-0001 · บันทึกส่งของ"
+          }
+        ],
+        "documents": "2",
+        "working": "0"
+      }
+    },
+    {
+      "observed_at": "2026-10-12T10:48:44.836Z",
+      "stage": "invoice-review",
+      "phase": "travelling",
+      "stage_started_at": "2026-10-12T10:48:44.3733574Z",
+      "stage_duration_ms": 5995,
+      "actors": [
+        {
+          "id": "demo-shop",
+          "kind": "human",
+          "department": "shop",
+          "activity": "idle"
+        },
+        {
+          "id": "demo-warehouse",
+          "kind": "human",
+          "department": "shop",
+          "activity": "idle"
+        },
+        {
+          "id": "demo-bank",
+          "kind": "human",
+          "department": "bank",
+          "from_department": "hq",
+          "activity": "travelling",
+          "travel": {
+            "started_at": "2026-10-12T10:48:44.3733574Z",
+            "duration_ms": 5995
+          },
+          "task_ref": {
+            "doctype": "Delivery Note",
+            "name": "DN6910-0001"
+          }
+        },
+        {
+          "id": "demo-assistant",
+          "kind": "agent",
+          "department": "shop",
+          "activity": "idle"
+        }
+      ],
+      "documents": [
+        {
+          "doctype": "Sales Order",
+          "name": "SO6910-0001",
+          "status": "Submitted"
+        },
+        {
+          "doctype": "Delivery Note",
+          "name": "DN6910-0001",
+          "status": "Submitted"
+        }
+      ],
+      "ui": {
+        "source": "live",
+        "version": "8",
+        "actors": [
+          {
+            "id": "demo-shop",
+            "department": "shop",
+            "phase": "idle"
+          },
+          {
+            "id": "demo-warehouse",
+            "department": "shop",
+            "phase": "arrived"
+          },
+          {
+            "id": "demo-bank",
+            "department": "hq",
+            "phase": "idle"
+          },
+          {
+            "id": "demo-assistant",
+            "department": "shop",
+            "phase": "idle"
+          }
+        ],
+        "trips": [
+          {
+            "id": "01M4QVMYKC49VJ6FECDBENZWW0",
+            "label": "DN6910-0001 · บันทึกส่งของ"
+          }
+        ],
+        "documents": "2",
+        "working": "0"
+      }
+    },
+    {
+      "observed_at": "2026-10-12T10:48:45.965Z",
+      "stage": "invoice-review",
+      "phase": "travelling",
+      "stage_started_at": "2026-10-12T10:48:44.3733574Z",
+      "stage_duration_ms": 5995,
+      "actors": [
+        {
+          "id": "demo-shop",
+          "kind": "human",
+          "department": "shop",
+          "activity": "idle"
+        },
+        {
+          "id": "demo-warehouse",
+          "kind": "human",
+          "department": "shop",
+          "activity": "idle"
+        },
+        {
+          "id": "demo-bank",
+          "kind": "human",
+          "department": "bank",
+          "from_department": "hq",
+          "activity": "travelling",
+          "travel": {
+            "started_at": "2026-10-12T10:48:44.3733574Z",
+            "duration_ms": 5995
+          },
+          "task_ref": {
+            "doctype": "Delivery Note",
+            "name": "DN6910-0001"
+          }
+        },
+        {
+          "id": "demo-assistant",
+          "kind": "agent",
+          "department": "shop",
+          "activity": "idle"
+        }
+      ],
+      "documents": [
+        {
+          "doctype": "Sales Order",
+          "name": "SO6910-0001",
+          "status": "Submitted"
+        },
+        {
+          "doctype": "Delivery Note",
+          "name": "DN6910-0001",
+          "status": "Submitted"
+        }
+      ],
+      "ui": {
+        "source": "live",
+        "version": "8",
+        "actors": [
+          {
+            "id": "demo-shop",
+            "department": "shop",
+            "phase": "idle"
+          },
+          {
+            "id": "demo-warehouse",
+            "department": "shop",
+            "phase": "idle"
+          },
+          {
+            "id": "demo-bank",
+            "department": "bank",
+            "phase": "travelling"
+          },
+          {
+            "id": "demo-assistant",
+            "department": "shop",
+            "phase": "idle"
+          }
+        ],
+        "trips": [
+          {
+            "id": "01M4QVMYKC49VJ6FECDBENZWW0",
+            "label": "DN6910-0001 · บันทึกส่งของ"
+          }
+        ],
+        "documents": "2",
+        "working": "0"
+      }
+    },
+    {
+      "observed_at": "2026-10-12T10:48:51.034Z",
+      "stage": "invoice-review",
+      "phase": "working",
+      "stage_started_at": "2026-10-12T10:48:50.6467384Z",
+      "stage_duration_ms": 12000,
+      "actors": [
+        {
+          "id": "demo-shop",
+          "kind": "human",
+          "department": "shop",
+          "activity": "idle"
+        },
+        {
+          "id": "demo-warehouse",
+          "kind": "human",
+          "department": "shop",
+          "activity": "idle"
+        },
+        {
+          "id": "demo-bank",
+          "kind": "human",
+          "department": "bank",
+          "from_department": "bank",
+          "activity": "working",
+          "task_ref": {
+            "doctype": "Sales Invoice",
+            "name": "IV6910-0001"
+          }
+        },
+        {
+          "id": "demo-assistant",
+          "kind": "agent",
+          "department": "shop",
+          "activity": "idle"
+        }
+      ],
+      "documents": [
+        {
+          "doctype": "Sales Order",
+          "name": "SO6910-0001",
+          "status": "Submitted"
+        },
+        {
+          "doctype": "Delivery Note",
+          "name": "DN6910-0001",
+          "status": "Submitted"
+        },
+        {
+          "doctype": "Sales Invoice",
+          "name": "IV6910-0001",
+          "status": "Draft"
+        }
+      ],
+      "ui": {
+        "source": "live",
+        "version": "8",
+        "actors": [
+          {
+            "id": "demo-shop",
+            "department": "shop",
+            "phase": "idle"
+          },
+          {
+            "id": "demo-warehouse",
+            "department": "shop",
+            "phase": "idle"
+          },
+          {
+            "id": "demo-bank",
+            "department": "bank",
+            "phase": "arrived"
+          },
+          {
+            "id": "demo-assistant",
+            "department": "shop",
+            "phase": "idle"
+          }
+        ],
+        "trips": [
+          {
+            "id": "01M4QVMYKC49VJ6FECDBENZWW0",
+            "label": "DN6910-0001 · บันทึกส่งของ"
+          }
+        ],
+        "documents": "2",
+        "working": "0"
+      }
+    },
+    {
+      "observed_at": "2026-10-12T10:48:52.054Z",
+      "stage": "invoice-review",
+      "phase": "working",
+      "stage_started_at": "2026-10-12T10:48:50.6467384Z",
+      "stage_duration_ms": 12000,
+      "actors": [
+        {
+          "id": "demo-shop",
+          "kind": "human",
+          "department": "shop",
+          "activity": "idle"
+        },
+        {
+          "id": "demo-warehouse",
+          "kind": "human",
+          "department": "shop",
+          "activity": "idle"
+        },
+        {
+          "id": "demo-bank",
+          "kind": "human",
+          "department": "bank",
+          "from_department": "bank",
+          "activity": "working",
+          "task_ref": {
+            "doctype": "Sales Invoice",
+            "name": "IV6910-0001"
+          }
+        },
+        {
+          "id": "demo-assistant",
+          "kind": "agent",
+          "department": "shop",
+          "activity": "idle"
+        }
+      ],
+      "documents": [
+        {
+          "doctype": "Sales Order",
+          "name": "SO6910-0001",
+          "status": "Submitted"
+        },
+        {
+          "doctype": "Delivery Note",
+          "name": "DN6910-0001",
+          "status": "Submitted"
+        },
+        {
+          "doctype": "Sales Invoice",
+          "name": "IV6910-0001",
+          "status": "Draft"
+        }
+      ],
+      "ui": {
+        "source": "live",
+        "version": "8",
+        "actors": [
+          {
+            "id": "demo-shop",
+            "department": "shop",
+            "phase": "idle"
+          },
+          {
+            "id": "demo-warehouse",
+            "department": "shop",
+            "phase": "idle"
+          },
+          {
+            "id": "demo-bank",
+            "department": "bank",
+            "phase": "working"
+          },
+          {
+            "id": "demo-assistant",
+            "department": "shop",
+            "phase": "idle"
+          }
+        ],
+        "trips": [
+          {
+            "id": "01M4QVMYKC49VJ6FECDBENZWW0",
+            "label": "DN6910-0001 · บันทึกส่งของ"
+          }
+        ],
+        "documents": "2",
+        "working": "1"
+      }
+    },
+    {
+      "observed_at": "2026-10-12T10:49:02.173Z",
+      "stage": "invoice-review",
+      "phase": "working",
+      "stage_started_at": "2026-10-12T10:48:50.6467384Z",
+      "stage_duration_ms": 12000,
+      "actors": [
+        {
+          "id": "demo-shop",
+          "kind": "human",
+          "department": "shop",
+          "activity": "idle"
+        },
+        {
+          "id": "demo-warehouse",
+          "kind": "human",
+          "department": "shop",
+          "activity": "idle"
+        },
+        {
+          "id": "demo-bank",
+          "kind": "human",
+          "department": "bank",
+          "from_department": "bank",
+          "activity": "working",
+          "task_ref": {
+            "doctype": "Sales Invoice",
+            "name": "IV6910-0001"
+          }
+        },
+        {
+          "id": "demo-assistant",
+          "kind": "agent",
+          "department": "shop",
+          "activity": "idle"
+        }
+      ],
+      "documents": [
+        {
+          "doctype": "Sales Order",
+          "name": "SO6910-0001",
+          "status": "Submitted"
+        },
+        {
+          "doctype": "Delivery Note",
+          "name": "DN6910-0001",
+          "status": "Submitted"
+        },
+        {
+          "doctype": "Sales Invoice",
+          "name": "IV6910-0001",
+          "status": "Draft"
+        }
+      ],
+      "ui": {
+        "source": "live",
+        "version": "9",
+        "actors": [
+          {
+            "id": "demo-shop",
+            "department": "shop",
+            "phase": "idle"
+          },
+          {
+            "id": "demo-warehouse",
+            "department": "shop",
+            "phase": "idle"
+          },
+          {
+            "id": "demo-bank",
+            "department": "bank",
+            "phase": "working"
+          },
+          {
+            "id": "demo-assistant",
+            "department": "shop",
+            "phase": "idle"
+          }
+        ],
+        "trips": [
+          {
+            "id": "01M4QVMYKC49VJ6FECDBENZWW0",
+            "label": "DN6910-0001 · บันทึกส่งของ"
+          }
+        ],
+        "documents": "2",
+        "working": "1"
+      }
+    },
+    {
+      "observed_at": "2026-10-12T10:49:03.191Z",
+      "stage": "payment-review",
+      "phase": "working",
+      "stage_started_at": "2026-10-12T10:49:03.0402737Z",
+      "stage_duration_ms": 0,
+      "actors": [
+        {
+          "id": "demo-shop",
+          "kind": "human",
+          "department": "shop",
+          "activity": "idle"
+        },
+        {
+          "id": "demo-warehouse",
+          "kind": "human",
+          "department": "shop",
+          "activity": "idle"
+        },
+        {
+          "id": "demo-bank",
+          "kind": "human",
+          "department": "bank",
+          "from_department": "bank",
+          "activity": "working",
+          "task_ref": {
+            "doctype": "Sales Invoice",
+            "name": "IV6910-0001"
+          }
+        },
+        {
+          "id": "demo-assistant",
+          "kind": "agent",
+          "department": "shop",
+          "activity": "idle"
+        }
+      ],
+      "documents": [
+        {
+          "doctype": "Sales Order",
+          "name": "SO6910-0001",
+          "status": "Submitted"
+        },
+        {
+          "doctype": "Delivery Note",
+          "name": "DN6910-0001",
+          "status": "Submitted"
+        },
+        {
+          "doctype": "Sales Invoice",
+          "name": "IV6910-0001",
+          "status": "Submitted"
+        }
+      ],
+      "ui": {
+        "source": "live",
+        "version": "9",
+        "actors": [
+          {
+            "id": "demo-shop",
+            "department": "shop",
+            "phase": "idle"
+          },
+          {
+            "id": "demo-warehouse",
+            "department": "shop",
+            "phase": "idle"
+          },
+          {
+            "id": "demo-bank",
+            "department": "bank",
+            "phase": "working"
+          },
+          {
+            "id": "demo-assistant",
+            "department": "shop",
+            "phase": "idle"
+          }
+        ],
+        "trips": [],
+        "documents": "2",
+        "working": "1"
+      }
+    },
+    {
+      "observed_at": "2026-10-12T10:49:04.204Z",
+      "stage": "payment-review",
+      "phase": "working",
+      "stage_started_at": "2026-10-12T10:49:03.2443262Z",
+      "stage_duration_ms": 12000,
+      "actors": [
+        {
+          "id": "demo-shop",
+          "kind": "human",
+          "department": "shop",
+          "activity": "idle"
+        },
+        {
+          "id": "demo-warehouse",
+          "kind": "human",
+          "department": "shop",
+          "activity": "idle"
+        },
+        {
+          "id": "demo-bank",
+          "kind": "human",
+          "department": "bank",
+          "from_department": "bank",
+          "activity": "working",
+          "task_ref": {
+            "doctype": "Payment Entry",
+            "name": "RC6910-0001"
+          }
+        },
+        {
+          "id": "demo-assistant",
+          "kind": "agent",
+          "department": "shop",
+          "activity": "idle"
+        }
+      ],
+      "documents": [
+        {
+          "doctype": "Sales Order",
+          "name": "SO6910-0001",
+          "status": "Submitted"
+        },
+        {
+          "doctype": "Delivery Note",
+          "name": "DN6910-0001",
+          "status": "Submitted"
+        },
+        {
+          "doctype": "Sales Invoice",
+          "name": "IV6910-0001",
+          "status": "Submitted"
+        },
+        {
+          "doctype": "Payment Entry",
+          "name": "RC6910-0001",
+          "status": "Draft"
+        }
+      ],
+      "ui": {
+        "source": "live",
+        "version": "10",
+        "actors": [
+          {
+            "id": "demo-shop",
+            "department": "shop",
+            "phase": "idle"
+          },
+          {
+            "id": "demo-warehouse",
+            "department": "shop",
+            "phase": "idle"
+          },
+          {
+            "id": "demo-bank",
+            "department": "bank",
+            "phase": "working"
+          },
+          {
+            "id": "demo-assistant",
+            "department": "shop",
+            "phase": "idle"
+          }
+        ],
+        "trips": [],
+        "documents": "3",
+        "working": "1"
+      }
+    },
+    {
+      "observed_at": "2026-10-12T10:49:16.332Z",
+      "stage": "round-completed",
+      "phase": "idle",
+      "stage_started_at": "2026-10-12T10:49:15.4786618Z",
+      "stage_duration_ms": 12000,
+      "actors": [
+        {
+          "id": "demo-shop",
+          "kind": "human",
+          "department": "shop",
+          "activity": "idle"
+        },
+        {
+          "id": "demo-warehouse",
+          "kind": "human",
+          "department": "shop",
+          "activity": "idle"
+        },
+        {
+          "id": "demo-bank",
+          "kind": "human",
+          "department": "bank",
+          "activity": "idle"
+        },
+        {
+          "id": "demo-assistant",
+          "kind": "agent",
+          "department": "shop",
+          "activity": "idle"
+        }
+      ],
+      "documents": [
+        {
+          "doctype": "Sales Order",
+          "name": "SO6910-0001",
+          "status": "Submitted"
+        },
+        {
+          "doctype": "Delivery Note",
+          "name": "DN6910-0001",
+          "status": "Submitted"
+        },
+        {
+          "doctype": "Sales Invoice",
+          "name": "IV6910-0001",
+          "status": "Submitted"
+        },
+        {
+          "doctype": "Payment Entry",
+          "name": "RC6910-0001",
+          "status": "Submitted"
+        }
+      ],
+      "ui": {
+        "source": "live",
+        "version": "11",
+        "actors": [
+          {
+            "id": "demo-shop",
+            "department": "shop",
+            "phase": "idle"
+          },
+          {
+            "id": "demo-warehouse",
+            "department": "shop",
+            "phase": "idle"
+          },
+          {
+            "id": "demo-bank",
+            "department": "bank",
+            "phase": "working"
+          },
+          {
+            "id": "demo-assistant",
+            "department": "shop",
+            "phase": "idle"
+          }
+        ],
+        "trips": [],
+        "documents": "4",
+        "working": "1"
+      }
+    },
+    {
+      "observed_at": "2026-10-12T10:49:17.343Z",
+      "stage": "round-completed",
+      "phase": "idle",
+      "stage_started_at": "2026-10-12T10:49:15.4786618Z",
+      "stage_duration_ms": 12000,
+      "actors": [
+        {
+          "id": "demo-shop",
+          "kind": "human",
+          "department": "shop",
+          "activity": "idle"
+        },
+        {
+          "id": "demo-warehouse",
+          "kind": "human",
+          "department": "shop",
+          "activity": "idle"
+        },
+        {
+          "id": "demo-bank",
+          "kind": "human",
+          "department": "bank",
+          "activity": "idle"
+        },
+        {
+          "id": "demo-assistant",
+          "kind": "agent",
+          "department": "shop",
+          "activity": "idle"
+        }
+      ],
+      "documents": [
+        {
+          "doctype": "Sales Order",
+          "name": "SO6910-0001",
+          "status": "Submitted"
+        },
+        {
+          "doctype": "Delivery Note",
+          "name": "DN6910-0001",
+          "status": "Submitted"
+        },
+        {
+          "doctype": "Sales Invoice",
+          "name": "IV6910-0001",
+          "status": "Submitted"
+        },
+        {
+          "doctype": "Payment Entry",
+          "name": "RC6910-0001",
+          "status": "Submitted"
+        }
+      ],
+      "ui": {
+        "source": "live",
+        "version": "11",
+        "actors": [
+          {
+            "id": "demo-shop",
+            "department": "shop",
+            "phase": "idle"
+          },
+          {
+            "id": "demo-warehouse",
+            "department": "shop",
+            "phase": "idle"
+          },
+          {
+            "id": "demo-bank",
+            "department": "bank",
+            "phase": "idle"
+          },
+          {
+            "id": "demo-assistant",
+            "department": "shop",
+            "phase": "idle"
+          }
+        ],
+        "trips": [],
+        "documents": "4",
+        "working": "0"
+      }
+    },
+    {
+      "observed_at": "2026-10-12T10:49:27.485Z",
+      "stage": "return-to-hq",
+      "phase": "travelling",
+      "stage_started_at": "2026-10-12T10:49:27.4787171Z",
+      "stage_duration_ms": 30896,
+      "actors": [
+        {
+          "id": "demo-shop",
+          "kind": "human",
+          "department": "hq",
+          "from_department": "shop",
+          "activity": "travelling",
+          "travel": {
+            "started_at": "2026-10-12T10:49:43.0307171Z",
+            "duration_ms": 7672
+          }
+        },
+        {
+          "id": "demo-warehouse",
+          "kind": "human",
+          "department": "hq",
+          "from_department": "shop",
+          "activity": "travelling",
+          "travel": {
+            "started_at": "2026-10-12T10:49:50.7027171Z",
+            "duration_ms": 7672
+          }
+        },
+        {
+          "id": "demo-bank",
+          "kind": "human",
+          "department": "hq",
+          "from_department": "bank",
+          "activity": "travelling",
+          "travel": {
+            "started_at": "2026-10-12T10:49:37.0357171Z",
+            "duration_ms": 5995
+          }
+        },
+        {
+          "id": "demo-assistant",
+          "kind": "agent",
+          "department": "it",
+          "from_department": "shop",
+          "activity": "travelling",
+          "travel": {
+            "started_at": "2026-10-12T10:49:27.4787171Z",
+            "duration_ms": 9557
+          }
+        }
+      ],
+      "documents": [
+        {
+          "doctype": "Sales Order",
+          "name": "SO6910-0001",
+          "status": "Submitted"
+        },
+        {
+          "doctype": "Delivery Note",
+          "name": "DN6910-0001",
+          "status": "Submitted"
+        },
+        {
+          "doctype": "Sales Invoice",
+          "name": "IV6910-0001",
+          "status": "Submitted"
+        },
+        {
+          "doctype": "Payment Entry",
+          "name": "RC6910-0001",
+          "status": "Submitted"
+        }
+      ],
+      "ui": {
+        "source": "live",
+        "version": "11",
+        "actors": [
+          {
+            "id": "demo-shop",
+            "department": "shop",
+            "phase": "idle"
+          },
+          {
+            "id": "demo-warehouse",
+            "department": "shop",
+            "phase": "idle"
+          },
+          {
+            "id": "demo-bank",
+            "department": "bank",
+            "phase": "idle"
+          },
+          {
+            "id": "demo-assistant",
+            "department": "shop",
+            "phase": "idle"
+          }
+        ],
+        "trips": [],
+        "documents": "4",
+        "working": "0"
+      }
+    },
+    {
+      "observed_at": "2026-10-12T10:49:28.495Z",
+      "stage": "return-to-hq",
+      "phase": "travelling",
+      "stage_started_at": "2026-10-12T10:49:27.4787171Z",
+      "stage_duration_ms": 30896,
+      "actors": [
+        {
+          "id": "demo-shop",
+          "kind": "human",
+          "department": "hq",
+          "from_department": "shop",
+          "activity": "travelling",
+          "travel": {
+            "started_at": "2026-10-12T10:49:43.0307171Z",
+            "duration_ms": 7672
+          }
+        },
+        {
+          "id": "demo-warehouse",
+          "kind": "human",
+          "department": "hq",
+          "from_department": "shop",
+          "activity": "travelling",
+          "travel": {
+            "started_at": "2026-10-12T10:49:50.7027171Z",
+            "duration_ms": 7672
+          }
+        },
+        {
+          "id": "demo-bank",
+          "kind": "human",
+          "department": "hq",
+          "from_department": "bank",
+          "activity": "travelling",
+          "travel": {
+            "started_at": "2026-10-12T10:49:37.0357171Z",
+            "duration_ms": 5995
+          }
+        },
+        {
+          "id": "demo-assistant",
+          "kind": "agent",
+          "department": "it",
+          "from_department": "shop",
+          "activity": "travelling",
+          "travel": {
+            "started_at": "2026-10-12T10:49:27.4787171Z",
+            "duration_ms": 9557
+          }
+        }
+      ],
+      "documents": [
+        {
+          "doctype": "Sales Order",
+          "name": "SO6910-0001",
+          "status": "Submitted"
+        },
+        {
+          "doctype": "Delivery Note",
+          "name": "DN6910-0001",
+          "status": "Submitted"
+        },
+        {
+          "doctype": "Sales Invoice",
+          "name": "IV6910-0001",
+          "status": "Submitted"
+        },
+        {
+          "doctype": "Payment Entry",
+          "name": "RC6910-0001",
+          "status": "Submitted"
+        }
+      ],
+      "ui": {
+        "source": "live",
+        "version": "11",
+        "actors": [
+          {
+            "id": "demo-shop",
+            "department": "hq",
+            "phase": "queued"
+          },
+          {
+            "id": "demo-warehouse",
+            "department": "hq",
+            "phase": "queued"
+          },
+          {
+            "id": "demo-bank",
+            "department": "hq",
+            "phase": "queued"
+          },
+          {
+            "id": "demo-assistant",
+            "department": "it",
+            "phase": "travelling"
+          }
+        ],
+        "trips": [],
+        "documents": "4",
+        "working": "0"
+      }
+    },
+    {
+      "observed_at": "2026-10-12T10:49:32.544Z",
+      "stage": "return-to-hq",
+      "phase": "travelling",
+      "stage_started_at": "2026-10-12T10:49:27.4787171Z",
+      "stage_duration_ms": 30896,
+      "actors": [
+        {
+          "id": "demo-shop",
+          "kind": "human",
+          "department": "hq",
+          "from_department": "shop",
+          "activity": "travelling",
+          "travel": {
+            "started_at": "2026-10-12T10:49:43.0307171Z",
+            "duration_ms": 7672
+          }
+        },
+        {
+          "id": "demo-warehouse",
+          "kind": "human",
+          "department": "hq",
+          "from_department": "shop",
+          "activity": "travelling",
+          "travel": {
+            "started_at": "2026-10-12T10:49:50.7027171Z",
+            "duration_ms": 7672
+          }
+        },
+        {
+          "id": "demo-bank",
+          "kind": "human",
+          "department": "hq",
+          "from_department": "bank",
+          "activity": "travelling",
+          "travel": {
+            "started_at": "2026-10-12T10:49:37.0357171Z",
+            "duration_ms": 5995
+          }
+        },
+        {
+          "id": "demo-assistant",
+          "kind": "agent",
+          "department": "it",
+          "from_department": "shop",
+          "activity": "travelling",
+          "travel": {
+            "started_at": "2026-10-12T10:49:27.4787171Z",
+            "duration_ms": 9557
+          }
+        }
+      ],
+      "documents": [
+        {
+          "doctype": "Sales Order",
+          "name": "SO6910-0001",
+          "status": "Submitted"
+        },
+        {
+          "doctype": "Delivery Note",
+          "name": "DN6910-0001",
+          "status": "Submitted"
+        },
+        {
+          "doctype": "Sales Invoice",
+          "name": "IV6910-0001",
+          "status": "Submitted"
+        },
+        {
+          "doctype": "Payment Entry",
+          "name": "RC6910-0001",
+          "status": "Submitted"
+        }
+      ],
+      "ui": {
+        "source": "live",
+        "version": "12",
+        "actors": [
+          {
+            "id": "demo-shop",
+            "department": "hq",
+            "phase": "queued"
+          },
+          {
+            "id": "demo-warehouse",
+            "department": "hq",
+            "phase": "queued"
+          },
+          {
+            "id": "demo-bank",
+            "department": "hq",
+            "phase": "queued"
+          },
+          {
+            "id": "demo-assistant",
+            "department": "it",
+            "phase": "travelling"
+          }
+        ],
+        "trips": [],
+        "documents": "2",
+        "working": "0"
+      }
+    },
+    {
+      "observed_at": "2026-10-12T10:49:37.622Z",
+      "stage": "return-to-hq",
+      "phase": "travelling",
+      "stage_started_at": "2026-10-12T10:49:27.4787171Z",
+      "stage_duration_ms": 30896,
+      "actors": [
+        {
+          "id": "demo-shop",
+          "kind": "human",
+          "department": "hq",
+          "from_department": "shop",
+          "activity": "travelling",
+          "travel": {
+            "started_at": "2026-10-12T10:49:43.0307171Z",
+            "duration_ms": 7672
+          }
+        },
+        {
+          "id": "demo-warehouse",
+          "kind": "human",
+          "department": "hq",
+          "from_department": "shop",
+          "activity": "travelling",
+          "travel": {
+            "started_at": "2026-10-12T10:49:50.7027171Z",
+            "duration_ms": 7672
+          }
+        },
+        {
+          "id": "demo-bank",
+          "kind": "human",
+          "department": "hq",
+          "from_department": "bank",
+          "activity": "travelling",
+          "travel": {
+            "started_at": "2026-10-12T10:49:37.0357171Z",
+            "duration_ms": 5995
+          }
+        },
+        {
+          "id": "demo-assistant",
+          "kind": "agent",
+          "department": "it",
+          "from_department": "shop",
+          "activity": "travelling",
+          "travel": {
+            "started_at": "2026-10-12T10:49:27.4787171Z",
+            "duration_ms": 9557
+          }
+        }
+      ],
+      "documents": [
+        {
+          "doctype": "Sales Order",
+          "name": "SO6910-0001",
+          "status": "Submitted"
+        },
+        {
+          "doctype": "Delivery Note",
+          "name": "DN6910-0001",
+          "status": "Submitted"
+        },
+        {
+          "doctype": "Sales Invoice",
+          "name": "IV6910-0001",
+          "status": "Submitted"
+        },
+        {
+          "doctype": "Payment Entry",
+          "name": "RC6910-0001",
+          "status": "Submitted"
+        }
+      ],
+      "ui": {
+        "source": "live",
+        "version": "12",
+        "actors": [
+          {
+            "id": "demo-shop",
+            "department": "hq",
+            "phase": "queued"
+          },
+          {
+            "id": "demo-warehouse",
+            "department": "hq",
+            "phase": "queued"
+          },
+          {
+            "id": "demo-bank",
+            "department": "hq",
+            "phase": "travelling"
+          },
+          {
+            "id": "demo-assistant",
+            "department": "it",
+            "phase": "arrived"
+          }
+        ],
+        "trips": [],
+        "documents": "2",
+        "working": "0"
+      }
+    },
+    {
+      "observed_at": "2026-10-12T10:49:43.736Z",
+      "stage": "return-to-hq",
+      "phase": "travelling",
+      "stage_started_at": "2026-10-12T10:49:27.4787171Z",
+      "stage_duration_ms": 30896,
+      "actors": [
+        {
+          "id": "demo-shop",
+          "kind": "human",
+          "department": "hq",
+          "from_department": "shop",
+          "activity": "travelling",
+          "travel": {
+            "started_at": "2026-10-12T10:49:43.0307171Z",
+            "duration_ms": 7672
+          }
+        },
+        {
+          "id": "demo-warehouse",
+          "kind": "human",
+          "department": "hq",
+          "from_department": "shop",
+          "activity": "travelling",
+          "travel": {
+            "started_at": "2026-10-12T10:49:50.7027171Z",
+            "duration_ms": 7672
+          }
+        },
+        {
+          "id": "demo-bank",
+          "kind": "human",
+          "department": "hq",
+          "from_department": "bank",
+          "activity": "travelling",
+          "travel": {
+            "started_at": "2026-10-12T10:49:37.0357171Z",
+            "duration_ms": 5995
+          }
+        },
+        {
+          "id": "demo-assistant",
+          "kind": "agent",
+          "department": "it",
+          "from_department": "shop",
+          "activity": "travelling",
+          "travel": {
+            "started_at": "2026-10-12T10:49:27.4787171Z",
+            "duration_ms": 9557
+          }
+        }
+      ],
+      "documents": [
+        {
+          "doctype": "Sales Order",
+          "name": "SO6910-0001",
+          "status": "Submitted"
+        },
+        {
+          "doctype": "Delivery Note",
+          "name": "DN6910-0001",
+          "status": "Submitted"
+        },
+        {
+          "doctype": "Sales Invoice",
+          "name": "IV6910-0001",
+          "status": "Submitted"
+        },
+        {
+          "doctype": "Payment Entry",
+          "name": "RC6910-0001",
+          "status": "Submitted"
+        }
+      ],
+      "ui": {
+        "source": "live",
+        "version": "12",
+        "actors": [
+          {
+            "id": "demo-shop",
+            "department": "hq",
+            "phase": "travelling"
+          },
+          {
+            "id": "demo-warehouse",
+            "department": "hq",
+            "phase": "queued"
+          },
+          {
+            "id": "demo-bank",
+            "department": "hq",
+            "phase": "arrived"
+          },
+          {
+            "id": "demo-assistant",
+            "department": "it",
+            "phase": "arrived"
+          }
+        ],
+        "trips": [],
+        "documents": "2",
+        "working": "0"
+      }
+    },
+    {
+      "observed_at": "2026-10-12T10:49:50.813Z",
+      "stage": "return-to-hq",
+      "phase": "travelling",
+      "stage_started_at": "2026-10-12T10:49:27.4787171Z",
+      "stage_duration_ms": 30896,
+      "actors": [
+        {
+          "id": "demo-shop",
+          "kind": "human",
+          "department": "hq",
+          "from_department": "shop",
+          "activity": "travelling",
+          "travel": {
+            "started_at": "2026-10-12T10:49:43.0307171Z",
+            "duration_ms": 7672
+          }
+        },
+        {
+          "id": "demo-warehouse",
+          "kind": "human",
+          "department": "hq",
+          "from_department": "shop",
+          "activity": "travelling",
+          "travel": {
+            "started_at": "2026-10-12T10:49:50.7027171Z",
+            "duration_ms": 7672
+          }
+        },
+        {
+          "id": "demo-bank",
+          "kind": "human",
+          "department": "hq",
+          "from_department": "bank",
+          "activity": "travelling",
+          "travel": {
+            "started_at": "2026-10-12T10:49:37.0357171Z",
+            "duration_ms": 5995
+          }
+        },
+        {
+          "id": "demo-assistant",
+          "kind": "agent",
+          "department": "it",
+          "from_department": "shop",
+          "activity": "travelling",
+          "travel": {
+            "started_at": "2026-10-12T10:49:27.4787171Z",
+            "duration_ms": 9557
+          }
+        }
+      ],
+      "documents": [
+        {
+          "doctype": "Sales Order",
+          "name": "SO6910-0001",
+          "status": "Submitted"
+        },
+        {
+          "doctype": "Delivery Note",
+          "name": "DN6910-0001",
+          "status": "Submitted"
+        },
+        {
+          "doctype": "Sales Invoice",
+          "name": "IV6910-0001",
+          "status": "Submitted"
+        },
+        {
+          "doctype": "Payment Entry",
+          "name": "RC6910-0001",
+          "status": "Submitted"
+        }
+      ],
+      "ui": {
+        "source": "live",
+        "version": "12",
+        "actors": [
+          {
+            "id": "demo-shop",
+            "department": "hq",
+            "phase": "arrived"
+          },
+          {
+            "id": "demo-warehouse",
+            "department": "hq",
+            "phase": "travelling"
+          },
+          {
+            "id": "demo-bank",
+            "department": "hq",
+            "phase": "arrived"
+          },
+          {
+            "id": "demo-assistant",
+            "department": "it",
+            "phase": "arrived"
+          }
+        ],
+        "trips": [],
+        "documents": "2",
+        "working": "0"
+      }
+    },
+    {
+      "observed_at": "2026-10-12T10:49:58.918Z",
+      "stage": "completed",
+      "phase": "idle",
+      "stage_started_at": "2026-10-12T10:49:58.3752196Z",
+      "stage_duration_ms": 0,
+      "actors": [
+        {
+          "id": "demo-shop",
+          "kind": "human",
+          "department": "hq",
+          "activity": "idle"
+        },
+        {
+          "id": "demo-warehouse",
+          "kind": "human",
+          "department": "hq",
+          "activity": "idle"
+        },
+        {
+          "id": "demo-bank",
+          "kind": "human",
+          "department": "hq",
+          "activity": "idle"
+        },
+        {
+          "id": "demo-assistant",
+          "kind": "agent",
+          "department": "it",
+          "activity": "idle"
+        }
+      ],
+      "documents": [
+        {
+          "doctype": "Sales Order",
+          "name": "SO6910-0001",
+          "status": "Submitted"
+        },
+        {
+          "doctype": "Delivery Note",
+          "name": "DN6910-0001",
+          "status": "Submitted"
+        },
+        {
+          "doctype": "Sales Invoice",
+          "name": "IV6910-0001",
+          "status": "Submitted"
+        },
+        {
+          "doctype": "Payment Entry",
+          "name": "RC6910-0001",
+          "status": "Submitted"
+        }
+      ],
+      "ui": {
+        "source": "live",
+        "version": "12",
+        "actors": [
+          {
+            "id": "demo-shop",
+            "department": "hq",
+            "phase": "idle"
+          },
+          {
+            "id": "demo-warehouse",
+            "department": "hq",
+            "phase": "idle"
+          },
+          {
+            "id": "demo-bank",
+            "department": "hq",
+            "phase": "idle"
+          },
+          {
+            "id": "demo-assistant",
+            "department": "it",
+            "phase": "idle"
+          }
+        ],
+        "trips": [],
+        "documents": "2",
+        "working": "0"
+      }
+    }
+  ],
+  "dispatches": [
+    {
+      "id": "01M4QVMYKC49VJ6FECDBENZWW0",
+      "label": "DN6910-0001 · บันทึกส่งของ",
+      "first_seen_at": "2026-10-12T10:48:33.356Z"
+    }
+  ],
+  "invoice": {
+    "status": "Submitted",
+    "outstanding": "0.0",
+    "against_delivery_notes": ["DN6910-0001"]
+  },
+  "browserWrites": [],
+  "errors": [],
+  "scope": "One actual isolated test.localhost ERP round, installed desktop Chrome, local deterministic AI provider. Scene movement is presentation; API reads certify document status and outstanding."
+}

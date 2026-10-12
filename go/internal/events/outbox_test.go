@@ -115,6 +115,24 @@ func TestFormatBangkok(t *testing.T) {
 	}
 }
 
+func TestEmitCannotAllocateERPSubjectSequenceForGoEvent(t *testing.T) {
+	pool := storetest.NewPool(t)
+	v, err := NewValidator()
+	require.NoError(t, err)
+	for _, dt := range []string{"Sales Order", "Delivery Note", "Sales Invoice", "Payment Entry", "Town Avatar"} {
+		tx, err := pool.Begin(t.Context())
+		require.NoError(t, err)
+		in := systemErrorInput("DOC-1", map[string]string{"code": "EVENT_INVALID", "message": "Rejected."})
+		in.Subject.DocType = dt
+		_, err = Emit(t.Context(), tx, v, testNow, in)
+		require.ErrorIs(t, err, ErrERPOwnedSubject)
+		require.NoError(t, tx.Commit(t.Context()))
+	}
+	var n int
+	require.NoError(t, pool.QueryRow(t.Context(), "SELECT count(*) FROM town_subject_seq").Scan(&n))
+	assert.Zero(t, n)
+}
+
 func TestEmitAllocatesSeqULIDAndBangkokTime(t *testing.T) {
 	pool := storetest.NewPool(t)
 	v := newValidator(t)

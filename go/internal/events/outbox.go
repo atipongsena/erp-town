@@ -52,7 +52,8 @@ func SystemActor() Actor { return Actor{Kind: "system", ID: "system.town"} }
 var (
 	// ErrERPOwnedType is returned for erp.* and workflow.* events: ERPNext owns those
 	// subjects' seq, so Go never emits them. Nothing is stored.
-	ErrERPOwnedType = errors.New("events: erp.* and workflow.* events are emitted by ERPNext only")
+	ErrERPOwnedType    = errors.New("events: erp.* and workflow.* events are emitted by ERPNext only")
+	ErrERPOwnedSubject = errors.New("events: subject is not owned by the durable Go outbox")
 	// ErrEventInvalid is returned when the event does not match the contract. The event
 	// is stored as an Invalid row (never published) and reported as system.error
 	// EVENT_INVALID; Emit returns the Invalid row's id along with this error.
@@ -88,6 +89,13 @@ type EmitInput struct {
 func Emit(ctx context.Context, tx pgx.Tx, v *Validator, now time.Time, in EmitInput) (string, error) {
 	if strings.HasPrefix(in.Type, "erp.") || strings.HasPrefix(in.Type, "workflow.") {
 		return "", fmt.Errorf("%w: %s", ErrERPOwnedType, in.Type)
+	}
+	// Ownership is enforced before allocating a sequence, even for system.error
+	// or an invalid event. Ephemeral avatars must never enter durable history.
+	switch in.Subject.DocType {
+	case "", OutboxDocType, "Town Agent Run", "Town Agent", "Town Dev Task":
+	default:
+		return "", ErrERPOwnedSubject
 	}
 	id, reason, err := store(ctx, tx, v, now, in)
 	if err != nil {

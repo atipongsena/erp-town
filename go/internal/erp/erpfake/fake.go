@@ -309,7 +309,8 @@ func (f *Fake) CreateSalesInvoice(_ context.Context, as erp.Principal, dn erp.Do
 	name := f.nextName(erp.DocSalesInvoice)
 	ref := erp.DocRef{DocType: erp.DocSalesInvoice, Name: name}
 	f.si[name] = &salesInvoice{deliveryNote: dn.Name, SalesInvoice: erp.SalesInvoice{
-		Ref: ref, Company: src.Company, Customer: src.Customer,
+		AgainstDeliveryNotes: []string{dn.Name},
+		Ref:                  ref, Company: src.Company, Customer: src.Customer,
 		PostingDate: posting, DueDate: posting.AddDays(30),
 		Lines: cloneLines(src.Lines), NetTotal: net, TaxTotal: tax, GrandTotal: grand, RoundedTotal: rounded, Outstanding: rounded,
 		Status: erp.DocDraft,
@@ -328,6 +329,7 @@ func (f *Fake) GetSalesInvoice(_ context.Context, as erp.Principal, name string)
 		return erp.SalesInvoice{}, notFound(erp.DocSalesInvoice, name)
 	}
 	out := d.SalesInvoice
+	out.AgainstDeliveryNotes = slices.Clone(out.AgainstDeliveryNotes)
 	out.Lines = cloneLines(out.Lines)
 	return out, nil
 }

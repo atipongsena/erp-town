@@ -62,7 +62,7 @@ describe('coverage', () => {
     expect(new Set(files)).toEqual(new Set(EVENT_TYPES))
   })
 
-  it('exposes the slice-1 event types', () => {
+  it('exposes the ERP and approved Go-owned AI event types', () => {
     expect([...EVENT_TYPES].sort()).toEqual(
       [
         'erp.sales_order.submitted',
@@ -78,6 +78,15 @@ describe('coverage', () => {
         'workflow.approval.requested',
         'workflow.approval.decided',
         'system.error',
+        'agent.run.started',
+        'agent.run.completed',
+        'agent.run.needs_human',
+        'agent.run.failed',
+        'agent.progress.updated',
+        'dev.task.started',
+        'dev.task.updated',
+        'dev.task.completed',
+        'dev.task.failed',
       ].sort(),
     )
   })

@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://erp-town.local/schema/events/agent.run.needs_human.json",
+  "title": "agent.run.needs_human data",
+  "description": "Coarse AI-only metadata; no prompts, human activity or ERP financial facts.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["agent_key", "state", "code"],
+  "properties": {
+    "agent_key": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_.:-]{1,128}$"
+    },
+    "state": {
+      "enum": ["needs_human"]
+    },
+    "code": {
+      "enum": [
+        "OK",
+        "TURN_LIMIT",
+        "TOOL_LIMIT",
+        "TOKEN_LIMIT",
+        "PAYLOAD_LIMIT",
+        "INVALID_RESPONSE",
+        "UNKNOWN_TOOL",
+        "CALL_CONFLICT",
+        "TOOL_UNCERTAIN",
+        "HUMAN_REQUIRED",
+        "AUDIT_UNAVAILABLE",
+        "PROVIDER_UNAVAILABLE",
+        "WORKER_LOST",
+        "AUTHORITY_REVOKED",
+        "INVALID_RUN"
+      ]
+    }
+  }
+}

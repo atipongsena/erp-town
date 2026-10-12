@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://erp-town.local/schema/events/agent.run.started.json",
+  "title": "agent.run.started data",
+  "description": "Coarse AI-only metadata; no prompts, human activity or ERP financial facts.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["agent_key", "state", "code"],
+  "dependentRequired": {
+    "department": ["activity"],
+    "activity": ["department"]
+  },
+  "allOf": [
+    {
+      "if": { "required": ["department"] },
+      "then": { "properties": { "state": { "const": "running" } } }
+    }
+  ],
+  "properties": {
+    "department": {
+      "enum": ["shop", "warehouse", "bank"]
+    },
+    "activity": {
+      "enum": ["working", "idle"]
+    },
+    "agent_key": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_.:-]{1,128}$"
+    },
+    "state": {
+      "enum": ["queued", "running"]
+    },
+    "code": {
+      "enum": [
+        "OK",
+        "TURN_LIMIT",
+        "TOOL_LIMIT",
+        "TOKEN_LIMIT",
+        "PAYLOAD_LIMIT",
+        "INVALID_RESPONSE",
+        "UNKNOWN_TOOL",
+        "CALL_CONFLICT",
+        "TOOL_UNCERTAIN",
+        "HUMAN_REQUIRED",
+        "AUDIT_UNAVAILABLE",
+        "PROVIDER_UNAVAILABLE",
+        "WORKER_LOST",
+        "AUTHORITY_REVOKED",
+        "INVALID_RUN"
+      ]
+    }
+  }
+}

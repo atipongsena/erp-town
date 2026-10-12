@@ -47,6 +47,35 @@ func addWorldEvent(t *testing.T, rdb *redis.Client, stream string, e events.Enve
 	return id
 }
 
+func TestRestrictedReaderSkipsOtherCompaniesInRecoveryAndLiveDelivery(t *testing.T) {
+	pool := storetest.NewPool(t)
+	rdb, stream := eventstest.NewRedis(t)
+	service := NewService(t.Context())
+	defer service.Close()
+	outside := "Legacy Company Name"
+	e := fixture(t, "erp.sales_order.submitted")
+	e.Company = &outside
+	id := addWorldEvent(t, rdb, stream, e)
+	old, err := NewState(outside)
+	require.NoError(t, err)
+	require.NoError(t, NewSnapshotStore(pool).Save(t.Context(), Snapshot{State: old, StreamID: id, TakenAt: time.Now()}))
+	reader := &projectionReader{snapshot: erp.ProjectionSnapshot{Company: "ACME-TH", Facts: []erp.ProjectionFact{}, Sequences: []erp.ProjectionSequence{}}}
+	m, _ := platform.NewTestMetrics()
+	cfg := DefaultRuntimeConfig(stream)
+	cfg.AllowedCompanies = []string{"ACME-TH"}
+	runtime, err := NewRuntime(service, rdb, pool, m, reader, erp.Principal{}, cfg)
+	require.NoError(t, err)
+	require.NoError(t, runtime.Recover(t.Context()))
+	require.Equal(t, 0, reader.calls)
+	_, ok := runtime.Current(outside)
+	require.False(t, ok)
+	require.NoError(t, runtime.Handle(events.WithStreamID(t.Context(), id), nil, e))
+	require.Equal(t, 0, reader.calls)
+	require.ErrorIs(t, runtime.BeforeJoin(t.Context(), outside), erp.ErrForbidden)
+	require.NoError(t, runtime.BeforeJoin(t.Context(), "ACME-TH"))
+	require.Equal(t, 1, reader.calls)
+}
+
 func TestRuntimeReplaysEvenAlreadyConsumedEvents(t *testing.T) {
 	pool := storetest.NewPool(t)
 	rdb, stream := eventstest.NewRedis(t)

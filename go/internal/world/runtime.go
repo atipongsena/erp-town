@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"maps"
+	"slices"
 	"sync"
 	"time"
 
@@ -19,6 +20,9 @@ import (
 )
 
 type RuntimeConfig struct {
+	// Nil supports unscoped custom hosts. Ordinary hosts set the reader's actual
+	// ERP company codes, including an explicit empty list to deny every room.
+	AllowedCompanies                    []string
 	Consumer                            events.ConsumerConfig
 	SnapshotInterval, ReconcileInterval time.Duration
 }
@@ -61,7 +65,12 @@ func NewRuntime(service *Service, rdb *redis.Client, pool *pgxpool.Pool, metrics
 	if err != nil {
 		return nil, err
 	}
+	cfg.AllowedCompanies = slices.Clone(cfg.AllowedCompanies)
 	return &Runtime{service: service, rdb: rdb, pool: pool, metrics: metrics, projection: projection, as: as, cfg: cfg, projector: p, store: NewSnapshotStore(pool), states: map[string]companyCheckpoint{}, ready: make(chan struct{})}, nil
+}
+
+func (r *Runtime) allowsCompany(company string) bool {
+	return r.cfg.AllowedCompanies == nil || slices.Contains(r.cfg.AllowedCompanies, company)
 }
 
 func (r *Runtime) Current(company string) (State, bool) {
@@ -92,7 +101,7 @@ func (r *Runtime) Handle(ctx context.Context, _ pgx.Tx, e events.Envelope) error
 	if _, err := parseSnapshotStreamID(id); err != nil {
 		return err
 	}
-	if e.Company == nil {
+	if e.Company == nil || !r.allowsCompany(*e.Company) {
 		return nil
 	}
 	r.mu.Lock()

@@ -24,9 +24,10 @@ var (
 
 type meOutput struct {
 	Body struct {
-		User      string   `json:"user" doc:"ERP user id"`
-		Roles     []string `json:"roles"`
-		Companies []string `json:"companies" doc:"Abbr codes of the companies the user can read"`
+		User         string   `json:"user" doc:"ERP user id"`
+		Roles        []string `json:"roles"`
+		Companies    []string `json:"companies" doc:"Abbr codes of the companies the user can read"`
+		WorldEnabled *bool    `json:"world_enabled,omitempty" doc:"Whether this host enables the world socket"`
 	}
 }
 
@@ -54,6 +55,7 @@ func (g *gateway) registerIdentity(api huma.API) {
 		out.Body.User = p.ID
 		out.Body.Roles = nonNil(p.Roles)
 		out.Body.Companies = nonNil(p.Companies)
+		out.Body.WorldEnabled = g.worldEnabled
 		return out, nil
 	})
 

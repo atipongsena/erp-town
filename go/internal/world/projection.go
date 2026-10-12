@@ -89,6 +89,12 @@ func entityKey(e events.Envelope) (EntityKey, error) {
 		key.Kind, key.Scope = KindStock, data.Warehouse
 	case "system.error":
 		key.Kind = KindError
+	case "agent.run.started", "agent.run.completed", "agent.run.needs_human", "agent.run.failed":
+		key.Kind = KindAgentRun
+	case "agent.progress.updated":
+		key.Kind = KindAgentProgress
+	case "dev.task.started", "dev.task.updated", "dev.task.completed", "dev.task.failed":
+		key.Kind = KindDevTask
 	default:
 		return EntityKey{}, fmt.Errorf("world: unsupported event type %q", e.Type)
 	}

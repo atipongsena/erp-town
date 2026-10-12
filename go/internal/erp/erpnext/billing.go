@@ -2,6 +2,7 @@ package erpnext
 
 import (
 	"context"
+	"slices"
 	"time"
 
 	"github.com/atipongsena/erp-town/go/internal/erp"
@@ -44,21 +45,25 @@ func shiftDueDate(draft rawDoc, posting erp.Date) error {
 
 func dateTime(d erp.Date) time.Time { return time.Date(d.Year, d.Month, d.Day, 0, 0, 0, 0, time.UTC) }
 
+type invoiceLineRow struct {
+	lineRow
+	DeliveryNote string `json:"delivery_note"`
+}
 type salesInvoiceDoc struct {
-	Name                string      `json:"name"`
-	DocStatus           int         `json:"docstatus"`
-	Company             string      `json:"company"`
-	Customer            string      `json:"customer"`
-	PostingDate         erp.Date    `json:"posting_date"`
-	DueDate             erp.Date    `json:"due_date"`
-	IsReturn            int         `json:"is_return"`
-	NetTotal            erp.Decimal `json:"net_total"`
-	TaxTotal            erp.Decimal `json:"total_taxes_and_charges"`
-	GrandTotal          erp.Decimal `json:"grand_total"`
-	RoundedTotal        erp.Decimal `json:"rounded_total"`
-	DisableRoundedTotal int         `json:"disable_rounded_total"`
-	Outstanding         erp.Decimal `json:"outstanding_amount"`
-	Items               []lineRow   `json:"items"`
+	Name                string           `json:"name"`
+	DocStatus           int              `json:"docstatus"`
+	Company             string           `json:"company"`
+	Customer            string           `json:"customer"`
+	PostingDate         erp.Date         `json:"posting_date"`
+	DueDate             erp.Date         `json:"due_date"`
+	IsReturn            int              `json:"is_return"`
+	NetTotal            erp.Decimal      `json:"net_total"`
+	TaxTotal            erp.Decimal      `json:"total_taxes_and_charges"`
+	GrandTotal          erp.Decimal      `json:"grand_total"`
+	RoundedTotal        erp.Decimal      `json:"rounded_total"`
+	DisableRoundedTotal int              `json:"disable_rounded_total"`
+	Outstanding         erp.Decimal      `json:"outstanding_amount"`
+	Items               []invoiceLineRow `json:"items"`
 }
 
 func (a *Adapter) GetSalesInvoice(ctx context.Context, as erp.Principal, name string) (erp.SalesInvoice, error) {
@@ -74,20 +79,29 @@ func (a *Adapter) GetSalesInvoice(ctx context.Context, as erp.Principal, name st
 	if err != nil {
 		return erp.SalesInvoice{}, err
 	}
+	rows := make([]lineRow, 0, len(d.Items))
+	refs := []string{}
+	for _, row := range d.Items {
+		rows = append(rows, row.lineRow)
+		if row.DeliveryNote != "" && !slices.Contains(refs, row.DeliveryNote) {
+			refs = append(refs, row.DeliveryNote)
+		}
+	}
 	return erp.SalesInvoice{
-		Ref:          erp.DocRef{DocType: erp.DocSalesInvoice, Name: d.Name},
-		Company:      company,
-		Customer:     d.Customer,
-		PostingDate:  d.PostingDate,
-		DueDate:      d.DueDate,
-		Lines:        mapLines(d.Items),
-		NetTotal:     d.NetTotal,
-		TaxTotal:     d.TaxTotal,
-		GrandTotal:   d.GrandTotal,
-		RoundedTotal: payable(d.GrandTotal, d.RoundedTotal, d.DisableRoundedTotal),
-		Outstanding:  d.Outstanding,
-		Status:       status,
-		IsReturn:     d.IsReturn != 0,
+		AgainstDeliveryNotes: refs,
+		Ref:                  erp.DocRef{DocType: erp.DocSalesInvoice, Name: d.Name},
+		Company:              company,
+		Customer:             d.Customer,
+		PostingDate:          d.PostingDate,
+		DueDate:              d.DueDate,
+		Lines:                mapLines(rows),
+		NetTotal:             d.NetTotal,
+		TaxTotal:             d.TaxTotal,
+		GrandTotal:           d.GrandTotal,
+		RoundedTotal:         payable(d.GrandTotal, d.RoundedTotal, d.DisableRoundedTotal),
+		Outstanding:          d.Outstanding,
+		Status:               status,
+		IsReturn:             d.IsReturn != 0,
 	}, nil
 }
 

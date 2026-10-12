@@ -34,6 +34,41 @@ func TestLoadConfigDefaults(t *testing.T) {
 	assert.True(t, c.Roles.Has(RoleGateway) && c.Roles.Has(RoleOutbox))
 	assert.True(t, c.Roles.Has(RoleWorld))
 	assert.Equal(t, "world-test", c.WorldAPIKey)
+	assert.False(t, c.ExperienceEnabled)
+}
+
+func TestExperienceRequiresGatewayAndExplicitBoolean(t *testing.T) {
+	for _, tc := range []struct {
+		enabled, roles string
+		valid          bool
+	}{
+		{"true", "gateway", true},
+		{"false", "outbox", true},
+		{"true", "world", false},
+		{"yes", "gateway", false},
+	} {
+		t.Run(tc.enabled+"/"+tc.roles, func(t *testing.T) {
+			cfg, err := LoadConfig(func(k string) string {
+				switch k {
+				case "TOWN_EXPERIENCE_ENABLED":
+					return tc.enabled
+				case "TOWN_ROLES":
+					return tc.roles
+				case "TOWN_JWT_PRIVATE_KEY":
+					return validKey
+				case "TOWN_WORLD_API_KEY", "TOWN_WORLD_API_SECRET":
+					return "fixture"
+				}
+				return ""
+			})
+			if !tc.valid {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tc.enabled == "true", cfg.ExperienceEnabled)
+		})
+	}
 }
 
 func TestLoadConfigOverrides(t *testing.T) {

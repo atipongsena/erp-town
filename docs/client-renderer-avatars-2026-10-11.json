@@ -1,0 +1,80 @@
+{
+  "recordedAt": "2026-10-11T06:16:50.839Z",
+  "device": {
+    "renderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 3080 Ti (0x00002208) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "vendor": "Google Inc. (NVIDIA)",
+    "canvas": {
+      "width": 1090,
+      "height": 820
+    },
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.8010.12 Safari/537.36",
+    "reducedMotion": false
+  },
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "load": "Two consented human assets and one running AI asset; local world/presence fixtures, no real ERP transport",
+  "method": "Actual WebGL draw calls grouped by requestAnimationFrame timestamps during six roof/camera transitions. Includes shadow passes; excludes deliberate idle gaps. Measures active frame pacing, not GPU timer-query duration or a connected/pilot load.",
+  "transitions": [
+    {
+      "target": "Shop",
+      "frames": 66,
+      "medianFrameMs": 16.699999999999818,
+      "p95FrameMs": 16.799999999999727,
+      "maxDrawCalls": 294,
+      "maxTriangles": 422208
+    },
+    {
+      "target": "Whole town",
+      "frames": 66,
+      "medianFrameMs": 16.699999999999818,
+      "p95FrameMs": 16.800000000000182,
+      "maxDrawCalls": 293,
+      "maxTriangles": 422080
+    },
+    {
+      "target": "Warehouse",
+      "frames": 67,
+      "medianFrameMs": 16.699999999999818,
+      "p95FrameMs": 16.700000000000728,
+      "maxDrawCalls": 294,
+      "maxTriangles": 422208
+    },
+    {
+      "target": "Whole town",
+      "frames": 67,
+      "medianFrameMs": 16.69999999999891,
+      "p95FrameMs": 16.799999999999272,
+      "maxDrawCalls": 293,
+      "maxTriangles": 422080
+    },
+    {
+      "target": "Bank",
+      "frames": 65,
+      "medianFrameMs": 16.69999999999891,
+      "p95FrameMs": 16.799999999999272,
+      "maxDrawCalls": 294,
+      "maxTriangles": 422208
+    },
+    {
+      "target": "Whole town",
+      "frames": 65,
+      "medianFrameMs": 16.69999999999891,
+      "p95FrameMs": 16.799999999999272,
+      "maxDrawCalls": 293,
+      "maxTriangles": 422080
+    }
+  ],
+  "limits": {
+    "maxDrawCalls": 300,
+    "maxTriangles": 750000
+  },
+  "withinRenderBudget": true,
+  "remaining": [
+    "No human art acceptance",
+    "No mobile hardware evidence",
+    "No real connected-world hardware load",
+    "No GPU timer queries"
+  ]
+}

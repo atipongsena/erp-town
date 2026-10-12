@@ -8,6 +8,7 @@ import (
 
 	"github.com/redis/go-redis/v9"
 
+	"github.com/atipongsena/erp-town/go/internal/erp"
 	"github.com/atipongsena/erp-town/go/internal/events"
 )
 
@@ -72,6 +73,9 @@ func (r *Runtime) recoverPrefix(ctx context.Context, snapshots []Snapshot, tail 
 	anchors := []string{}
 	for _, snapshot := range snapshots {
 		company := snapshot.State.Company()
+		if !r.allowsCompany(company) {
+			continue
+		}
 		if maxStreamID(snapshot.StreamID, tail) != tail {
 			return errors.New("world: stream cursor regressed; refusing to discard checkpoint history")
 		}
@@ -94,7 +98,7 @@ func (r *Runtime) recoverPrefix(ctx context.Context, snapshots []Snapshot, tail 
 		replayAfter[company] = after
 	}
 	err := r.walk(ctx, "0-0", tail, func(id string, e events.Envelope) error {
-		if e.Company == nil {
+		if e.Company == nil || !r.allowsCompany(*e.Company) {
 			return nil
 		}
 		company := *e.Company
@@ -193,6 +197,9 @@ func (r *Runtime) walk(ctx context.Context, after, tail string, apply func(strin
 // ensureCompany runs only under the runtime mutex and captures a company-specific
 // raw prefix. Other companies' checkpoints cannot advance to this lazy boundary.
 func (r *Runtime) ensureCompany(ctx context.Context, company string) error {
+	if !r.allowsCompany(company) {
+		return erp.ErrForbidden
+	}
 	if _, exists := r.states[company]; exists {
 		return nil
 	}

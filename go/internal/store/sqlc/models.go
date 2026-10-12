@@ -8,6 +8,61 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+type AgentPolicyWindow struct {
+	AgentKey   string
+	Company    string
+	AcceptedAt []pgtype.Timestamptz
+	UpdatedAt  pgtype.Timestamptz
+}
+
+type AgentProgress struct {
+	AgentKey       string
+	Company        string
+	SuccessfulRuns int64
+	UpdatedAt      pgtype.Timestamptz
+}
+
+type AgentRun struct {
+	ID         string
+	AgentKey   string
+	Company    string
+	Delegator  string
+	Status     string
+	Reason     string
+	CallCount  int32
+	CreatedAt  pgtype.Timestamptz
+	LeaseUntil pgtype.Timestamptz
+	FinishedAt pgtype.Timestamptz
+}
+
+type AgentRunAudit struct {
+	ID        int64
+	RunID     string
+	CallID    string
+	Tool      string
+	Phase     string
+	CreatedAt pgtype.Timestamptz
+}
+
+type AgentToolCall struct {
+	RunID      string
+	CallID     string
+	Tool       string
+	IntentHash string
+	IsWrite    bool
+	Status     string
+	Result     []byte
+	CreatedAt  pgtype.Timestamptz
+	FinishedAt pgtype.Timestamptz
+}
+
+type AvatarPreference struct {
+	UserID     string
+	Company    string
+	Consent    bool
+	Appearance string
+}
+
 type ConsumedEvent struct {
 	ConsumerGroup string
 	EventID       string

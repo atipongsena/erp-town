@@ -44,15 +44,20 @@ type ctxKey int
 const principalKey ctxKey = 0
 
 type gateway struct {
-	port erp.Port
-	jwt  *auth.JWTIssuer
+	port         erp.Port
+	jwt          *auth.JWTIssuer
+	worldEnabled *bool
 }
+
+// HostCapabilities describes configured services; it grants no ERP authority.
+// Omission preserves compatibility with hosts that register the world separately.
+type HostCapabilities struct{ WorldEnabled bool }
 
 // New registers the API on mux: the operations under /town/api/, the OpenAPI
 // 3.1 document at GET /town/api/openapi.json and the reference page at GET
 // /town/api/docs. Every operation needs a Frappe session (cookie sid);
 // POST/PUT/PATCH/DELETE also need header X-Town-Request: 1.
-func New(mux *http.ServeMux, port erp.Port, authn *auth.Authenticator, jwt *auth.JWTIssuer) huma.API {
+func New(mux *http.ServeMux, port erp.Port, authn *auth.Authenticator, jwt *auth.JWTIssuer, capabilities ...HostCapabilities) huma.API {
 	humaOnce.Do(configureHuma)
 
 	cfg := huma.DefaultConfig(apiTitle, apiVersion)
@@ -77,8 +82,12 @@ func New(mux *http.ServeMux, port erp.Port, authn *auth.Authenticator, jwt *auth
 	api.UseMiddleware(withRequestID, withAccessLog, withDeadline, requireTownHeader, authenticate(authn))
 
 	g := &gateway{port: port, jwt: jwt}
+	if len(capabilities) > 0 {
+		g.worldEnabled = &capabilities[0].WorldEnabled
+	}
 	g.registerIdentity(api)
 	g.registerSales(api)
+	g.registerFulfillment(api)
 	return api
 }
 

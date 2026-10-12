@@ -1,6 +1,17 @@
 import { Ajv2020, type ErrorObject, type ValidateFunction } from 'ajv/dist/2020.js'
 import addFormats from 'ajv-formats'
 import envelope from '../schema/envelope.json' with { type: 'json' }
+import agentProgressUpdated from '../schema/events/agent.progress.updated.json' with {
+  type: 'json',
+}
+import agentRunCompleted from '../schema/events/agent.run.completed.json' with { type: 'json' }
+import agentRunFailed from '../schema/events/agent.run.failed.json' with { type: 'json' }
+import agentRunNeedsHuman from '../schema/events/agent.run.needs_human.json' with { type: 'json' }
+import agentRunStarted from '../schema/events/agent.run.started.json' with { type: 'json' }
+import devTaskCompleted from '../schema/events/dev.task.completed.json' with { type: 'json' }
+import devTaskFailed from '../schema/events/dev.task.failed.json' with { type: 'json' }
+import devTaskStarted from '../schema/events/dev.task.started.json' with { type: 'json' }
+import devTaskUpdated from '../schema/events/dev.task.updated.json' with { type: 'json' }
 import deliveryNoteCancelled from '../schema/events/erp.delivery_note.cancelled.json' with {
   type: 'json',
 }
@@ -55,6 +66,15 @@ export const SCHEMAS: readonly object[] = [
   approvalRequested,
   approvalDecided,
   systemError,
+  agentRunStarted,
+  agentRunCompleted,
+  agentRunNeedsHuman,
+  agentRunFailed,
+  agentProgressUpdated,
+  devTaskStarted,
+  devTaskUpdated,
+  devTaskCompleted,
+  devTaskFailed,
 ]
 
 export type ValidationResult = { valid: true } | { valid: false; errors: string[] }

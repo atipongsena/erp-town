@@ -65,6 +65,7 @@ type DeliveryNote struct {
 }
 
 type SalesInvoice struct {
+	AgainstDeliveryNotes                        []string
 	Ref                                         DocRef
 	Company, Customer                           string
 	PostingDate, DueDate                        Date

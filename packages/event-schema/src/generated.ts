@@ -14,7 +14,16 @@ export const EVENT_TYPES = [
   'erp.stock.below_reorder',
   'workflow.approval.requested',
   'workflow.approval.decided',
-  'system.error'
+  'system.error',
+  'agent.run.started',
+  'agent.run.completed',
+  'agent.run.needs_human',
+  'agent.run.failed',
+  'agent.progress.updated',
+  'dev.task.started',
+  'dev.task.updated',
+  'dev.task.completed',
+  'dev.task.failed'
 ] as const
 
 export type EventType = (typeof EVENT_TYPES)[number]
@@ -268,6 +277,148 @@ export interface SystemErrorData {
   message: string;
 }
 
+/**
+ * Coarse AI-only metadata; no prompts, human activity or ERP financial facts.
+ */
+export interface AgentRunStartedData {
+  department?: "shop" | "warehouse" | "bank";
+  activity?: "working" | "idle";
+  agent_key: string;
+  state: "queued" | "running";
+  code:
+    | "OK"
+    | "TURN_LIMIT"
+    | "TOOL_LIMIT"
+    | "TOKEN_LIMIT"
+    | "PAYLOAD_LIMIT"
+    | "INVALID_RESPONSE"
+    | "UNKNOWN_TOOL"
+    | "CALL_CONFLICT"
+    | "TOOL_UNCERTAIN"
+    | "HUMAN_REQUIRED"
+    | "AUDIT_UNAVAILABLE"
+    | "PROVIDER_UNAVAILABLE"
+    | "WORKER_LOST"
+    | "AUTHORITY_REVOKED"
+    | "INVALID_RUN";
+}
+
+/**
+ * Coarse AI-only metadata; no prompts, human activity or ERP financial facts.
+ */
+export interface AgentRunCompletedData {
+  agent_key: string;
+  state: "completed";
+  code:
+    | "OK"
+    | "TURN_LIMIT"
+    | "TOOL_LIMIT"
+    | "TOKEN_LIMIT"
+    | "PAYLOAD_LIMIT"
+    | "INVALID_RESPONSE"
+    | "UNKNOWN_TOOL"
+    | "CALL_CONFLICT"
+    | "TOOL_UNCERTAIN"
+    | "HUMAN_REQUIRED"
+    | "AUDIT_UNAVAILABLE"
+    | "PROVIDER_UNAVAILABLE"
+    | "WORKER_LOST"
+    | "AUTHORITY_REVOKED"
+    | "INVALID_RUN";
+}
+
+/**
+ * Coarse AI-only metadata; no prompts, human activity or ERP financial facts.
+ */
+export interface AgentRunNeedsHumanData {
+  agent_key: string;
+  state: "needs_human";
+  code:
+    | "OK"
+    | "TURN_LIMIT"
+    | "TOOL_LIMIT"
+    | "TOKEN_LIMIT"
+    | "PAYLOAD_LIMIT"
+    | "INVALID_RESPONSE"
+    | "UNKNOWN_TOOL"
+    | "CALL_CONFLICT"
+    | "TOOL_UNCERTAIN"
+    | "HUMAN_REQUIRED"
+    | "AUDIT_UNAVAILABLE"
+    | "PROVIDER_UNAVAILABLE"
+    | "WORKER_LOST"
+    | "AUTHORITY_REVOKED"
+    | "INVALID_RUN";
+}
+
+/**
+ * Coarse AI-only metadata; no prompts, human activity or ERP financial facts.
+ */
+export interface AgentRunFailedData {
+  agent_key: string;
+  state: "failed" | "cancelled";
+  code:
+    | "OK"
+    | "TURN_LIMIT"
+    | "TOOL_LIMIT"
+    | "TOKEN_LIMIT"
+    | "PAYLOAD_LIMIT"
+    | "INVALID_RESPONSE"
+    | "UNKNOWN_TOOL"
+    | "CALL_CONFLICT"
+    | "TOOL_UNCERTAIN"
+    | "HUMAN_REQUIRED"
+    | "AUDIT_UNAVAILABLE"
+    | "PROVIDER_UNAVAILABLE"
+    | "WORKER_LOST"
+    | "AUTHORITY_REVOKED"
+    | "INVALID_RUN";
+}
+
+/**
+ * Coarse AI-only metadata; no prompts, human activity or ERP financial facts.
+ */
+export interface AgentProgressUpdatedData {
+  agent_key: string;
+  successful_runs: number;
+}
+
+/**
+ * Coarse developer task state, without code, prompts, paths or credentials.
+ */
+export interface DevTaskStartedData {
+  provider: "claude" | "codex";
+  state: "started";
+  sequence: number;
+}
+
+/**
+ * Coarse developer task state, without code, prompts, paths or credentials.
+ */
+export interface DevTaskUpdatedData {
+  provider: "claude" | "codex";
+  state: "running";
+  sequence: number;
+}
+
+/**
+ * Coarse developer task state, without code, prompts, paths or credentials.
+ */
+export interface DevTaskCompletedData {
+  provider: "claude" | "codex";
+  state: "completed";
+  sequence: number;
+}
+
+/**
+ * Coarse developer task state, without code, prompts, paths or credentials.
+ */
+export interface DevTaskFailedData {
+  provider: "claude" | "codex";
+  state: "failed";
+  sequence: number;
+}
+
 export interface EventDataMap {
   'erp.sales_order.submitted': ErpSalesOrderSubmittedData
   'erp.sales_order.cancelled': ErpSalesOrderCancelledData
@@ -282,6 +433,15 @@ export interface EventDataMap {
   'workflow.approval.requested': WorkflowApprovalRequestedData
   'workflow.approval.decided': WorkflowApprovalDecidedData
   'system.error': SystemErrorData
+  'agent.run.started': AgentRunStartedData
+  'agent.run.completed': AgentRunCompletedData
+  'agent.run.needs_human': AgentRunNeedsHumanData
+  'agent.run.failed': AgentRunFailedData
+  'agent.progress.updated': AgentProgressUpdatedData
+  'dev.task.started': DevTaskStartedData
+  'dev.task.updated': DevTaskUpdatedData
+  'dev.task.completed': DevTaskCompletedData
+  'dev.task.failed': DevTaskFailedData
 }
 
 export type TownEventOf<T extends EventType> = TownEventEnvelope & { type: T; data: EventDataMap[T] }

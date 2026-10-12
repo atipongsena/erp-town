@@ -1,0 +1,28 @@
+{
+  "renderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 3080 Ti (0x00002208) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+  "sampleCount": 4141,
+  "sampleDurationMs": 17254.6,
+  "peakCalls": 270,
+  "peakTriangles": 368028,
+  "textures": 27,
+  "geometries": 174,
+  "frameP95Ms": 4.300000000745058,
+  "workingMonitors": 2,
+  "dispatches": 1,
+  "idle": {
+    "sampleDurationMs": 3000,
+    "renderFrames": 6,
+    "actors": 3,
+    "dispatches": 0,
+    "source": "Connected polling fixture after all work ends; remaining demand frames may follow status observations."
+  },
+  "texturesAfterScopeLoss": 9,
+  "textureMemory": {
+    "actualGPUBytes": null,
+    "reason": "WebGL exposes counts but no reliable allocation/VRAM byte total.",
+    "ownedMonitorBaseRGBABytes": 1048576,
+    "ownedMonitorMipEstimateBytes": 1398102
+  },
+  "scope": "Actual desktop GPU; isolated authorized-state fixtures with 3 actors, 2 monitors, 1 finite dispatch and full HUD. Business correctness is covered separately by actual ERP acceptance.",
+  "errors": []
+}
