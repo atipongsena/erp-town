@@ -1,0 +1,297 @@
+.demo-workspace-switch {
+  display: flex;
+  border: 1px solid #c5d3ce;
+  border-radius: 10px;
+  padding: 3px;
+  margin: 0;
+  min-width: 0;
+  background: #edf1eb;
+}
+.demo-workspace-switch button {
+  min-height: 40px;
+  padding: 6px 16px;
+  border-radius: 7px;
+  background: transparent;
+  color: #39554e;
+}
+.demo-workspace-switch button[aria-pressed="true"] {
+  background: #324c50;
+  color: #fff;
+}
+.demo-erp {
+  min-width: 0;
+  overflow-y: auto;
+  padding: 28px;
+  background: #edf1eb;
+  color: #233c38;
+}
+.erp-heading,
+.erp-document-heading,
+.erp-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.erp-heading h1 {
+  font-size: clamp(20px, 2.2vw, 29px);
+  letter-spacing: -0.6px;
+  margin-top: 5px;
+}
+.erp-heading p,
+.erp-context,
+.erp-footer p,
+.erp-register p,
+.erp-empty p {
+  color: #52685e;
+  font-size: 12px;
+}
+.erp-sample {
+  padding: 5px 10px;
+  border: 1px solid #c7d4c5;
+  border-radius: 20px;
+  font-size: 11px;
+  white-space: nowrap;
+  background: #f8faf3;
+}
+.erp-context {
+  margin-top: 14px;
+}
+.erp-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+  margin: 20px 0;
+}
+.erp-metrics > div {
+  background: #fdfdf9;
+  border: 1px solid #d3ddd1;
+  border-radius: 12px;
+  padding: 14px 18px;
+}
+.erp-metrics span {
+  display: block;
+  font-size: 12px;
+  color: #52685e;
+}
+.erp-metrics strong,
+.erp-metrics output {
+  font-size: 27px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.erp-workspace {
+  display: grid;
+  grid-template-columns: 200px minmax(0, 1fr);
+  border: 1px solid #cbd8cb;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #fffefa;
+}
+.erp-register {
+  padding: 19px 12px;
+  background: #f5f7f0;
+  border-right: 1px solid #d3ddd1;
+}
+.erp-register h2,
+.erp-register > p {
+  margin: 0 8px 8px;
+}
+.erp-register button {
+  display: grid;
+  width: 100%;
+  gap: 4px;
+  padding: 13px 10px;
+  margin-top: 8px;
+  text-align: left;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  color: inherit;
+}
+.erp-register button:hover {
+  background: #e6eee2;
+}
+.erp-register button[aria-pressed="true"] {
+  background: #e0ecde;
+  border-color: #a0b99c;
+}
+.erp-register button > span {
+  font-size: 12px;
+}
+.erp-register .status {
+  justify-self: start;
+}
+.erp-document,
+.erp-empty {
+  min-width: 0;
+  padding: 22px;
+}
+.erp-document-heading {
+  border-bottom: 1px solid #dce3d7;
+  padding-bottom: 16px;
+}
+.erp-document h3 {
+  margin: 3px 0 0;
+  font-size: 21px;
+  letter-spacing: -0.5px;
+}
+.erp-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin: 18px 0 22px;
+  font-size: 12px;
+}
+.erp-fields dt {
+  color: #52685e;
+  font-size: 11px;
+}
+.erp-fields dd {
+  margin: 3px 0 0;
+  overflow-wrap: anywhere;
+}
+.erp-items {
+  overflow-x: auto;
+}
+.erp-items table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 12px;
+}
+.erp-items caption {
+  text-align: left;
+  font-weight: 600;
+  padding-bottom: 8px;
+}
+.erp-items th,
+.erp-items td {
+  padding: 10px 8px;
+  border-bottom: 1px solid #dce3d7;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.erp-items th {
+  color: #52685e;
+  background: #f0f4ec;
+  font-size: 11px;
+}
+.erp-items td span {
+  display: block;
+  color: #52685e;
+}
+.erp-totals {
+  max-width: 300px;
+  margin: 20px 0 20px auto;
+  font-size: 12px;
+}
+.erp-totals > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 6px 0;
+}
+.erp-totals > div:nth-child(3) {
+  border-top: 1px solid #bdcfb7;
+  margin-top: 5px;
+  padding-top: 12px;
+  font-size: 15px;
+  font-weight: 600;
+}
+.erp-totals dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+.erp-show-town,
+.erp-footer button {
+  border: 1px solid #b9cbb3;
+  border-radius: 8px;
+  min-height: 44px;
+  padding: 8px 12px;
+  background: #edf3e8;
+  color: #2e5040;
+  font-size: 12px;
+}
+.erp-payment {
+  padding: 20px;
+  border-radius: 10px;
+  background: #e4f0df;
+  margin: 20px 0;
+  font-size: 12px;
+}
+.erp-payment strong {
+  display: block;
+  font-size: 27px;
+  margin: 4px 0;
+}
+.erp-register button strong {
+  font-size: 13px;
+}
+.erp-empty {
+  padding: 40px 24px;
+}
+.erp-empty h2 {
+  margin: 10px 0;
+}
+.erp-footer {
+  margin-top: 18px;
+  align-items: start;
+}
+.erp-footer button {
+  flex: none;
+}
+@media (max-width: 1150px) {
+  .demo-app .masthead {
+    gap: 12px;
+    padding: 0 18px;
+  }
+  .demo-app .header-actions {
+    gap: 12px;
+  }
+  .demo-erp {
+    padding: 18px;
+  }
+  .erp-workspace {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .erp-register {
+    border-right: 0;
+    border-bottom: 1px solid #d3ddd1;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+  }
+  .erp-register h2,
+  .erp-register > p {
+    grid-column: 1 / -1;
+  }
+  .erp-register button {
+    margin-top: 0;
+  }
+}
+@media (max-width: 850px) {
+  .demo-erp {
+    overflow-y: visible;
+  }
+  .demo-app .masthead {
+    height: auto;
+    min-height: 80px;
+    flex-wrap: wrap;
+    padding: 12px 16px;
+  }
+  .demo-app .header-actions {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .demo-workspace-switch button {
+    padding: 6px 12px;
+  }
+  .erp-heading,
+  .erp-footer {
+    flex-wrap: wrap;
+  }
+  .erp-document {
+    padding: 16px;
+  }
+}

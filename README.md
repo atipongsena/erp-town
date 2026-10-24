@@ -9,6 +9,14 @@ Thai and English are supported.
 > The full local demo creates actual documents only on `test.localhost` and restores
 > that site's database when stopped. The AI demonstration uses a local test provider.
 
+![ERP document workspace showing a sample sales invoice, items, VAT and payment status](docs/media/erp-workspace.jpg)
+
+[**Explore the ERP workspace**](https://atipongsena.github.io/erp-town/?view=erp&scene=7&lang=en)
+or [**visit the 3D town**](https://atipongsena.github.io/erp-town/).
+Switch between the two views to see business documents and the departments doing the work.
+The ERP workspace above is an ERP Town sample interface; actual ERPNext records are
+available through the full-stack local demo below.
+
 ![ERP-connected desktop dashboard during a recorded dispatch](docs/town-simulation-final-dispatch-2026-10-12.png)
 
 ![Connected narrow layout with concurrent demonstration teams](docs/media/live-town.jpg)
@@ -22,6 +30,10 @@ presentation: they do not repeat orders, deliveries, invoices or payments.
 ## Try it
 
 [**Play the online showcase on GitHub Pages**](https://atipongsena.github.io/erp-town/).
+Choose **ERP workspace** in the header to inspect sample business documents, or
+**3D town** to explore the office. The
+[completed ERP example](https://atipongsena.github.io/erp-town/?view=erp&scene=7&lang=en)
+opens all four sample documents immediately.
 Select Observer to watch concurrent motion, or switch to AI/Manager/Warehouse/Accounts
 to practice the sample handoffs. Use the town animation checkbox to pause motion.
 The source repository is private; the online sample website is publicly viewable.
@@ -32,13 +44,31 @@ The online showcase and full local ERP demo have different capabilities:
 
 | Experience | What you can do | Backend |
 | --- | --- | --- |
-| Online showcase | Explore six departments, switch illustrative roles, walk through order-to-payment handoffs, change lighting, pause motion, watch concurrent staff and a circulating truck | Browser-local sample data; no login, ERP writes or model calls |
+| Online showcase | Switch between the 3D town and ERP workspace; inspect sample orders, deliveries, invoices and receipts; explore six departments and role-based handoffs, lighting and motion | Browser-local sample data; no login, ERP writes or model calls |
 | Full local demo | Inspect real submitted sales orders, delivery notes, invoices and payments; view the connected town, dashboard and Classic ERP | Docker ERPNext/HRMS, Go, Redis and PostgreSQL |
 | Connected development workspace | Work with your actual local company's permissions, explicit document actions, world updates, avatars and session replay | Separately provisioned local gateway/world reader |
 
 GitHub Pages hosts static HTML, CSS and JavaScript. It cannot run ERPNext, the Go
 service or these databases. A remotely accessible full ERP deployment needs a
 separate Docker-capable host and completion of the pilot acceptance work.
+
+### ERP in the online demo
+
+The ERP workspace shows the same **SO → DN → SI → PE** story as the town:
+
+| Document | What the preview shows |
+| --- | --- |
+| Sales Order | Customer, notebook line item, quantity, unit price, sample VAT and total |
+| Delivery Note | Submitted dispatch and inventory changing from 100 to 80 notebooks |
+| Sales Invoice | Draft versus submitted status, invoice total and outstanding balance |
+| Payment Entry | Receipt linked to the sample invoice; the balance becomes zero only at the payment scene |
+
+Use **Next scene**, **Back** or **Reset** to inspect how documents change, or
+**View completed example** to jump to the final sample. Both views share the story
+and selected role. Warehouse hides prices and accounting documents immediately;
+the role policy illustrates access and does not grant live ERP permissions.
+Thai/English switching and the ERP workspace work on small screens without WebGL.
+All sample changes remain in memory and disappear on reload.
 
 ### Full stack local demo
 
@@ -68,6 +98,7 @@ For a frontend-only preview:
 ```sh
 pnpm dev:client
 # Open the printed URL with ?mode=demo&lang=th
+# ERP document preview: ?mode=demo&view=erp&scene=7&lang=th
 ```
 
 For the connected development workspace, follow

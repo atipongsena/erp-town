@@ -1,6 +1,7 @@
 import { useReducedMotion } from 'motion/react'
 import { lazy, Suspense, useEffect, useState } from 'react'
 import { copy, departmentNames, statusLabel } from './copy.ts'
+import { DemoErpDesk } from './DemoErpDesk.tsx'
 import {
   canAct,
   canView,
@@ -52,7 +53,13 @@ export function DemoApp() {
   const t = (thai: string, english: string) => (th ? thai : english)
   const reduced = useReducedMotion() ?? false
   const [role, setRole] = useState<DemoRole>('observer')
-  const [step, setStep] = useState(0)
+  const [workspace, setWorkspace] = useState(() =>
+    new URLSearchParams(window.location.search).get('view') === 'erp' ? 'erp' : 'town',
+  )
+  const [step, setStep] = useState(() => {
+    const scene = Number(new URLSearchParams(window.location.search).get('scene'))
+    return Number.isInteger(scene) && scene >= 1 && scene <= demoSteps.length ? scene - 1 : 0
+  })
   const [playing, setPlaying] = useState(false)
   const [selected, select] = useState<Department>()
   const [tab, setTab] = useState<'work' | 'rights'>('work')
@@ -66,7 +73,7 @@ export function DemoApp() {
     `showcase:${role}`,
     role === 'observer',
     true,
-    motionEnabled,
+    motionEnabled && workspace === 'town',
   )
   const staticDemo = import.meta.env.VITE_TOWN_STATIC_DEMO === 'true'
   const view = demoSnapshot(step, role)
@@ -150,6 +157,25 @@ export function DemoApp() {
           </div>
         </div>
         <div className="header-actions">
+          <fieldset
+            className="demo-workspace-switch"
+            aria-label={t('หน้าจอทำงาน', 'Workspace view')}
+          >
+            <button
+              type="button"
+              aria-pressed={workspace === 'town'}
+              onClick={() => setWorkspace('town')}
+            >
+              {t('เมือง 3D', '3D town')}
+            </button>
+            <button
+              type="button"
+              aria-pressed={workspace === 'erp'}
+              onClick={() => setWorkspace('erp')}
+            >
+              {t('ระบบ ERP', 'ERP workspace')}
+            </button>
+          </fieldset>
           <fieldset className="language-switch" aria-label={t('ภาษา', 'Language')}>
             <button type="button" aria-pressed={th} onClick={() => setLanguage('th')}>
               ไทย
@@ -180,98 +206,113 @@ export function DemoApp() {
         </span>
       </div>
       <main className="workspace">
-        <section className="town-view" aria-label={t('เมืองจำลอง', 'Demo town')}>
-          <div className="scene-container">
-            <Suspense fallback={null}>
-              <Scene
-                sceneTime={sceneTime}
-                language={language}
-                selected={selected}
-                reduced={reduced}
-                economy={economy}
-                motionEnabled={motionEnabled}
-                workActors={presentation.looping ? presentation.actors : undefined}
-                workSimulation={presentation.looping ? presentation.work : undefined}
-                deliveryTrips={presentation.trips}
-                deliverySimulation={presentation.delivery}
-                onSelectTrip={() => select('warehouse')}
-                handoff={handoff}
-                onSelect={(d) => {
-                  select(d)
-                  setNotice(false)
-                }}
-                onError={() => setAssetError(true)}
-                onReady={() => setReady(true)}
-                presences={view.people
-                  .toSorted((a, b) => Number(b.id === event?.actor) - Number(a.id === event?.actor))
-                  .map((p) => ({
-                    id: p.id,
-                    department: p.department,
-                    appearance: p.appearance,
-                    emote: event?.actor === p.id ? 'wave' : 'idle',
-                  }))}
-                aiCount={canView(role, 'it') && (step === 1 || step === 4) ? 1 : 0}
-              />
-            </Suspense>
-          </div>
-          <div className="scene-caption">
-            <span className="live-dot historical" /> DEMO COMPANY · {roleNames[role][language]}
-          </div>
-          <div className="demo-scene-story" aria-live="polite">
-            <small>
-              {t('ฉาก', 'Scene')} {step + 1} / {demoSteps.length}
-            </small>
-            <strong>
-              {visibleEvent
-                ? event.title[language]
-                : t('งานในแผนกอื่น', 'Work in another department')}
-            </strong>
-            <span>
-              {visibleEvent
-                ? event.detail[language]
-                : t(
-                    'บทบาทนี้ดูรายละเอียดส่วนนี้ไม่ได้ สลับเป็นผู้ชมเพื่อดูภาพรวม',
-                    'This role cannot view these details. Switch to Observer for the full picture.',
-                  )}
-            </span>
-          </div>
-          <div className="scene-tools">
-            <EnvironmentControl language={language} />
-            <label className="demo-motion">
-              <input
-                type="checkbox"
-                checked={motionEnabled}
-                onChange={(e) => setMotionEnabled(e.target.checked)}
-              />
-              {t('ภาพเคลื่อนไหวในเมือง', 'Town animation')}
-            </label>
-            <button type="button" onClick={() => select(undefined)}>
-              {copy[language].overview} ⌂
-            </button>
-            <label>
-              {copy[language].quality}
-              <select
-                value={economy ? 'low' : 'standard'}
-                onChange={(e) => setEconomy(e.target.value === 'low')}
-              >
-                <option value="standard">{copy[language].standard}</option>
-                <option value="low">{copy[language].low}</option>
-              </select>
-            </label>
-          </div>
-          <div className="scene-footer">
-            <span>
-              {assetError
-                ? copy[language].assetError
-                : ready
-                  ? t(
-                      'เลือกอาคารเพื่อดูงาน · ตัวละครในภาพเป็นตัวอย่าง',
-                      'Select a building to see its work · Characters are illustrative',
+        {workspace === 'erp' ? (
+          <DemoErpDesk
+            language={language}
+            role={role}
+            view={view}
+            onCompleteExample={() => move(6)}
+            onShowTown={(department) => {
+              select(department)
+              setWorkspace('town')
+            }}
+          />
+        ) : (
+          <section className="town-view" aria-label={t('เมืองจำลอง', 'Demo town')}>
+            <div className="scene-container">
+              <Suspense fallback={null}>
+                <Scene
+                  sceneTime={sceneTime}
+                  language={language}
+                  selected={selected}
+                  reduced={reduced}
+                  economy={economy}
+                  motionEnabled={motionEnabled}
+                  workActors={presentation.looping ? presentation.actors : undefined}
+                  workSimulation={presentation.looping ? presentation.work : undefined}
+                  deliveryTrips={presentation.trips}
+                  deliverySimulation={presentation.delivery}
+                  onSelectTrip={() => select('warehouse')}
+                  handoff={handoff}
+                  onSelect={(d) => {
+                    select(d)
+                    setNotice(false)
+                  }}
+                  onError={() => setAssetError(true)}
+                  onReady={() => setReady(true)}
+                  presences={view.people
+                    .toSorted(
+                      (a, b) => Number(b.id === event?.actor) - Number(a.id === event?.actor),
                     )
-                  : copy[language].loading}
-            </span>
-          </div>
-        </section>
+                    .map((p) => ({
+                      id: p.id,
+                      department: p.department,
+                      appearance: p.appearance,
+                      emote: event?.actor === p.id ? 'wave' : 'idle',
+                    }))}
+                  aiCount={canView(role, 'it') && (step === 1 || step === 4) ? 1 : 0}
+                />
+              </Suspense>
+            </div>
+            <div className="scene-caption">
+              <span className="live-dot historical" /> DEMO COMPANY · {roleNames[role][language]}
+            </div>
+            <div className="demo-scene-story" aria-live="polite">
+              <small>
+                {t('ฉาก', 'Scene')} {step + 1} / {demoSteps.length}
+              </small>
+              <strong>
+                {visibleEvent
+                  ? event.title[language]
+                  : t('งานในแผนกอื่น', 'Work in another department')}
+              </strong>
+              <span>
+                {visibleEvent
+                  ? event.detail[language]
+                  : t(
+                      'บทบาทนี้ดูรายละเอียดส่วนนี้ไม่ได้ สลับเป็นผู้ชมเพื่อดูภาพรวม',
+                      'This role cannot view these details. Switch to Observer for the full picture.',
+                    )}
+              </span>
+            </div>
+            <div className="scene-tools">
+              <EnvironmentControl language={language} />
+              <label className="demo-motion">
+                <input
+                  type="checkbox"
+                  checked={motionEnabled}
+                  onChange={(e) => setMotionEnabled(e.target.checked)}
+                />
+                {t('ภาพเคลื่อนไหวในเมือง', 'Town animation')}
+              </label>
+              <button type="button" onClick={() => select(undefined)}>
+                {copy[language].overview} ⌂
+              </button>
+              <label>
+                {copy[language].quality}
+                <select
+                  value={economy ? 'low' : 'standard'}
+                  onChange={(e) => setEconomy(e.target.value === 'low')}
+                >
+                  <option value="standard">{copy[language].standard}</option>
+                  <option value="low">{copy[language].low}</option>
+                </select>
+              </label>
+            </div>
+            <div className="scene-footer">
+              <span>
+                {assetError
+                  ? copy[language].assetError
+                  : ready
+                    ? t(
+                        'เลือกอาคารเพื่อดูงาน · ตัวละครในภาพเป็นตัวอย่าง',
+                        'Select a building to see its work · Characters are illustrative',
+                      )
+                    : copy[language].loading}
+              </span>
+            </div>
+          </section>
+        )}
         <aside className="sidebar">
           <section id="demo-controls" className="demo-controls">
             <span className="eyebrow">A DAY AT DEMO COMPANY</span>

@@ -14,6 +14,17 @@ The live workspace also links to it. It mounts a separate host without ERP sessi
 API calls, world sockets, credential access or provider calls, even with `connect=1`.
 All records, people, amounts and actions are local sample data, discarded on reload.
 
+The header switches between **3D town** and **ERP workspace**, sharing the same
+story and role. `/?mode=demo&view=erp&scene=7&lang=en` opens the completed document
+example; `scene=1` through `scene=7` select a story scene, with invalid values
+starting at scene 1. The ERP view lists the visible SO/DN/SI/PE records and shows
+customer, items, status, sample VAT, invoice balance and payment reference. It does
+not mount the 3D renderer and works without WebGL. Role changes derive selection
+from the newly filtered records immediately; Warehouse sees neither prices nor
+accounting documents. **View completed example** is a playback shortcut, with no
+transaction permissions or ERP writes. Actual records remain in the connected
+document desk and Classic ERP through the full-stack local demo.
+
 Use **Play story**, **Next scene** or **Back** to preview the seven scenes of an
 SO -> DN -> SI -> PE handoff. For interactive work, change roles to AI -> Manager ->
 Warehouse -> AI -> Accounts, then use the next-task action. AI prepares drafts;
